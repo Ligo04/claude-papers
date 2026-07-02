@@ -1,0 +1,21 @@
+{
+  "title": "Fast Sparse Matrix Permutation for Mesh-Based Direct Solvers",
+  "authors": [
+    "Behrooz Zarebavani",
+    "Ahmed H. Mahmoud",
+    "Ana Dodik",
+    "Changcheng Yuan",
+    "Serban D. Porumbescu",
+    "John D. Owens",
+    "Maryam Mehri Dehnavi",
+    "Justin Solomon"
+  ],
+  "abstract": "We present a fast sparse matrix permutation algorithm tailored to linear systems arising from triangle meshes. Our approach produces nested-dissection-style permutations while significantly reducing permutation runtime overhead. Rather than enforcing strict balance and separator optimality, the algorithm deliberately relaxes these design decisions to favor fast partitioning and efficient elimination-tree construction. Our method decomposes permutation into patch-level local orderings and a compact quotient-graph ordering of separators, preserving the essential structure required by sparse Cholesky factorization while avoiding its most expensive components. We integrate our algorithm into vendor-maintained sparse Cholesky solvers on both CPUs and GPUs. Across a range of graphics applications, including single factorizations and repeated factorizations, our method reduces permutation time and improves the sparse Cholesky solve performance by up to 6.27x.",
+  "year": 2026,
+  "date": "2026-02-01",
+  "venue": "SIGGRAPH Conference Papers '26",
+  "arxiv": "2602.00898",
+  "tags": ["sparse direct solvers", "nested dissection"],
+  "githubLinks": ["https://github.com/BehroozZare/fast-permute"],
+  "codeLinks": ["https://github.com/BehroozZare/fast-permute"]
+}

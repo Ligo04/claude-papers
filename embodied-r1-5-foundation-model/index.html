@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embodied-R1.5 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0c1018; --panel:#141b26; --panel2:#1b2433; --border:#26313f;
+    --txt:#e6edf3; --muted:#9aa7b4; --dim:#6b7888;
+    --er:#3b82f6; --er2:#60a5fa; --accent:#f59e0b; --good:#22c55e; --bad:#ef4444;
+    --cog:#22c5b8; --plan:#f59e0b; --point:#a855f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px 80px}
+  header{padding:34px 18px 18px;text-align:center;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#101724,#0c1018)}
+  header h1{margin:0 0 6px;font-size:26px;letter-spacing:.3px}
+  header .sub{color:var(--muted);font-size:14px;margin:0 auto;max-width:760px}
+  header .meta{color:var(--dim);font-size:12.5px;margin-top:10px}
+  .badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+  .badge{background:var(--panel2);border:1px solid var(--border);border-radius:20px;
+    padding:5px 13px;font-size:12.5px;color:var(--muted)}
+  .badge b{color:var(--er2)}
+  nav{position:sticky;top:0;z-index:20;background:rgba(12,16,24,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);display:flex;gap:4px;overflow-x:auto;padding:8px 12px}
+  nav button{background:transparent;border:0;color:var(--muted);padding:8px 14px;border-radius:8px;
+    cursor:pointer;font-size:13.5px;white-space:nowrap;font-family:inherit;transition:.15s}
+  nav button:hover{color:var(--txt);background:var(--panel)}
+  nav button.active{color:#fff;background:var(--er)}
+  section{display:none;animation:fade .35s ease}
+  section.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h2{font-size:21px;margin:30px 0 6px;display:flex;align-items:center;gap:10px}
+  h2 .tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;background:var(--panel2);color:var(--muted)}
+  .lead{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:820px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin:16px 0}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .col{flex:1;min-width:260px}
+  .ctrl{margin:14px 0}
+  .ctrl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .ctrl label b{color:var(--er2);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--er);height:5px}
+  .pills{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .pill{padding:5px 11px;border-radius:18px;border:1px solid var(--border);background:var(--panel2);
+    color:var(--muted);cursor:pointer;font-size:12.5px;user-select:none;transition:.15s}
+  .pill:hover{color:var(--txt)}
+  .pill.on{background:var(--er);color:#fff;border-color:var(--er)}
+  .note{font-size:12.5px;color:var(--dim);margin-top:10px;border-left:2px solid var(--border);padding-left:12px}
+  .kpi{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 0}
+  .kpi .k{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+  .kpi .k .v{font-size:24px;font-weight:700;color:var(--er2)}
+  .kpi .k .v.acc{color:var(--accent)}
+  .kpi .k .l{font-size:12px;color:var(--muted)}
+  canvas{display:block;width:100%;border-radius:8px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--border)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted);font-weight:600;font-size:12px}
+  tr.ours td{background:rgba(59,130,246,.12);font-weight:600}
+  tr.ours td:first-child{color:var(--er2)}
+  .barwrap{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12.5px}
+  .barwrap .nm{width:150px;color:var(--muted);text-align:right;flex-shrink:0}
+  .barwrap .tr{flex:1;background:var(--panel2);border-radius:5px;overflow:hidden;height:20px;position:relative}
+  .barwrap .fl{height:100%;border-radius:5px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+  .barwrap .vv{width:46px;text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .step{display:flex;gap:12px;align-items:flex-start;padding:11px 14px;border:1px solid var(--border);
+    border-radius:10px;margin:8px 0;background:var(--panel2);opacity:.4;transition:.3s}
+  .step.active{opacity:1;border-color:var(--er);box-shadow:0 0 0 1px var(--er)}
+  .step.done{opacity:.85}
+  .step .ix{width:26px;height:26px;border-radius:50%;background:var(--panel);display:flex;
+    align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:1px solid var(--border)}
+  .step.done .ix{background:var(--good);color:#06240f;border-color:var(--good)}
+  .step.fail .ix{background:var(--bad);color:#2a0808;border-color:var(--bad)}
+  .role{font-size:11px;padding:2px 7px;border-radius:5px;margin-right:6px;font-weight:600}
+  .role.P{background:rgba(245,158,11,.18);color:var(--plan)}
+  .role.G{background:rgba(168,85,247,.18);color:var(--point)}
+  .role.C{background:rgba(34,197,184,.18);color:var(--cog)}
+  .btn{background:var(--er);color:#fff;border:0;border-radius:9px;padding:9px 18px;cursor:pointer;
+    font-size:13.5px;font-family:inherit;margin:6px 6px 0 0}
+  .btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--border)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .toggle{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+  .sw{width:42px;height:23px;background:var(--panel2);border:1px solid var(--border);border-radius:13px;position:relative;transition:.2s}
+  .sw::after{content:"";position:absolute;width:17px;height:17px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:.2s}
+  .toggle.on .sw{background:var(--er);border-color:var(--er)}
+  .toggle.on .sw::after{left:21px;background:#fff}
+  .eq{font-family:"SF Mono",Menlo,Consolas,monospace;background:var(--panel2);border:1px solid var(--border);
+    border-radius:8px;padding:10px 14px;font-size:13.5px;color:var(--er2);overflow-x:auto;white-space:nowrap}
+  .mono{font-family:"SF Mono",Menlo,Consolas,monospace}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:720px){.grid3{grid-template-columns:1fr}}
+  .dimcard{border-radius:12px;padding:16px;border:1px solid var(--border);cursor:pointer;transition:.2s;background:var(--panel2)}
+  .dimcard:hover{transform:translateY(-2px)}
+  .dimcard h3{margin:0 0 4px;font-size:15px}
+  .dimcard .sc{font-size:28px;font-weight:700}
+  .dimcard ul{margin:8px 0 0;padding-left:18px;font-size:12.5px;color:var(--muted)}
+  .foot{text-align:center;color:var(--dim);font-size:12px;margin-top:40px;padding-top:20px;border-top:1px solid var(--border)}
+  a{color:var(--er2)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Embodied-R1.5 交互式探索器</h1>
+  <p class="sub">通过具身基础模型演进物理智能 · 把认知 / 规划 / 指向三大能力统一进单个 8B VLM，
+  用全自动数据流水线 + 多任务平衡 RL 训强"具身大脑"，再用 PGC 闭环让一个模型自规划、自定位、自纠错。</p>
+  <div class="meta">arXiv:2606.11324v1 · Tianjin University &amp; Tencent Hunyuan · 2026-06-09</div>
+  <div class="badges">
+    <div class="badge">参数 <b>8B</b></div>
+    <div class="badge">24 基准中 <b>16</b> 项 SOTA</div>
+    <div class="badge">21 主基准均分 <b>70.4%</b></div>
+    <div class="badge">超 Gemini-Robotics-ER-1.5 <b>+17.0%</b></div>
+    <div class="badge">数据 <b>&gt;15B</b> tokens</div>
+  </div>
+</header>
+
+<nav id="nav">
+  <button class="active" data-s="overview">① 三大能力</button>
+  <button data-s="bench">② 基准雷达</button>
+  <button data-s="rl">③ 平衡 RL ★</button>
+  <button data-s="reward">④ 奖励函数</button>
+  <button data-s="pgc">⑤ PGC 闭环</button>
+  <button data-s="vla">⑥ VLA 内化</button>
+</nav>
+
+<div class="wrap">
+
+<!-- ===================== ① OVERVIEW ===================== -->
+<section class="active" id="overview">
+  <h2>统一的三大具身能力维度 <span class="tag">点击卡片展开</span></h2>
+  <p class="lead">Embodied-R1.5 把一个具身基础模型(EFM)所需能力归纳为三个互补维度，构成"感知→决策→执行"的递进推理链，
+  并首次把三者统一进<b>同一个 8B VLM</b>——信息在能力间自由流动，无需外部通信。下方分数为该维度在对应具身基准上的平均分。</p>
+  <div class="grid3">
+    <div class="dimcard" style="border-top:3px solid var(--cog)" data-dim="cog">
+      <h3 style="color:var(--cog)">认知与空间推理</h3>
+      <div class="sc" style="color:var(--cog)">70.2</div>
+      <div style="font-size:12px;color:var(--dim)">8 基准平均 · 维度第一</div>
+      <ul>
+        <li>空间关系理解（方位/支撑/遮挡）</li>
+        <li>度量空间推理（距离/尺寸）</li>
+        <li>3D 场景感知（单目深度/跨视图）</li>
+        <li>物体与场景认知（机器人视角）</li>
+      </ul>
+    </div>
+    <div class="dimcard" style="border-top:3px solid var(--plan)" data-dim="plan">
+      <h3 style="color:var(--plan)">规划与纠错</h3>
+      <div class="sc" style="color:var(--plan)">65.3</div>
+      <div style="font-size:12px;color:var(--dim)">4 基准平均 · 超对手 +24pp</div>
+      <ul>
+        <li>长程任务分解</li>
+        <li>下一步规划</li>
+        <li>过程检测（子任务是否完成）</li>
+        <li>错误定位 + 错误纠正</li>
+      </ul>
+    </div>
+    <div class="dimcard" style="border-top:3px solid var(--point)" data-dim="point">
+      <h3 style="color:var(--point)">指向与定位</h3>
+      <div class="sc" style="color:var(--point)">72.8</div>
+      <div style="font-size:12px;color:var(--dim)">9 基准全 SOTA · 签名能力</div>
+      <ul>
+        <li>REG 指代表达 grounding</li>
+        <li>RRG 区域指代 grounding</li>
+        <li>OFG 物体功能部件 grounding</li>
+        <li>VTG 视觉轨迹生成（2D/3D）</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" id="dimDetail" style="display:none"></div>
+
+  <h2>四件套配方</h2>
+  <div class="row">
+    <div class="col card" style="margin:8px 0">
+      <b style="color:var(--er2)">① 统一单模型</b>
+      <p style="font-size:13px;color:var(--muted);margin:6px 0 0">三能力进同一 Qwen3-VL-8B；一切输出皆纯文本 token，坐标归一化 [0,1000]，无特殊 token。</p>
+    </div>
+    <div class="col card" style="margin:8px 0">
+      <b style="color:var(--er2)">② 三条自动数据流水线</b>
+      <p style="font-size:13px;color:var(--muted);margin:6px 0 0">ER1.5-Spatial(~20K) + ER1.5-Correction(~800K) + ER1.5-Pointing(~400K)，合计 &gt;15B tokens。</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col card" style="margin:8px 0">
+      <b style="color:var(--er2)">③ 多任务平衡 RL</b>
+      <p style="font-size:13px;color:var(--muted);margin:6px 0 0">SFT→RFT 两阶段；难度筛选 + 动态过滤 + 全局批奖励归一化 + 自适应思考。</p>
+    </div>
+    <div class="col card" style="margin:8px 0">
+      <b style="color:var(--er2)">④ PGC 闭环</b>
+      <p style="font-size:13px;color:var(--muted);margin:6px 0 0">单模型异步扮演 Planner/Grounder/Corrector，无脑外壳，随模型能力 scaling。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ② BENCHMARKS ===================== -->
+<section id="bench">
+  <h2>具身 VLM 基准对比 <span class="tag">真实论文数据 · 表1–3</span></h2>
+  <p class="lead">三个能力维度上，Embodied-R1.5(8B) 与通用大模型及具身模型的对比。勾选/取消模型查看对比；
+  Embodied-R1.5 以蓝色高亮。注意：在指向维度优势最大，认知维度因强通用模型已很强而差距较小。</p>
+  <div class="card">
+    <div class="pills" id="modelPills"></div>
+    <div class="legend" style="margin-top:4px">
+      <span><i style="background:var(--cog)"></i>认知与空间推理 (8基准均分)</span>
+      <span><i style="background:var(--plan)"></i>规划与纠错 (4基准均分)</span>
+      <span><i style="background:var(--point)"></i>指向与定位 (9基准均分)</span>
+    </div>
+    <div id="benchBars" style="margin-top:14px"></div>
+  </div>
+  <div class="card">
+    <b style="font-size:14px">指向维度细分（表2，9 个基准 + 均分）</b>
+    <div style="overflow-x:auto"><table id="pointTable"></table></div>
+  </div>
+</section>
+
+<!-- ===================== ③ BALANCED RL ===================== -->
+<section id="rl">
+  <h2>多任务平衡 RL 配方 <span class="tag">核心贡献 · §4.2.1</span></h2>
+  <p class="lead">把异构任务放一起做 GRPO，会遇到两种不平衡。本文的优势归一化用
+  <b>组均值 μ_group 定方向</b>（保留 GRPO 组内保序）+ <b>全局批标准差 σ_batch 定步长</b>（统一跨任务梯度量级）。
+  下面亲手调节"某个 rollout 组"的奖励分布，观察三种归一化的差异。</p>
+
+  <div class="eq" style="margin-bottom:14px">Â<sub>i</sub> = ( R<sub>i</sub> − μ<sub>group</sub> ) / ( σ<sub>batch</sub> + ε )　　★ 本文式</div>
+
+  <div class="card">
+    <div class="row">
+      <div class="col">
+        <div class="ctrl">
+          <label>组内难度（= 组内奖励标准差 σ_group）<b id="vSg">0.27</b></label>
+          <input type="range" id="sgSlider" min="0.02" max="0.45" step="0.01" value="0.27">
+          <div class="note" id="diffNote"></div>
+        </div>
+        <div class="ctrl">
+          <label>全局批标准差 σ_batch（整批的奖励离散度，固定参考）<b id="vSb">0.32</b></label>
+          <input type="range" id="sbSlider" min="0.10" max="0.50" step="0.01" value="0.32">
+        </div>
+        <div class="pills">
+          <span class="pill on" data-preset="easy">易(低方差)</span>
+          <span class="pill" data-preset="medium">中(高方差)★</span>
+          <span class="pill" data-preset="hard">难(低方差)</span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="kpi">
+          <div class="k"><div class="v" id="kpiVanilla">—</div><div class="l">Vanilla GRPO 平均|Â|<br>(÷σ_group)</div></div>
+          <div class="k"><div class="v acc" id="kpiPaper">—</div><div class="l">本文配方 平均|Â|<br>(÷σ_batch)</div></div>
+        </div>
+        <div class="note" id="rlVerdict"></div>
+      </div>
+    </div>
+    <canvas id="rlCanvas" height="240"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--dim)"></i>原始奖励 R</span>
+      <span><i style="background:var(--accent)"></i>Vanilla GRPO Â (÷σ_group → 恒为单位方差)</span>
+      <span><i style="background:var(--er)"></i>本文 Â (÷σ_batch → ∝真实方差)</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <b style="font-size:14px">三难度同时看：谁主导梯度？</b>
+    <p style="font-size:12.5px;color:var(--muted);margin:4px 0 10px">
+    Vanilla GRPO 把每组都拉成单位方差 → 易/中/难贡献被<b>拉平</b>，中等难度(信号最强)没被突出；
+    本文 ÷σ_batch → 量级 ∝ 真实方差 → <b>中等难度自然主导</b>，太易/太难被降权。</p>
+    <div id="threeBars"></div>
+  </div>
+</section>
+
+<!-- ===================== ④ REWARD ===================== -->
+<section id="reward">
+  <h2>奖励函数：分段线性衰减 <span class="tag">§4.2.2 · 式1</span></h2>
+  <p class="lead">连续值奖励（点距、轨迹 RMSE）共用一个<b>分段线性衰减</b>框架，提供稠密的"部分奖励"信号，
+  避免二元奖励的梯度稀疏。调节阈值 τ_p（满分边界）与 τ_z（零分边界），拖动距离 d 看奖励变化。</p>
+  <div class="eq" style="margin-bottom:14px">φ(d; τ<sub>p</sub>, τ<sub>z</sub>) = clip( (τ<sub>z</sub> − d) / (τ<sub>z</sub> − τ<sub>p</sub>), 0, 1 )</div>
+  <div class="card">
+    <div class="pills">
+      <span class="pill on" data-rp="40" data-rz="150">点距奖励 (40,150)</span>
+      <span class="pill" data-rp="50" data-rz="120">2D轨迹RMSE (50,120)</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="col">
+        <div class="ctrl"><label>τ_p 满分边界<b id="vrp">40</b></label><input type="range" id="rpSlider" min="0" max="100" step="5" value="40"></div>
+        <div class="ctrl"><label>τ_z 零分边界<b id="vrz">150</b></label><input type="range" id="rzSlider" min="60" max="220" step="5" value="150"></div>
+        <div class="ctrl"><label>当前距离 d（px）<b id="vd">70</b></label><input type="range" id="dSlider" min="0" max="220" step="2" value="70"></div>
+        <div class="kpi"><div class="k"><div class="v acc" id="phiVal">—</div><div class="l">奖励 φ(d)</div></div></div>
+        <div class="note" id="phiNote"></div>
+      </div>
+      <div class="col"><canvas id="rwCanvas" height="220"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <b style="font-size:14px">五类奖励家族</b>
+    <table>
+      <thead><tr><th>奖励家族</th><th>适用任务</th><th>设计</th></tr></thead>
+      <tbody style="font-size:12.5px">
+        <tr><td>精确匹配</td><td>选择题/数值/数学</td><td>{0,1} 二元，灵活匹配</td></tr>
+        <tr><td>IoU</td><td>空间grounding(框)</td><td>|b∩b*|/|b∪b*| ∈[0,1]</td></tr>
+        <tr><td>点距</td><td>点定位</td><td>φ(d_nn; 40,150) + 计数惩罚0.3</td></tr>
+        <tr><td>轨迹RMSE</td><td>2D/3D视觉轨迹</td><td>φ(RMSE;50,120) + 长度惩罚0.35 + 单点=0</td></tr>
+        <tr><td>语义相似度</td><td>开放文本(纠错/计划)</td><td>奖励模型打分→sigmoid归一化</td></tr>
+      </tbody>
+    </table>
+    <div class="note">格式奖励加权 R = (1−λ)·R_acc + λ·R_fmt, λ=0.1；到处加护栏防 reward hacking。</div>
+  </div>
+</section>
+
+<!-- ===================== ⑤ PGC ===================== -->
+<section id="pgc">
+  <h2>PGC 闭环框架 <span class="tag">§5 · 复现 Figure 3 做奶茶</span></h2>
+  <p class="lead">单个 Embodied-R1.5 实例<b>异步扮演三个角色</b>：
+  <span class="role P">P</span>规划者分解任务，
+  <span class="role G">G</span>定位者编排 OFG/VTG 指向，
+  <span class="role C">C</span>纠错者判定 SUCCESS/PROCESS/FAIL。
+  框架本身无推理逻辑。点"下一步"或"自动播放"，观察"按开关"首次失败→自主重试成功。</p>
+  <div class="card">
+    <div style="margin-bottom:10px">
+      <button class="btn" id="pgcNext">下一步 ▶</button>
+      <button class="btn sec" id="pgcPlay">自动播放</button>
+      <button class="btn sec" id="pgcReset">重置</button>
+      <span class="mono" style="float:right;color:var(--muted);font-size:13px" id="pgcStat"></span>
+    </div>
+    <div id="pgcSteps"></div>
+    <div class="note" id="pgcMsg" style="min-height:20px"></div>
+  </div>
+</section>
+
+<!-- ===================== ⑥ VLA ===================== -->
+<section id="vla">
+  <h2>推理内化 vs 动作 scaling <span class="tag">LIBERO · 表9</span></h2>
+  <p class="lead">本文核心论点：<b>VLM 已内化具身推理 → 下游动作头只需学简单映射 → 无需大规模动作预训练</b>。
+  下面切换"动作预训练"开关：其它强 VLA 去掉预训练后成功率明显下滑，而 Embodied-R1.5-VLA <b>无需预训练</b>即达 97.3%，
+  甚至超过有预训练的 OpenVLA-OFT。</p>
+  <div class="card">
+    <label class="toggle on" id="ptToggle">
+      <span class="sw"></span>
+      <span style="font-size:14px">动作预训练 (Action Pretraining)：<b id="ptLabel" style="color:var(--er2)">开启</b></span>
+    </label>
+    <div id="vlaBars" style="margin-top:16px"></div>
+    <div class="note" id="vlaNote"></div>
+  </div>
+  <div class="card">
+    <b style="font-size:14px">SimplerEnv Google Robot (Visual Matching) 总成功率 · 表6</b>
+    <p style="font-size:12.5px;color:var(--muted);margin:4px 0 8px">Embodied-R1.5-VLA 92.4%，超第二名 π₀.₅(72.7%) 逾 20pp；最难任务 Open Drawer+Place Apple 达 97.2% (vs π₀ 46.6%)。</p>
+    <div id="simplerBars"></div>
+  </div>
+</section>
+
+<div class="foot">
+  交互式学习材料 · 数据全部取自论文（表1–9、图1/3/10）· 仅供学习研究<br>
+  原文 <a href="https://arxiv.org/abs/2606.11324">arXiv:2606.11324</a> ·
+  代码 <a href="https://github.com/pickxiguapi/Embodied-R1.5">pickxiguapi/Embodied-R1.5</a>
+</div>
+</div>
+
+<script>
+//==================== 导航 ====================
+const nav=document.getElementById('nav');
+nav.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('section').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const sec=document.getElementById(b.dataset.s); sec.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(b.dataset.s==='rl')drawRL();
+  if(b.dataset.s==='reward')drawReward();
+  if(b.dataset.s==='bench')renderBench();
+});
+
+//==================== ① 维度展开 ====================
+const dimData={
+  cog:{c:'var(--cog)',t:'认知与空间推理',d:'让模型"看懂"物理世界的语义与空间结构，是下游规划与定位的基础。',
+    items:[['空间关系理解','相对方位、支撑、包含、遮挡与可见性'],['度量空间推理','距离估计、尺寸判断、自由空间能否容纳目标'],['3D场景感知','单目深度、跨视图几何、视频帧间一致性'],['物体与场景认知','机器人/第一人称视角，区分目标与障碍']],
+    bench:'ERQA 46.0 · OpenEQA 62.6 · CV-Bench 86.9 · EmbSpatial 78.1 · SAT 74.7 · RoboSpatial 69.7(SOTA) · BLINK 87.1 · VSIBench 56.1'},
+  plan:{c:'var(--plan)',t:'规划与纠错',d:'覆盖任务执行全生命周期：从预先规划，到运行时监控，再到失败后恢复。三个认知层级直接镜像闭环纠错链。',
+    items:[['长程任务分解','指令+观测→结构化子任务序列'],['下一步规划','基于当前进度滚动出下一原子动作'],['过程检测','判断子任务是否完成→何时推进'],['错误定位+纠正','找失败原因→生成修复建议→喂回规划']],
+    bench:'RoboVQA 61.0 · EgoPlan-2 53.8 · Cosmos 69.3 · RoboFAC 77.2 · 均分 65.3，超 Gemini-Robotics-ER-1.5 +24.0pp'},
+  point:{c:'var(--point)',t:'指向与定位',d:'Embodied-R 系列的"签名能力"，连接具身推理与物理执行的关键接口。坐标作为可反复引用的符号贯穿多步推理。',
+    items:[['REG 指代表达grounding','自然语言→物体点坐标'],['RRG 区域指代grounding','识别"能放下盘子的空区域"等'],['OFG 功能部件grounding','定位壶嘴/把手/按钮等功能部件'],['VTG 视觉轨迹生成','有序点序列，支持物体流+末端流，2D/3D']],
+    bench:'9 个指向基准全 SOTA，均分 72.8 · Part-Afford 82.9 · RoboRefit 88.4 · RoboAfford 80.0'}
+};
+document.querySelectorAll('.dimcard').forEach(c=>{
+  c.addEventListener('click',()=>{
+    const d=dimData[c.dataset.dim],box=document.getElementById('dimDetail');
+    box.style.display='block';box.style.borderTop='3px solid '+d.c;
+    box.innerHTML=`<h3 style="margin:0 0 6px;color:${d.c}">${d.t}</h3>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 12px">${d.d}</p>
+      ${d.items.map(i=>`<div style="margin:7px 0;font-size:13px"><b style="color:${d.c}">${i[0]}</b> — <span style="color:var(--muted)">${i[1]}</span></div>`).join('')}
+      <div class="note" style="margin-top:12px;border-color:${d.c}">基准成绩：${d.bench}</div>`;
+    box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+});
+
+//==================== ② 基准对比 ====================
+// 真实数据（表1–3 维度均分 / 图1）
+const benchModels=[
+  {n:'Embodied-R1.5 (Ours)',cog:70.2,plan:65.3,point:72.8,ours:true,on:true},
+  {n:'Embodied-R1',cog:55.8,plan:43.4,point:58.7,on:true},
+  {n:'Gemini-Robotics-ER-1.5',cog:60.6,plan:41.3,point:52.4,on:true},
+  {n:'Gemini-2.5-Pro',cog:68.8,plan:46.5,point:32.6,on:true},
+  {n:'GPT-5.4',cog:67.3,plan:53.8,point:26.3,on:false},
+  {n:'Qwen3-VL-8B (base)',cog:67.0,plan:54.2,point:59.2,on:false},
+  {n:'Mimo-Embodied',cog:65.6,plan:54.1,point:55.1,on:false}
+];
+const pillBox=document.getElementById('modelPills');
+benchModels.forEach((m,i)=>{
+  const p=document.createElement('span');p.className='pill'+(m.on?' on':'');p.textContent=m.n;
+  p.onclick=()=>{m.on=!m.on;p.classList.toggle('on');renderBench();};
+  pillBox.appendChild(p);
+});
+function bar(nm,val,max,color,ours){
+  const pct=val/max*100;
+  return `<div class="barwrap"><div class="nm"${ours?' style="color:var(--er2);font-weight:600"':''}>${nm}</div>
+    <div class="tr"><div class="fl" style="width:${pct}%;background:${color}"></div></div>
+    <div class="vv">${val.toFixed(1)}</div></div>`;
+}
+function renderBench(){
+  const dims=[['cog','认知与空间推理','var(--cog)'],['plan','规划与纠错','var(--plan)'],['point','指向与定位','var(--point)']];
+  let html='';
+  dims.forEach(d=>{
+    html+=`<div style="margin:14px 0 4px;font-size:13px;color:${d[2]};font-weight:600">${d[1]}</div>`;
+    benchModels.filter(m=>m.on).sort((a,b)=>b[d[0]]-a[d[0]]).forEach(m=>{
+      html+=bar(m.n.replace(' (Ours)','').replace(' (base)',''),m[d[0]],95,d[2],m.ours);
+    });
+  });
+  document.getElementById('benchBars').innerHTML=html;
+}
+// 指向细分表（表2）
+const pointCols=['VAbench-P','Where2Place','RefSpatial','Part-Afford','RoboRefit','RoboAfford','PointBench','PIO','Pixmo-Pt','Avg'];
+const pointRows=[
+  ['GPT-5.4',[25.7,34.7,15.7,17.2,29.2,29.4,37.9,19.3,27.5,26.3]],
+  ['Gemini-2.5-Pro',[21.7,49.6,36.5,25.5,38.4,23.4,62.8,23.2,12.7,32.6]],
+  ['Qwen3-VL-8B',[42.3,64.0,42.2,48.7,83.6,69.9,65.6,56.8,59.9,59.2]],
+  ['Gemini-Robotics-ER-1.5',[41.6,48.3,39.7,27.0,80.0,57.6,70.7,54.0,52.5,52.4]],
+  ['Embodied-R1',[66.0,69.5,39.7,56.6,85.6,67.2,49.7,44.4,49.4,58.7]],
+  ['Embodied-R1.5',[73.7,74.0,54.2,82.9,88.4,80.0,74.6,62.6,64.8,72.8],true]
+];
+(function(){
+  let h='<thead><tr><th>Model</th>'+pointCols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+  pointRows.forEach(r=>{
+    h+=`<tr class="${r[2]?'ours':''}"><td>${r[0]}</td>`+r[1].map((v,i)=>`<td>${v}${i===9?'':''}</td>`).join('')+'</tr>';
+  });
+  document.getElementById('pointTable').innerHTML=h+'</tbody>';
+})();
+
+//==================== ③ 平衡 RL ====================
+const EPS=1e-6;
+let rlRewards=[];
+function genRewards(mean,sg){
+  // 确定性"伪随机"分布（固定形状，避免 Math.random 让结果跳动）
+  const offs=[-1.5,-0.9,-0.5,-0.15,0.15,0.5,0.9,1.5];
+  return offs.map(o=>Math.max(0,Math.min(1,mean+o*sg)));
+}
+const presetMeans={easy:0.90,medium:0.50,hard:0.12};
+let curPreset='easy';
+function pstd(a){const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length);}
+function mean(a){return a.reduce((x,y)=>x+y,0)/a.length;}
+function meanAbs(a){return a.reduce((x,y)=>x+Math.abs(y),0)/a.length;}
+
+function drawRL(){
+  const sg=+document.getElementById('sgSlider').value;
+  const sb=+document.getElementById('sbSlider').value;
+  document.getElementById('vSg').textContent=sg.toFixed(2);
+  document.getElementById('vSb').textContent=sb.toFixed(2);
+  const mn=presetMeans[curPreset];
+  rlRewards=genRewards(mn,sg);
+  const mg=mean(rlRewards),sgReal=pstd(rlRewards);
+  const advV=rlRewards.map(r=>(r-mg)/(sgReal+EPS));   // vanilla ÷σ_group
+  const advP=rlRewards.map(r=>(r-mg)/(sb+EPS));        // paper ÷σ_batch
+  document.getElementById('kpiVanilla').textContent=meanAbs(advV).toFixed(2);
+  document.getElementById('kpiPaper').textContent=meanAbs(advP).toFixed(2);
+  // diff note
+  const dn={easy:'低方差：rollout 几乎都成功，学习信号弱。',medium:'高方差：有成有败，学习信号最强 ★。',hard:'低方差：rollout 几乎都失败，学习信号弱。'};
+  document.getElementById('diffNote').textContent=dn[curPreset];
+  const ratio=meanAbs(advP)/(meanAbs(advV)||EPS);
+  document.getElementById('rlVerdict').innerHTML=
+    `Vanilla GRPO 不管难度，平均|Â|≈<b>${meanAbs(advV).toFixed(2)}</b>（恒为单位方差，被拉平）；`+
+    `本文 ÷σ_batch 后平均|Â|=<b style="color:var(--accent)">${meanAbs(advP).toFixed(2)}</b>，`+
+    `量级∝真实方差 → ${curPreset==='medium'?'中等难度被放大、主导梯度 ✅':'低信号难度被压小、让位给中等难度 ✅'}`;
+  // canvas
+  const cv=document.getElementById('rlCanvas'),x=cv.getContext('2d');
+  const W=cv.width=cv.clientWidth*2,H=cv.height=240*2;x.scale(1,1);
+  x.clearRect(0,0,W,H);
+  const n=8,pad=70*2,bw=(W-pad*1.4)/n,baseY=H*0.62,sc=44*2;
+  x.font='20px monospace';x.textAlign='center';
+  // zero line for advantages
+  x.strokeStyle='#26313f';x.lineWidth=2;x.beginPath();x.moveTo(40,baseY);x.lineTo(W-20,baseY);x.stroke();
+  x.fillStyle='#6b7888';x.textAlign='left';x.fillText('Â=0',W-90,baseY-8);
+  for(let i=0;i<n;i++){
+    const cx=pad*0.7+bw*i+bw/2;
+    // reward (top strip)
+    const rH=rlRewards[i]*70*2;
+    x.fillStyle='#3a4757';x.fillRect(cx-bw*0.34,40-rH+70*2,bw*0.22,rH);
+    // vanilla advantage
+    const av=Math.max(-2.6,Math.min(2.6,advV[i]));
+    x.fillStyle='#f59e0b';
+    x.fillRect(cx-bw*0.08,baseY,bw*0.18,-av*sc);
+    // paper advantage
+    const ap=Math.max(-2.6,Math.min(2.6,advP[i]));
+    x.fillStyle='#3b82f6';
+    x.fillRect(cx+bw*0.14,baseY,bw*0.18,-ap*sc);
+  }
+  x.fillStyle='#6b7888';x.textAlign='center';
+  x.fillText('8 个 rollout（按奖励排序）',W/2,H-14);
+}
+['sgSlider','sbSlider'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{drawRL();drawThree();}));
+document.querySelectorAll('#rl .pill[data-preset]').forEach(p=>{
+  p.onclick=()=>{
+    document.querySelectorAll('#rl .pill[data-preset]').forEach(q=>q.classList.remove('on'));
+    p.classList.add('on');curPreset=p.dataset.preset;
+    // 同步 σ_group 滑块到该难度的典型方差
+    const sgMap={easy:0.04,medium:0.27,hard:0.04};
+    document.getElementById('sgSlider').value=sgMap[curPreset];
+    drawRL();drawThree();
+  };
+});
+function drawThree(){
+  const sb=+document.getElementById('sbSlider').value;
+  const diffs=[['易(低方差)',0.90,0.04],['中(高方差)★',0.50,0.27],['难(低方差)',0.12,0.04]];
+  let hV='<div style="font-size:12px;color:var(--accent);margin:8px 0 2px">Vanilla GRPO（÷σ_group）— 被拉平</div>';
+  let hP='<div style="font-size:12px;color:var(--er2);margin:12px 0 2px">本文配方（÷σ_batch）— ∝学习信号</div>';
+  diffs.forEach(d=>{
+    const rs=genRewards(d[1],d[2]),mg=mean(rs),sgR=pstd(rs);
+    const mv=meanAbs(rs.map(r=>(r-mg)/(sgR+EPS)));
+    const mp=meanAbs(rs.map(r=>(r-mg)/(sb+EPS)));
+    hV+=bar(d[0],mv,1.0,'var(--accent)');
+    hP+=bar(d[0],mp,1.0,'var(--er)');
+  });
+  document.getElementById('threeBars').innerHTML=hV+hP;
+}
+
+//==================== ④ 奖励函数 ====================
+function phi(d,tp,tz){return Math.max(0,Math.min(1,(tz-d)/(tz-tp)));}
+function drawReward(){
+  const tp=+document.getElementById('rpSlider').value;
+  let tz=+document.getElementById('rzSlider').value;
+  if(tz<=tp+10){tz=tp+10;document.getElementById('rzSlider').value=tz;}
+  const d=+document.getElementById('dSlider').value;
+  document.getElementById('vrp').textContent=tp;
+  document.getElementById('vrz').textContent=tz;
+  document.getElementById('vd').textContent=d;
+  const v=phi(d,tp,tz);
+  document.getElementById('phiVal').textContent=v.toFixed(2);
+  let zone= d<tp?'满分区 (d<τ_p)：足够接近，给全额奖励':(d<tz?'衰减区 (τ_p≤d<τ_z)：部分正确，线性部分奖励':'零分区 (d≥τ_z)：太远，零奖励');
+  document.getElementById('phiNote').textContent=zone;
+  const cv=document.getElementById('rwCanvas'),x=cv.getContext('2d');
+  const W=cv.width=cv.clientWidth*2,H=cv.height=220*2,pad=44;
+  x.clearRect(0,0,W,H);
+  const dmax=220,X=dd=>pad+dd/dmax*(W-pad*1.5),Y=vv=>H-pad-vv*(H-pad*1.7);
+  // axes
+  x.strokeStyle='#26313f';x.lineWidth=2;
+  x.beginPath();x.moveTo(pad,Y(0));x.lineTo(W-12,Y(0));x.moveTo(pad,Y(0));x.lineTo(pad,Y(1)-10);x.stroke();
+  x.fillStyle='#6b7888';x.font='19px monospace';x.textAlign='right';
+  x.fillText('1.0',pad-6,Y(1)+6);x.fillText('0',pad-6,Y(0)+6);
+  // zones shading
+  x.fillStyle='rgba(34,197,94,.10)';x.fillRect(X(0),Y(1)-10,X(tp)-X(0),Y(0)-Y(1)+10);
+  x.fillStyle='rgba(245,158,11,.10)';x.fillRect(X(tp),Y(1)-10,X(tz)-X(tp),Y(0)-Y(1)+10);
+  x.fillStyle='rgba(239,68,68,.08)';x.fillRect(X(tz),Y(1)-10,X(dmax)-X(tz),Y(0)-Y(1)+10);
+  // curve
+  x.strokeStyle='#3b82f6';x.lineWidth=3;x.beginPath();
+  for(let dd=0;dd<=dmax;dd+=2){const px=X(dd),py=Y(phi(dd,tp,tz));dd===0?x.moveTo(px,py):x.lineTo(px,py);}
+  x.stroke();
+  // current d marker
+  x.strokeStyle='#f59e0b';x.setLineDash([6,5]);x.beginPath();x.moveTo(X(d),Y(0));x.lineTo(X(d),Y(v));x.stroke();
+  x.beginPath();x.moveTo(pad,Y(v));x.lineTo(X(d),Y(v));x.stroke();x.setLineDash([]);
+  x.fillStyle='#f59e0b';x.beginPath();x.arc(X(d),Y(v),7,0,7);x.fill();
+  x.textAlign='center';x.fillStyle='#9aa7b4';
+  x.fillText('τ_p',X(tp),Y(0)+26);x.fillText('τ_z',X(tz),Y(0)+26);x.fillText('距离 d',W/2,H-6);
+}
+['rpSlider','rzSlider','dSlider'].forEach(id=>document.getElementById(id).addEventListener('input',drawReward));
+document.querySelectorAll('#reward .pill[data-rp]').forEach(p=>{
+  p.onclick=()=>{
+    document.querySelectorAll('#reward .pill[data-rp]').forEach(q=>q.classList.remove('on'));
+    p.classList.add('on');
+    document.getElementById('rpSlider').value=p.dataset.rp;
+    document.getElementById('rzSlider').value=p.dataset.rz;
+    drawReward();
+  };
+});
+
+//==================== ⑤ PGC ====================
+const pgcPlan=[
+  {t:'Move cup to coaster (tea dispenser)',g:'REG+RRG+VTG',fail:false},
+  {t:'Press the tea dispenser switch',g:'OFG(定位开关)+VTG(按压轨迹)',fail:true},
+  {t:'Move cup to coaster (milk dispenser)',g:'REG+RRG+VTG',fail:false},
+  {t:'Grasp the stirring rod',g:'OFG(把手)+VTG(抓取)',fail:false},
+  {t:'Stir the drink inside the cup',g:'VTG(环形搅拌)',fail:false},
+  {t:'Place cup in the pickup area',g:'REG+RRG+VTG',fail:false}
+];
+let pgcState=[];   // per-step: 'pending'|'active'|'failed'|'done'
+let pgcIdx=-1,pgcRetried=false,pgcTimer=null;
+function pgcRender(){
+  let h='';
+  pgcPlan.forEach((s,i)=>{
+    const st=pgcState[i]||'pending';
+    const cls=st==='active'?'active':st==='done'?'done':st==='failed'?'fail':'';
+    let icon=st==='done'?'✓':st==='failed'?'✕':(i+1);
+    h+=`<div class="step ${cls}"><div class="ix">${icon}</div><div>
+      <div style="font-size:13.5px">${s.t}</div>
+      <div style="margin-top:4px"><span class="role G">G</span><span class="mono" style="font-size:12px;color:var(--muted)">${s.g}</span></div>
+      </div></div>`;
+  });
+  document.getElementById('pgcSteps').innerHTML=h;
+  const done=pgcState.filter(s=>s==='done').length;
+  document.getElementById('pgcStat').textContent=`完成 ${done}/${pgcPlan.length} · 失败1 · 恢复${pgcRetried?1:0}`;
+}
+function pgcReset(){
+  pgcState=pgcPlan.map(()=>'pending');pgcIdx=-1;pgcRetried=false;
+  if(pgcTimer){clearInterval(pgcTimer);pgcTimer=null;document.getElementById('pgcPlay').textContent='自动播放';}
+  document.getElementById('pgcMsg').innerHTML='<span class="role P">P</span>Planner 已把"做奶茶"分解为 6 个子任务，点"下一步"开始执行。';
+  document.getElementById('pgcNext').disabled=false;
+  pgcRender();
+}
+function pgcNext(){
+  // handle failure-retry at step index 1
+  if(pgcIdx>=0 && pgcState[pgcIdx]==='active'){
+    if(pgcPlan[pgcIdx].fail && !pgcRetried){
+      pgcState[pgcIdx]='failed';pgcRetried=true;
+      document.getElementById('pgcMsg').innerHTML='<span class="role C">C</span>Corrector 判定 <b style="color:var(--bad)">FAIL</b>：按压点偏移~2cm → 写入 Memory → 反馈 Planner → <span class="role P">P</span>自主重规划重试…';
+      pgcRender();return;
+    }
+    pgcState[pgcIdx]='done';
+  }
+  // advance
+  if(pgcState[pgcIdx]==='done' || pgcIdx<0){
+    pgcIdx++;
+  }
+  if(pgcIdx>=pgcPlan.length){
+    document.getElementById('pgcMsg').innerHTML='<b style="color:var(--good)">全部完成 ✅</b> 零人工干预。整个过程中，规划/定位/纠错由同一个模型实例提供，框架只做调度。';
+    document.getElementById('pgcNext').disabled=true;
+    if(pgcTimer){clearInterval(pgcTimer);pgcTimer=null;document.getElementById('pgcPlay').textContent='自动播放';}
+    pgcRender();return;
+  }
+  pgcState[pgcIdx]='active';
+  const s=pgcPlan[pgcIdx];
+  if(pgcIdx===1&&pgcRetried){
+    document.getElementById('pgcMsg').innerHTML='<span class="role G">G</span>Grounder 重新 OFG 定位开关 + VTG 规划按压 → <span class="role C">C</span>本次 <b style="color:var(--good)">SUCCESS</b> ✅（自主恢复）';
+  }else{
+    document.getElementById('pgcMsg').innerHTML=`<span class="role G">G</span>Grounder 自适应编排：<span class="mono" style="color:var(--muted)">${s.g}</span> → 执行中…`;
+  }
+  pgcRender();
+}
+document.getElementById('pgcNext').onclick=pgcNext;
+document.getElementById('pgcReset').onclick=pgcReset;
+document.getElementById('pgcPlay').onclick=function(){
+  if(pgcTimer){clearInterval(pgcTimer);pgcTimer=null;this.textContent='自动播放';return;}
+  this.textContent='暂停 ⏸';
+  pgcTimer=setInterval(()=>{
+    if(document.getElementById('pgcNext').disabled){clearInterval(pgcTimer);pgcTimer=null;document.getElementById('pgcPlay').textContent='自动播放';return;}
+    pgcNext();
+  },1100);
+};
+
+//==================== ⑥ VLA ====================
+// 表9 LIBERO overall：[有预训练, 无预训练]；null=论文未报告该项
+const vlaData=[
+  {n:'Embodied-R1.5-VLA',pt:null,npt:97.3,ours:true},
+  {n:'OpenVLA-OFT',pt:97.1,npt:91.9},
+  {n:'π₀.₅',pt:96.9,npt:93.6},
+  {n:'π₀-FAST',pt:85.5,npt:71.8},
+  {n:'OpenVLA',pt:76.5,npt:null},
+  {n:'Diffusion Policy',pt:null,npt:72.4}
+];
+let ptOn=true;
+function renderVLA(){
+  let html='';
+  const rows=vlaData.map(d=>{
+    let val= ptOn ? (d.pt!=null?d.pt:d.npt) : (d.npt!=null?d.npt:d.pt);
+    let na = ptOn ? (d.pt==null) : (d.npt==null);
+    return {n:d.n,val,na,ours:d.ours,
+      // 用于显示"掉了多少"
+      drop:(d.pt!=null&&d.npt!=null)?(d.pt-d.npt):null};
+  }).sort((a,b)=>b.val-a.val);
+  rows.forEach(r=>{
+    const color=r.ours?'var(--er)':(r.na?'var(--dim)':'var(--cog)');
+    const label=r.na?'(论文未报告，沿用另一设置)':'';
+    html+=`<div class="barwrap"><div class="nm"${r.ours?' style="color:var(--er2);font-weight:600"':''}>${r.n}</div>
+      <div class="tr"><div class="fl" style="width:${r.val/100*100}%;background:${color}"></div></div>
+      <div class="vv">${r.val.toFixed(1)}</div></div>`;
+  });
+  document.getElementById('vlaBars').innerHTML=html;
+  document.getElementById('ptLabel').textContent=ptOn?'开启':'关闭';
+  document.getElementById('ptToggle').classList.toggle('on',ptOn);
+  document.getElementById('vlaNote').innerHTML= ptOn
+    ? '当前"开启"预训练：各强 VLA 都在高位。注意 Embodied-R1.5-VLA 本就<b>不依赖</b>动作预训练，下方分数是其无预训练结果。'
+    : '关闭预训练后：π₀.₅ 96.9→<b style="color:var(--bad)">93.6</b>、OpenVLA-OFT 97.1→<b style="color:var(--bad)">91.9</b> 明显下滑，而 Embodied-R1.5-VLA <b style="color:var(--good)">97.3</b> 不降反超 → 推理内化可替代动作 scaling。';
+}
+document.getElementById('ptToggle').onclick=()=>{ptOn=!ptOn;renderVLA();};
+// SimplerEnv 表6
+const simpler=[
+  ['Embodied-R1.5-VLA',92.4,true],['π₀.₅',72.7],['π₀',71.4],['GR00T-N1.6',67.7],
+  ['OpenVLA-OFT',63.0],['SpatialVLA',55.3],['π₀-FAST',46.4],['RT-2-X',46.3],
+  ['GR00T-N1.5',35.2],['OpenVLA',24.5]
+];
+(function(){
+  let h='';
+  simpler.forEach(s=>{h+=bar(s[0],s[1],100,s[2]?'var(--er)':'var(--cog)',s[2]);});
+  document.getElementById('simplerBars').innerHTML=h;
+})();
+
+//==================== init ====================
+renderBench();drawRL();drawThree();drawReward();pgcReset();renderVLA();
+window.addEventListener('resize',()=>{drawRL();drawReward();});
+</script>
+</body>
+</html>

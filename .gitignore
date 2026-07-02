@@ -1,0 +1,9 @@
+# 论文 PDF 原文不入库（体积大且有版权风险）
+*.pdf
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 系统文件
+.DS_Store

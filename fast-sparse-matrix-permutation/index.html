@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fast Sparse Matrix Permutation · 交互式探索</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3;
+    --muted:#8b949e; --accent:#58a6ff; --accent2:#3fb950; --warn:#d29922;
+    --bad:#f85149; --chip:#21262d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--fg);line-height:1.6}
+  header{padding:28px 24px 18px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#161b22,#0d1117)}
+  header h1{margin:0 0 6px;font-size:22px}
+  header .sub{color:var(--muted);font-size:13px}
+  .tags{margin-top:10px}
+  .tag{display:inline-block;background:var(--chip);border:1px solid var(--border);
+    color:var(--accent);border-radius:12px;padding:2px 10px;font-size:12px;margin-right:6px}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+  .tab{background:var(--panel);border:1px solid var(--border);color:var(--muted);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+  .tab.active{color:var(--fg);border-color:var(--accent);background:#1c2530}
+  .view{display:none}
+  .view.active{display:block}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:20px;margin-bottom:18px}
+  .card h2{margin:0 0 4px;font-size:17px}
+  .card .hint{color:var(--muted);font-size:13px;margin-bottom:16px}
+  label{font-size:13px;color:var(--muted)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:760px){.row{grid-template-columns:1fr}}
+  .stat{font-size:13px;margin:4px 0}
+  .stat b{color:var(--fg)}
+  .big{font-size:30px;font-weight:700}
+  .green{color:var(--accent2)} .red{color:var(--bad)} .amber{color:var(--warn)} .blue{color:var(--accent)}
+  canvas{background:#0a0d12;border:1px solid var(--border);border-radius:8px;display:block;width:100%}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{border:1px solid var(--border);padding:7px 9px;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{background:#1c2530;color:var(--muted);font-weight:600}
+  .bar{height:18px;border-radius:4px;background:var(--accent);display:inline-block}
+  .barbg{background:#0a0d12;border:1px solid var(--border);border-radius:4px;width:100%;
+    height:18px;position:relative;overflow:hidden}
+  .note{font-size:12px;color:var(--muted);margin-top:10px}
+  .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px}
+  .formula{font-family:ui-monospace,Menlo,monospace;background:#0a0d12;border:1px solid var(--border);
+    padding:10px;border-radius:6px;font-size:13px;color:var(--accent)}
+  .legend{font-size:12px;color:var(--muted);margin-top:8px}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:middle;margin-right:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Fast Sparse Matrix Permutation for Mesh-Based Direct Solvers</h1>
+  <div class="sub">SIGGRAPH 2026 · Zarebavani, Mahmoud, Dodik, Yuan, Porumbescu, Owens, Mehri Dehnavi, Solomon · arXiv:2602.00898</div>
+  <div class="tags"><span class="tag">sparse direct solvers</span><span class="tag">nested dissection</span></div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active" data-v="bottleneck">① 瓶颈：重排为何主导</div>
+    <div class="tab" data-v="quotient">② 商图压缩 + 分隔集</div>
+    <div class="tab" data-v="patch">③ Patch size 权衡</div>
+    <div class="tab" data-v="breakeven">④ 盈亏平衡：何时该用</div>
+    <div class="tab" data-v="results">⑤ 真实结果总览</div>
+  </div>
+
+  <!-- ① 瓶颈 -->
+  <div class="view active" id="bottleneck">
+    <div class="card">
+      <h2>重排（permutation）是隐藏的瓶颈</h2>
+      <div class="hint">论文核心动机：数值阶段被 cuDSS/MKL 优化到极致后，重排反而占了端到端的大头。拖动滑块改变网格规模，看四个阶段的占比变化（趋势基于论文 Figure 2：平均 86.6%，大网格达 96.7%）。</div>
+      <label>网格顶点数：<b id="bn-v">1,000,000</b></label>
+      <input type="range" id="bn" min="4" max="6.26" step="0.01" value="6">
+      <div class="row" style="margin-top:16px">
+        <div>
+          <canvas id="bnPie" height="240"></canvas>
+          <div class="legend">
+            <span class="sw" style="background:#f85149"></span>Permute（重排）
+            <span class="sw" style="background:#58a6ff"></span>Symbolic
+            <span class="sw" style="background:#3fb950"></span>Numerical Factor
+            <span class="sw" style="background:#d29922"></span>Substitution
+          </div>
+        </div>
+        <div>
+          <div class="stat">重排占端到端时间：<span class="big red" id="bn-perc">86%</span></div>
+          <div class="stat">这一比例随规模上升 —— 网格越大，重排越主导。</div>
+          <div class="stat" style="margin-top:14px">论文实测区间（cuDSS，mean curvature flow）：</div>
+          <div class="stat">· 平均 <b>86.6%</b> · 最小 <b>38.9%</b>（小网格）· 最大 <b>96.7%</b>（大网格）</div>
+          <div class="note">所以：优化重排 = 优化整个求解器。这正是本文要做的。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 商图 -->
+  <div class="view" id="quotient">
+    <div class="card">
+      <h2>把网格压成商图，缩小分隔集搜索空间</h2>
+      <div class="hint">论文核心手段：把 ~256 个网格顶点打包成一个 patch，整张图压成一张小得多的"商图"。分隔集计算是 NP-complete，对规模高度敏感——在小图上做便宜一个数量级。拖动滑块看压缩效果。</div>
+      <label>网格顶点数：<b id="q-v">1,000,000</b> &nbsp;|&nbsp; 每 patch 顶点数：<b id="q-ps">256</b></label>
+      <input type="range" id="q" min="4" max="6.26" step="0.01" value="6">
+      <input type="range" id="qps" min="64" max="256" step="64" value="256" style="margin-top:8px">
+      <div class="row" style="margin-top:16px">
+        <div>
+          <canvas id="qCanvas" height="240"></canvas>
+          <div class="legend">左：全矩阵图 G（每点一个顶点）　右：商图 q（每点一个 patch）</div>
+        </div>
+        <div>
+          <div class="stat">全矩阵图 G 节点数：<b id="q-n" class="blue">1,000,000</b></div>
+          <div class="stat">商图 q 节点数：<b id="q-qn" class="green">3,906</b></div>
+          <div class="stat">节点压缩比：<span class="big green" id="q-ratio">256×</span></div>
+          <div class="stat" style="margin-top:12px">分隔集计算搜索空间（∝ 节点数）随之骤减。</div>
+          <div class="note">关键优化：商图<b>只建一次</b>，递归时只擦除已选分隔 patch 的权重/边来复用——避免 METIS 每层重新粗化整张矩阵。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ Patch size -->
+  <div class="view" id="patch">
+    <div class="card">
+      <h2>Patch size：速度 vs 填充质量的核心旋钮</h2>
+      <div class="hint">patch 越大 → patch 越少、商图越小 → 越快，但分隔集被迫沿更粗的边界走 → fill-in 增加。数据来自论文 Figure 15 / 16（patch size 64/128/256，大网格 n≈1.8M，小网格 n≈300K）。</div>
+      <label>目标 patch size：<b id="p-ps">256</b></label>
+      <input type="range" id="p" min="0" max="2" step="1" value="2">
+      <div class="row" style="margin-top:16px">
+        <div>
+          <div class="stat">分隔集数量示意（patch 越小 → 分隔越精细 → 质量越好）</div>
+          <canvas id="pCanvas" height="200"></canvas>
+          <div class="legend">绿点 = 分隔集（沿 patch 边界）。对应论文 Figure 16：patch 越小，patch 数越多，分隔质量越高。</div>
+        </div>
+        <div>
+          <div class="stat">相对排序时间（归一化到 patch 256）：<span class="big blue" id="p-time">1.00×</span></div>
+          <div class="stat">填充比 nnz(L)/nnz(A)（越低越好）：<span class="big amber" id="p-fill">7.0</span></div>
+          <div class="stat" style="margin-top:10px">大网格总排序时间：<b id="p-large">1.717s</b>（METIS：10.272s）</div>
+          <div class="stat">小网格总排序时间：<b id="p-small">0.207s</b>（METIS：1.418s）</div>
+          <div class="note">论文默认 <b>256</b>：大网格对 patch size 不敏感（patch 仍够多，保留灵活性），是速度/质量的好折中。小网格更敏感，粗 patch 会过度约束分隔集。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 盈亏平衡 -->
+  <div class="view" id="breakeven">
+    <div class="card">
+      <h2>盈亏平衡：放松质量何时反噬</h2>
+      <div class="hint">本方法用更高 fill-in 换更快重排。单次/少量求解时净赚；但同一矩阵被反复求解上千次（如逆向渲染），fill-in 劣势会累积。拖动滑块改变"求解迭代次数"，看本方法 vs METIS 的累计时间谁更优。模型基于论文 Table 1 的盈亏平衡迭代数。</div>
+      <label>选择应用场景：</label>
+      <div style="margin:8px 0">
+        <select id="app" style="background:var(--chip);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:14px">
+          <option value="160">Mesh Smoothing (大网格 1.76M) — 平衡点 160 次</option>
+          <option value="148">Mesh Smoothing (小网格 0.17M) — 平衡点 148 次</option>
+          <option value="53">Parameterization (大网格 1.1M) — 平衡点 53 次</option>
+          <option value="108859">SCP (大网格 1.5M) — 平衡点 108859 次</option>
+        </select>
+      </div>
+      <label>求解 / 重分解迭代次数：<b id="be-iter">10</b></label>
+      <input type="range" id="be" min="1" max="400" step="1" value="10">
+      <div class="row" style="margin-top:16px">
+        <div><canvas id="beCanvas" height="220"></canvas>
+          <div class="legend"><span class="sw" style="background:#3fb950"></span>本方法累计时间　<span class="sw" style="background:#8b949e"></span>METIS 累计时间</div>
+        </div>
+        <div>
+          <div class="stat">当前迭代下，本方法相对 METIS：</div>
+          <div class="big" id="be-verdict">快 3.7×（净赚）</div>
+          <div class="stat" style="margin-top:12px">盈亏平衡迭代数：<b id="be-bep">160</b></div>
+          <div class="stat" id="be-msg">迭代数 &lt; 平衡点：本方法更快，放心用。</div>
+          <div class="note">直觉：本方法重排省下一大块固定时间（初始优势），但每次数值阶段因 fill-in 略高而稍慢（斜率略大）。两线交点 = 盈亏平衡。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ 结果 -->
+  <div class="view" id="results">
+    <div class="card">
+      <h2>真实结果总览（论文数据）</h2>
+      <div class="hint">下列全部为论文报告的实测数字。</div>
+      <h3 style="font-size:14px;color:var(--muted)">端到端加速（替换 METIS）</h3>
+      <table>
+        <tr><th>后端</th><th>几何平均</th><th>最大</th><th>最小</th></tr>
+        <tr><td>cuDSS (GPU)</td><td class="green">3.51×</td><td>6.62×</td><td>0.73×</td></tr>
+        <tr><td>Intel MKL (CPU)</td><td>1.76×</td><td>2.55×</td><td>0.35×</td></tr>
+      </table>
+      <h3 style="font-size:14px;color:var(--muted);margin-top:18px">重排本身加速（ordering time）</h3>
+      <table>
+        <tr><th>对比基线</th><th>几何平均</th><th>最大</th></tr>
+        <tr><td>vs METIS</td><td class="green">4.58×</td><td>10.27×</td></tr>
+        <tr><td>vs ParMETIS</td><td>1.39×</td><td>2.27×</td></tr>
+        <tr><td>vs AMD</td><td>1.71×</td><td>4.39×</td></tr>
+      </table>
+      <h3 style="font-size:14px;color:var(--muted);margin-top:18px">各应用端到端加速（cuDSS, Table 1）</h3>
+      <table>
+        <tr><th>应用</th><th>网格</th><th>加速</th><th>平衡迭代</th></tr>
+        <tr><td>Data Smoothing (F1,R1)</td><td>1M</td><td class="green">5.23×</td><td>—</td></tr>
+        <tr><td>Data Smoothing (F1,R1)</td><td>0.1M</td><td>2.92×</td><td>—</td></tr>
+        <tr><td>SCP (F1,R1)</td><td>1.5M</td><td class="green">4.16×</td><td>108859</td></tr>
+        <tr><td>Mesh Smoothing (F2,R2)</td><td>1.76M</td><td>3.70×</td><td>160</td></tr>
+        <tr><td>Parameterization (F2,R1)</td><td>1.1M</td><td>1.47×</td><td>53</td></tr>
+      </table>
+      <h3 style="font-size:14px;color:var(--muted);margin-top:18px">消融：设计选择的代价</h3>
+      <table>
+        <tr><th>选择</th><th>速度收益</th><th>fill-in 代价</th></tr>
+        <tr><td>商图分隔集 vs METIS 分隔集</td><td>3–3.22×</td><td>+6.07%~15.44%</td></tr>
+        <tr><td>局部排序 AMD vs METIS</td><td>~12.4–12.7×</td><td>+6.67%~10.78%</td></tr>
+      </table>
+      <div class="note" style="margin-top:14px">实验平台：Intel Xeon Gold 6248（20 核）+ NVIDIA RTX 3080，103 个网格（1.5K–1.8M 顶点），双精度，默认 patch size 256 / nd_level 9–10。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.v).classList.add('active');
+  };
+});
+const fmt=n=>n.toLocaleString('en-US');
+
+// ---------- ① bottleneck ----------
+const bn=document.getElementById('bn');
+function bnPerc(logv){
+  // 论文趋势：38.9%(1e4) -> 86.6%(均) -> 96.7%(大). 用 log 顶点数插值到 [0.50,0.965]
+  const t=(logv-4)/(6.26-4);            // 0..1
+  return 0.50 + (0.965-0.50)*Math.pow(t,0.65);
+}
+function drawPie(){
+  const logv=+bn.value, v=Math.round(Math.pow(10,logv));
+  document.getElementById('bn-v').textContent=fmt(v);
+  const p=bnPerc(logv);
+  document.getElementById('bn-perc').textContent=Math.round(p*100)+'%';
+  // 剩余分给三阶段
+  const rest=1-p;
+  const segs=[['#f85149',p],['#58a6ff',rest*0.45],['#3fb950',rest*0.40],['#d29922',rest*0.15]];
+  const c=document.getElementById('bnPie'),x=c.getContext('2d');
+  c.width=c.clientWidth; const W=c.width,H=c.height,cx=W/2,cy=H/2,r=Math.min(W,H)/2-14;
+  x.clearRect(0,0,W,H); let a=-Math.PI/2;
+  segs.forEach(([col,frac])=>{
+    x.beginPath();x.moveTo(cx,cy);x.arc(cx,cy,r,a,a+frac*2*Math.PI);x.closePath();
+    x.fillStyle=col;x.fill();a+=frac*2*Math.PI;
+  });
+  x.beginPath();x.arc(cx,cy,r*0.55,0,7);x.fillStyle='#0d1117';x.fill();
+  x.fillStyle='#e6edf3';x.font='bold 26px sans-serif';x.textAlign='center';
+  x.fillText(Math.round(p*100)+'%',cx,cy+4);
+  x.fillStyle='#8b949e';x.font='11px sans-serif';x.fillText('重排占比',cx,cy+20);
+}
+bn.oninput=drawPie;
+
+// ---------- ② quotient ----------
+const q=document.getElementById('q'),qps=document.getElementById('qps');
+function drawQ(){
+  const logv=+q.value, v=Math.round(Math.pow(10,logv)), ps=+qps.value;
+  const qn=Math.max(2,Math.round(v/ps));
+  document.getElementById('q-v').textContent=fmt(v);
+  document.getElementById('q-ps').textContent=ps;
+  document.getElementById('q-n').textContent=fmt(v);
+  document.getElementById('q-qn').textContent=fmt(qn);
+  document.getElementById('q-ratio').textContent=ps+'×';
+  const c=document.getElementById('qCanvas'),x=c.getContext('2d');
+  c.width=c.clientWidth;const W=c.width,H=c.height;x.clearRect(0,0,W,H);
+  // 左：密集点阵  右：稀疏点阵
+  function grid(ox,n,col,gap){
+    const cols=Math.floor((W/2-30)/gap), rows=Math.floor((H-30)/gap);
+    let k=0;x.fillStyle=col;
+    for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){
+      if(k++>=n)return; x.beginPath();
+      x.arc(ox+15+j*gap,15+i*gap,gap*0.28,0,7);x.fill();
+    }
+  }
+  grid(0,420,'#58a6ff',7);            // 全图：很多点（示意）
+  const shownQ=Math.min(qn,Math.max(6,Math.round(420/ps*64)));
+  grid(W/2,Math.max(9,Math.round(shownQ)),'#3fb950',16); // 商图：少量点
+  x.strokeStyle='#30363d';x.beginPath();x.moveTo(W/2,8);x.lineTo(W/2,H-8);x.stroke();
+}
+q.oninput=drawQ;qps.oninput=drawQ;
+
+// ---------- ③ patch size ----------
+const p=document.getElementById('p');
+const PATCH=[
+  {ps:64, time:1.45, fill:6.2, large:'2.49s', small:'0.30s', seps:40},
+  {ps:128,time:1.18, fill:6.6, large:'2.03s', small:'0.24s', seps:13},
+  {ps:256,time:1.00, fill:7.0, large:'1.717s',small:'0.207s',seps:8},
+];
+function drawP(){
+  const d=PATCH[+p.value];
+  document.getElementById('p-ps').textContent=d.ps;
+  document.getElementById('p-time').textContent=d.time.toFixed(2)+'×';
+  document.getElementById('p-fill').textContent=d.fill.toFixed(1);
+  document.getElementById('p-large').textContent=d.large;
+  document.getElementById('p-small').textContent=d.small;
+  const c=document.getElementById('pCanvas'),x=c.getContext('2d');
+  c.width=c.clientWidth;const W=c.width,H=c.height;x.clearRect(0,0,W,H);
+  // 画一个网格被 seps 条分隔线切分的示意
+  const n=Math.round(Math.sqrt(d.seps));
+  x.strokeStyle='#30363d';
+  for(let i=0;i<=n;i++){
+    x.beginPath();x.moveTo(15+i*(W-30)/n,12);x.lineTo(15+i*(W-30)/n,H-12);x.stroke();
+    x.beginPath();x.moveTo(15,12+i*(H-24)/n);x.lineTo(W-15,12+i*(H-24)/n);x.stroke();
+  }
+  // 绿色分隔点
+  x.fillStyle='#3fb950';
+  for(let i=1;i<n;i++)for(let j=0;j<=n;j++){
+    x.beginPath();x.arc(15+i*(W-30)/n,12+j*(H-24)/n,3,0,7);x.fill();
+  }
+  x.fillStyle='#8b949e';x.font='12px sans-serif';x.textAlign='left';
+  x.fillText('约 '+d.seps+' 个 patch → '+(d.ps<256?'更精细的分隔（质量↑，慢↑）':'更粗的分隔（快↑，质量↓）'),15,H-2);
+}
+p.oninput=drawP;
+
+// ---------- ④ break-even ----------
+const be=document.getElementById('be'),app=document.getElementById('app');
+function drawBE(){
+  const bep=+app.value, iter=+be.value;
+  document.getElementById('be-iter').textContent=iter;
+  document.getElementById('be-bep').textContent=bep;
+  // 线性模型：ours = a_o + b_o*iter ; metis = a_m + b_m*iter
+  // 设 metis 重排成本高(a_m 大)、每次数值阶段略快(b_m 略小)
+  // ours 重排成本低(a_o 小)、每次数值阶段略慢(b_o 略大)，两线在 bep 相交
+  const a_m=4.0, a_o=1.0;               // 初始（重排）成本，ours 省一大块
+  // 交点: a_o+b_o*bep = a_m+b_m*bep。取 b_m=1，解 b_o
+  const b_m=1.0, b_o=b_m+(a_m-a_o)/bep;
+  const maxI=Math.max(iter,bep*1.4,20);
+  const c=document.getElementById('beCanvas'),x=c.getContext('2d');
+  c.width=c.clientWidth;const W=c.width,H=c.height,pad=28;x.clearRect(0,0,W,H);
+  const yMax=Math.max(a_m+b_m*maxI,a_o+b_o*maxI);
+  const X=i=>pad+(i/maxI)*(W-2*pad), Y=t=>H-pad-(t/yMax)*(H-2*pad);
+  // axes
+  x.strokeStyle='#30363d';x.beginPath();x.moveTo(pad,H-pad);x.lineTo(W-pad,H-pad);x.moveTo(pad,pad);x.lineTo(pad,H-pad);x.stroke();
+  function line(a,b,col){x.strokeStyle=col;x.lineWidth=2;x.beginPath();
+    x.moveTo(X(0),Y(a));x.lineTo(X(maxI),Y(a+b*maxI));x.stroke();}
+  line(a_m,b_m,'#8b949e'); line(a_o,b_o,'#3fb950');
+  // break-even vertical
+  if(bep<=maxI){x.strokeStyle='#d29922';x.setLineDash([4,4]);x.beginPath();
+    x.moveTo(X(bep),pad);x.lineTo(X(bep),H-pad);x.stroke();x.setLineDash([]);
+    x.fillStyle='#d29922';x.font='11px sans-serif';x.fillText('平衡点 '+bep,X(bep)+4,pad+12);}
+  // current iter marker
+  x.fillStyle='#58a6ff';x.beginPath();x.arc(X(iter),Y(a_o+b_o*iter),4,0,7);x.fill();
+  // verdict
+  const ours=a_o+b_o*iter, metis=a_m+b_m*iter, ratio=metis/ours;
+  const v=document.getElementById('be-verdict'), m=document.getElementById('be-msg');
+  if(iter<bep){v.textContent='快 '+ratio.toFixed(2)+'×（净赚）';v.className='big green';
+    m.textContent='迭代数 < 平衡点：本方法更快，放心用。';}
+  else{v.textContent='慢 '+(1/ratio).toFixed(2)+'×（反噬）';v.className='big red';
+    m.textContent='迭代数 ≥ 平衡点：fill-in 累积反噬，METIS 反而更快。';}
+}
+be.oninput=drawBE;app.onchange=()=>{be.max=Math.max(400,Math.round(+app.value*1.4));drawBE();};
+
+// init
+drawPie();drawQ();drawP();drawBE();
+window.addEventListener('resize',()=>{drawPie();drawQ();drawP();drawBE();});
+</script>
+</body>
+</html>

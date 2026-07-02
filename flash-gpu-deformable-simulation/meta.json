@@ -1,0 +1,37 @@
+{
+  "title": "FLASH: Fast Learning via GPU-Accelerated Simulation for High-Fidelity Deformable Manipulation in Minutes",
+  "authors": [
+    "Siyuan Luo",
+    "Bingyang Zhou",
+    "Chong Zhang",
+    "Xin Liu",
+    "Zhenhao Huang",
+    "Gang Yang",
+    "Zhengtao Han",
+    "Xiaotian Hu",
+    "Eric Yang",
+    "Rymon Yu",
+    "Ziqiu Zeng",
+    "Fan Shi"
+  ],
+  "affiliations": [
+    "NUS Human-Centered Robotic Lab",
+    "ETH",
+    "ShanghaiTech University",
+    "Independent",
+    "Gradient"
+  ],
+  "arxiv": "2604.17513v1",
+  "year": 2026,
+  "date": "2026-04-19",
+  "website": "https://siyuanluo.com/flash",
+  "abstract": "FLASH is a GPU-native simulation framework for contact-rich deformable manipulation, built on an accurate NCP-based non-smooth Newton solver designed for fine-grained GPU parallelism. Rather than porting SIMD solvers to GPUs, FLASH redesigns the physics engine from the ground up, with an inertia-dominated contact approximation that keeps the Schur complement sparse and enables block-diagonal multi-environment batching. It scales to 3M+ DoF at 30 FPS on a single RTX 5090 (100-300x speedup vs realtime). Vision-based policies trained solely on FLASH synthetic data in minutes achieve robust zero-shot sim-to-real transfer on towel and garment folding without any real-world demonstration.",
+  "tags": [
+    "deformable manipulation",
+    "gpu physics solver"
+  ],
+  "githubLinks": [],
+  "codeLinks": [
+    "https://siyuanluo.com/flash"
+  ]
+}

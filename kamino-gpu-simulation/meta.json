@@ -1,0 +1,25 @@
+{
+  "id": "kamino-gpu-simulation",
+  "title": "Kamino: GPU-based Massively Parallel Simulation of Multi-Body Systems with Challenging Topologies",
+  "slug": "kamino-gpu-simulation",
+  "authors": [
+    "Vassilios Tsounis",
+    "Guirec Maloisel",
+    "Christian Schumacher",
+    "Ruben Grandia",
+    "Agon Serifi",
+    "David Müller",
+    "Chris Amevor",
+    "Tobias Widmer",
+    "Moritz Bächer"
+  ],
+  "abstract": "We present Kamino, a GPU-based physics solver for massively parallel simulations of heterogeneous highly-coupled mechanical systems. Implemented in Python using NVIDIA Warp and integrated into the Newton framework, it enables the application of data-driven methods, such as large-scale reinforcement learning, to complex robotic systems that exhibit strongly coupled kinematic and dynamic constraints such as kinematic loops.",
+  "year": 2026,
+  "date": "2026-03-17",
+  "tags": ["kinematic loops", "GPU simulation"],
+  "githubLinks": [
+    "https://github.com/nvidia/warp",
+    "https://github.com/newton-physics/newton"
+  ],
+  "codeLinks": []
+}

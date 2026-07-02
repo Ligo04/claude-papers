@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>参数曲面 CCD 浮点鲁棒性 — 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#30363d;
+    --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --good:#3fb950;
+    --bad:#f85149; --warn:#d29922; --safe:#2ea043;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Helvetica,Arial,sans-serif;
+       line-height:1.7;font-size:15px}
+  header{padding:28px 22px 18px;border-bottom:1px solid var(--border);
+         background:linear-gradient(135deg,#161b22,#0d1117)}
+  header h1{margin:0 0 6px;font-size:21px;line-height:1.4}
+  header .meta{color:var(--muted);font-size:13px}
+  header .tags span{display:inline-block;background:#1f6feb22;color:var(--accent);
+         border:1px solid #1f6feb55;border-radius:12px;padding:1px 10px;font-size:12px;margin-right:6px;margin-top:8px}
+  main{max-width:1080px;margin:0 auto;padding:18px}
+  section{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+          padding:20px;margin:18px 0}
+  h2{margin:0 0 4px;font-size:18px;color:var(--accent)}
+  h2 .num{color:var(--muted);font-weight:400;margin-right:8px}
+  .lede{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+  .row{display:flex;gap:20px;flex-wrap:wrap}
+  .col{flex:1;min-width:280px}
+  canvas{background:var(--panel2);border:1px solid var(--border);border-radius:8px;width:100%;display:block}
+  label.ctl{display:block;margin:14px 0 4px;font-size:13px;color:var(--txt)}
+  label.ctl b{color:var(--accent)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .toggle{display:flex;align-items:center;gap:10px;margin:14px 0;cursor:pointer;
+          padding:10px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px}
+  .toggle input{width:18px;height:18px;accent-color:var(--safe)}
+  .verdict{margin-top:14px;padding:12px 14px;border-radius:8px;font-weight:600;font-size:14px}
+  .verdict.safe{background:#23863633;border:1px solid var(--safe);color:#7ee787}
+  .verdict.fn{background:#f8514933;border:1px solid var(--bad);color:#ffa198}
+  .verdict.exact{background:#1f6feb22;border:1px solid var(--accent);color:#a5d6ff}
+  .kpi{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+  .kpi div{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px}
+  .kpi b{display:block;font-size:18px;color:var(--accent)}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}
+  th,td{border:1px solid var(--border);padding:6px 9px;text-align:center}
+  th{background:var(--panel2);color:var(--muted);font-weight:600}
+  td.scenario{text-align:left;color:var(--muted)}
+  .bar-wrap{margin-top:14px}
+  .bar-row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}
+  .bar-row .lbl{width:74px;text-align:right;color:var(--muted)}
+  .bar-track{flex:1;background:#0d1117;border:1px solid var(--border);border-radius:5px;height:22px;position:relative;overflow:hidden}
+  .bar-fill{height:100%;border-radius:0;transition:width .35s ease}
+  .bar-val{width:64px;font-variant-numeric:tabular-nums}
+  .method-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .pill{padding:5px 11px;border-radius:14px;border:1px solid var(--border);background:var(--panel2);
+        cursor:pointer;font-size:12.5px;user-select:none}
+  .pill.on{border-color:var(--accent);color:var(--accent);background:#1f6feb22}
+  .note{font-size:12.5px;color:var(--muted);margin-top:12px}
+  .factor-btns{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+  .factor-btns button{flex:1;min-width:130px;padding:10px;border-radius:8px;border:1px solid var(--border);
+        background:var(--panel2);color:var(--txt);cursor:pointer;font-size:13px}
+  .factor-btns button.on{border-color:var(--accent);background:#1f6feb22;color:var(--accent)}
+  code{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12.5px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>参数曲面连续碰撞检测中的浮点鲁棒性：从算法到基准</h1>
+  <div class="meta">Xuwen Chen, Junyu Wang, Cheng Yu, Xingyu Ni, Meng Zhang, Bin Wang, Mengyu Chu, Baoquan Chen
+  · ACM TOG (SIGGRAPH 2026), Vol. 45 No. 4, Art. 141 · DOI 10.1145/3811310</div>
+  <div class="tags"><span>碰撞检测</span><span>浮点鲁棒性</span></div>
+</header>
+
+<main>
+
+<!-- ============ 第 1 节：包络 / 漏报演练场 ============ -->
+<section>
+  <h2><span class="num">1</span>包络相交 —— 一次舍入误差如何变成漏报</h2>
+  <p class="lede">TDIBM 判断"此窗内是否碰撞"的方式：在时间 <code>t</code> 上构造投影控制点的上方
+  <b style="color:var(--bad)">max-包络</b> 与下方 <b style="color:var(--accent)">min-包络</b>。
+  <b>碰撞窗</b>即 max&nbsp;≥&nbsp;min 之处（图&nbsp;1）。浮点误差会*缩小*检测到的窗——漏掉真实接触
+  （漏报，唯一不可接受的错误）。TDIBM-E 把包络保守地推开，使窗只可能*扩大*（无害的误报）。
+  拖动误差滑块；然后启用安全措施。</p>
+  <div class="row">
+    <div class="col" style="flex:1.3">
+      <canvas id="env" height="340"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--bad)"></i>max-包络</span>
+        <span><i style="background:var(--accent)"></i>min-包络</span>
+        <span><i style="background:#3fb95066"></i>真实碰撞窗</span>
+        <span><i style="background:#d2992266"></i>检测到的窗</span>
+      </div>
+    </div>
+    <div class="col">
+      <label class="ctl">浮点误差大小：<b id="errVal">0.00</b></label>
+      <input type="range" id="err" min="0" max="100" value="0">
+      <label class="ctl">（模拟包络分支比较中的舍入，使检测到的包络向内收缩）</label>
+
+      <div class="toggle" id="safeT">
+        <input type="checkbox" id="safe">
+        <span><b>启用 TDIBM-E 安全措施</b> —— 将 max ↑、min ↓ 平移推导出的界
+        <code>ε<sub>constr</sub></code> + 推开 <code>δ</code></span>
+      </div>
+
+      <div class="kpi">
+        <div>真实窗<b id="kTrue">—</b></div>
+        <div>检测到<b id="kDet">—</b></div>
+      </div>
+      <div id="verdict" class="verdict exact">调整参数以查看判定。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 第 2 节：鲁棒性仪表盘（真实表 1 数据） ============ -->
+<section>
+  <h2><span class="num">2</span>漏报仪表盘 —— 真实结果（表&nbsp;1）</h2>
+  <p class="lede">24,246 用例基准上、六类接触的漏报计数。切换方法。只有
+  <b style="color:var(--safe)">TDIBM-E（本文）</b> 和手调的 <b>TDIBM-H&nbsp;(10⁻¹²)</b> 处处归零；
+  原始 TDIBM 与过小的启发式漏掉数百个——最严重的是退化的"点"类用例。</p>
+  <div class="method-pills" id="pills"></div>
+  <div class="bar-wrap" id="bars"></div>
+  <div class="note" id="dashNote"></div>
+</section>
+
+<!-- ============ 第 3 节：推开权衡 ============ -->
+<section>
+  <h2><span class="num">3</span>启发式的刀锋 —— 为何一个调出来的常数不是保证</h2>
+  <p class="lede">TDIBM-H 用单一全局常数推开包络。太小 → 漏报残留；太大 → 误报过多且运行时上升。只有
+  <code>10⁻¹²</code> 恰好有效——"只是一个经验平衡"。TDIBM-E 则推导*逐用例*的界，故按构造即安全。选一个因子：</p>
+  <div class="factor-btns" id="facBtns">
+    <button data-f="16">TDIBM-H 10⁻¹⁶</button>
+    <button data-f="12" class="on">TDIBM-H 10⁻¹²</button>
+    <button data-f="8">TDIBM-H 10⁻⁸</button>
+    <button data-f="E">TDIBM-E（本文）</button>
+  </div>
+  <div class="kpi" style="margin-top:14px">
+    <div>漏报总数<b id="fFN">—</b></div>
+    <div>误报总数<b id="fFP">—</b></div>
+    <div>平均运行时 / 查询<b id="fT">—</b></div>
+    <div>保证<b id="fG">—</b></div>
+  </div>
+  <div id="facVerdict" class="verdict" style="margin-top:14px"></div>
+  <div class="note">总数为表&nbsp;1 报告的六类场景（FF、EF、EE、VF、VE、VV）之和。运行时取各场景平均的均值。
+  TDIBM-E 的开销相对 TDIBM-H(10⁻¹²) ≤40%、相对原始 TDIBM ≤120%，却彻底去掉了调参旋钮。</div>
+</section>
+
+<!-- ============ 第 4 节：误差分解 ============ -->
+<section>
+  <h2><span class="num">4</span>核心思想 —— 分解误差（式&nbsp;11）</h2>
+  <p class="lede">系数不精确与算术不精确联合分析不可行。论文插入一个想象的中间包络 <code>f̂₁</code>
+  （系数不精确、算术*精确*）把总误差拆成两个各自可定界的部分。</p>
+  <div style="text-align:center;font-size:15px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:18px;margin-top:6px;overflow-x:auto">
+    ε<sub>constr</sub> = max|f̂ − f|
+    &nbsp;≤&nbsp; max|<span style="color:var(--accent)">f̂₁ − f</span>| + max|<span style="color:var(--warn)">f̂ − f̂₁</span>|
+    &nbsp;=&nbsp; <span style="color:var(--accent)">ε<sub>coeff</sub></span> + <span style="color:var(--warn)">ε<sub>arith</sub></span>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <div class="col" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <b style="color:var(--accent)">ε<sub>coeff</sub></b> —— 系数不精确、算术精确。<br>
+      干净的 Lipschitz 界：一条线 <code>aₜ+b</code> 带误差时偏离 ≤ <code>tᵁ·ε_a + ε_b</code>。
+      "如果我的数略错但我算得完美，包络有多偏？"
+    </div>
+    <div class="col" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <b style="color:var(--warn)">ε<sub>arith</sub></b> —— 系数精确、算术不精确。<br>
+      排序/去重*不*引入误差；只有 <code>Φ</code>、<code>φ</code> 的分支决策会。
+      这里**拓扑**可能崩坏——丢一条线的误差有界，≤ <code>n₁m₁·max(4Δ_b, tᵁΔ_a+Δ_b)·[(1+ε)⁴−1]</code>。
+    </div>
+  </div>
+  <p class="note">修法：把 max-包络<b>上移</b> <code>ε_constr</code>（min-包络下移），把每个谓词 <code>θ&lt;0</code>
+  测为 <code>θ&lt;−ε_θ</code>，求交时用推开 <code>δ</code> 的包络——`δ` 取得使最坏情况端点误差抵消为**恰好零**
+  （式&nbsp;18）。每个偏置都指向误报——绝不漏报。<b>保证：TDIBM-E 可证明无漏报。</b></p>
+</section>
+
+</main>
+<footer>交互式探索器 · 所有图表使用论文真实数值 · 完全离线运行</footer>
+
+<script>
+"use strict";
+
+/* ============================ 第 1 节 ============================ */
+/* 小型 max-线集与 min-线集；碰撞窗 = max>=min 处。 */
+const cv = document.getElementById('env');
+const cx = cv.getContext('2d');
+const maxLines = [{a:-1.6,b:2.1},{a:0.2,b:1.35},{a:2.0,b:0.55}];
+const minLines = [{a:1.7,b:0.35},{a:-0.1,b:0.95},{a:-1.9,b:1.95}];
+const T0=0, T1=1;
+const maxEnv = t => Math.max(...maxLines.map(l=>l.a*t+l.b));
+const minEnv = t => Math.min(...minLines.map(l=>l.a*t+l.b));
+
+function windowOf(maxShift, minShift){
+  const N=2000; let lo=null, hi=null;
+  for(let i=0;i<=N;i++){
+    const t=T0+(T1-T0)*i/N;
+    if(maxEnv(t)+maxShift >= minEnv(t)+minShift){
+      if(lo===null) lo=t; hi=t;
+    }
+  }
+  return (lo===null)?null:[lo,hi];
+}
+
+function drawEnv(){
+  const err = +document.getElementById('err').value/100;
+  const errAmt = err*0.55;                                // 向内收缩量
+  const safe = document.getElementById('safe').checked;
+  const safeAmt = safe ? 0.22 : 0;                        // ε_constr + δ（向外）
+
+  const trueW = windowOf(0,0);
+  const maxShift = -errAmt + safeAmt;
+  const minShift = +errAmt - safeAmt;
+  const detW = windowOf(maxShift, minShift);
+
+  const W=cv.width=cv.clientWidth*devicePixelRatio, H=cv.height=340*devicePixelRatio;
+  cx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  const w=cv.clientWidth, h=340, pad=34;
+  cx.clearRect(0,0,w,h);
+  const ymin=0, ymax=2.4;
+  const X=t=> pad + (t-T0)/(T1-T0)*(w-2*pad);
+  const Y=v=> h-pad - (v-ymin)/(ymax-ymin)*(h-2*pad);
+
+  cx.strokeStyle='#30363d'; cx.lineWidth=1;
+  cx.beginPath(); cx.moveTo(pad,h-pad); cx.lineTo(w-pad,h-pad); cx.moveTo(pad,pad); cx.lineTo(pad,h-pad); cx.stroke();
+  cx.fillStyle='#8b949e'; cx.font='12px sans-serif';
+  cx.fillText('t', w-pad+4, h-pad+4); cx.fillText('投影', pad-24, pad-10);
+
+  function band(win,color){ if(!win)return; cx.fillStyle=color;
+    cx.fillRect(X(win[0]),pad,X(win[1])-X(win[0]),h-2*pad); }
+  band(trueW,'#3fb95022');
+  band(detW,'#d2992233');
+
+  function plot(fn,shift,color,wd){
+    cx.strokeStyle=color; cx.lineWidth=wd; cx.beginPath();
+    for(let i=0;i<=400;i++){const t=T0+(T1-T0)*i/400; const v=fn(t)+shift;
+      const px=X(t),py=Y(v); i?cx.lineTo(px,py):cx.moveTo(px,py);} cx.stroke();
+  }
+  plot(maxEnv,0,'#f8514955',1); plot(minEnv,0,'#58a6ff55',1);
+  plot(maxEnv,maxShift,'#f85149',2.4); plot(minEnv,minShift,'#58a6ff',2.4);
+
+  const fmt=w=> w?('['+w[0].toFixed(3)+', '+w[1].toFixed(3)+']'):'∅（无碰撞）';
+  const len=w=> w?(w[1]-w[0]):0;
+  document.getElementById('kTrue').textContent=fmt(trueW);
+  document.getElementById('kDet').textContent=fmt(detW);
+  document.getElementById('errVal').textContent=errAmt.toFixed(2);
+
+  const vd=document.getElementById('verdict');
+  const tl=len(trueW), dl=len(detW);
+  if(Math.abs(dl-tl)<1e-3 && safeAmt===0 && errAmt===0){
+    vd.className='verdict exact'; vd.textContent='✓ 精确：检测窗与真值一致。';
+  } else if(dl < tl - 1e-3){
+    vd.className='verdict fn';
+    vd.innerHTML='✗ <b>漏报（FALSE NEGATIVE）</b> —— 检测窗短于真实窗。窗边缘附近的真实碰撞会被'
+      +'漏掉 → 穿透。这是不可接受的错误。';
+  } else {
+    vd.className='verdict safe';
+    vd.innerHTML='✓ <b>安全（SAFE）</b> —— 检测窗覆盖（甚至超过）真实窗。最坏只是无害的误报。'
+      +(safe?'TDIBM-E 安全措施恢复了保守性。':'');
+  }
+}
+['err','safe'].forEach(id=>document.getElementById(id).addEventListener('input',drawEnv));
+document.getElementById('safeT').addEventListener('click',e=>{
+  if(e.target.id!=='safe'){const c=document.getElementById('safe');c.checked=!c.checked;drawEnv();}
+});
+
+/* ============================ 第 2 节 ============================ */
+const scenarios=['FF','EF','EE','VF','VE','VV'];
+const denom   ={FF:6603,EF:1120,EE:1100,VF:1100,VE:1100,VV:1100};
+const FN={
+  'Trad.'           :{FF:0,EF:0,EE:0,  VF:12, VE:73, VV:0},
+  'TDIBM'           :{FF:0,EF:0,EE:135,VF:212,VE:452,VV:860},
+  'TDIBM-H (1e-16)' :{FF:0,EF:0,EE:20, VF:22, VE:196,VV:658},
+  'TDIBM-H (1e-12)' :{FF:0,EF:0,EE:0,  VF:0,  VE:0,  VV:0},
+  'TDIBM-H (1e-8)'  :{FF:0,EF:0,EE:0,  VF:0,  VE:0,  VV:0},
+  'TDIBM-E (ours)'  :{FF:0,EF:0,EE:0,  VF:0,  VE:0,  VV:0},
+};
+const methodColors={
+  'Trad.':'#8b949e','TDIBM':'#f85149','TDIBM-H (1e-16)':'#d29922',
+  'TDIBM-H (1e-12)':'#a371f7','TDIBM-H (1e-8)':'#db61a2','TDIBM-E (ours)':'#3fb950'
+};
+const active=new Set(['TDIBM','TDIBM-H (1e-16)','TDIBM-E (ours)']);
+const pills=document.getElementById('pills');
+Object.keys(FN).forEach(m=>{
+  const el=document.createElement('div');
+  el.className='pill'+(active.has(m)?' on':''); el.textContent=m;
+  el.style.borderColor=active.has(m)?methodColors[m]:'';
+  el.onclick=()=>{active.has(m)?active.delete(m):active.add(m);
+    el.classList.toggle('on'); el.style.borderColor=active.has(m)?methodColors[m]:''; drawBars();};
+  pills.appendChild(el);
+});
+function drawBars(){
+  const bars=document.getElementById('bars'); bars.innerHTML='';
+  let mx=1;
+  scenarios.forEach(s=>active.forEach(m=>{mx=Math.max(mx,FN[m][s]);}));
+  scenarios.forEach(s=>{
+    const grp=document.createElement('div'); grp.style.margin='12px 0';
+    grp.innerHTML=`<div style="font-size:13px;color:#e6edf3;margin-bottom:2px">${s}
+      <span style="color:#8b949e">(/${denom[s]})</span></div>`;
+    active.forEach(m=>{
+      const v=FN[m][s];
+      const r=document.createElement('div'); r.className='bar-row';
+      r.innerHTML=`<div class="lbl" style="width:120px">${m}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(v/mx*100).toFixed(1)}%;
+          background:${methodColors[m]}"></div></div>
+        <div class="bar-val">${v===0?'0 ✓':v}</div>`;
+      grp.appendChild(r);
+    });
+    bars.appendChild(grp);
+  });
+  const anyFN=[...active].some(m=>scenarios.some(s=>FN[m][s]>0));
+  document.getElementById('dashNote').innerHTML = anyFN
+    ? '注意漏报集中在 VV/VE/VF —— 退化的角落用例，正是鲁棒性最重要之处。'
+      +'<b style="color:#3fb950">TDIBM-E</b> 在每一列都是 0 ✓。'
+    : '所选方法在此都达到零漏报——但只有 TDIBM-E 是*靠证明*而非手调常数做到的。';
+}
+
+/* ============================ 第 3 节 ============================ */
+const facData={
+  '16':{fn:896, fp:669, t:82.6, g:'无 —— 漏报残留', cls:'fn',
+        msg:'太小：残留 896 个漏报（仅 VV 就 658 个）。不安全。'},
+  '12':{fn:0,   fp:671, t:81.7, g:'仅经验（无证明）', cls:'safe',
+        msg:'幸运的甜点：0 漏报——但安全依赖这一个调出来的常数，并无保证它对任意输入成立。'},
+  '8' :{fn:0,   fp:676, t:144.4,g:'安全但浪费', cls:'safe',
+        msg:'大到足够安全，但过度保守：更多误报、约 1.8× 的运行时（FF 飙到 ~608 ms）。不实用。'},
+  'E' :{fn:0,   fp:669, t:90.4, g:'已证明无漏报', cls:'safe',
+        msg:'逐用例推导界：按构造 0 漏报、误报最少/相当、开销适中。没有会调错的旋钮。'},
+};
+function setFac(f){
+  document.querySelectorAll('#facBtns button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+  const d=facData[f];
+  document.getElementById('fFN').textContent=d.fn+(d.fn===0?' ✓':'');
+  document.getElementById('fFP').textContent=d.fp;
+  document.getElementById('fT').textContent=d.t.toFixed(1)+' ms';
+  document.getElementById('fG').textContent=d.g;
+  const v=document.getElementById('facVerdict');
+  v.className='verdict '+(d.cls==='fn'?'fn':'safe');
+  v.innerHTML=(d.cls==='fn'?'✗ ':'✓ ')+d.msg;
+}
+document.querySelectorAll('#facBtns button').forEach(b=>b.onclick=()=>setFac(b.dataset.f));
+
+/* 初始化 */
+window.addEventListener('resize',drawEnv);
+drawEnv(); drawBars(); setFac('12');
+</script>
+</body>
+</html>

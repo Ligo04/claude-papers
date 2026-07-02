@@ -1,0 +1,35 @@
+{
+  "title": "IsaacIPC: Coupling High-Fidelity Simulation and Realistic Rendering for Contact-Rich Robotic Systems",
+  "slug": "isaacipc-gmcp-contact-simulation",
+  "authors": [
+    "Qixin Liang",
+    "Zhongqing Han"
+  ],
+  "affiliations": [
+    "Anker Humanoid Lab, Shenzhen, China",
+    "The University of Hong Kong, Hong Kong SAR, China"
+  ],
+  "year": 2026,
+  "date": "2026-05-23",
+  "venue": "arXiv preprint (cs.RO)",
+  "arxiv": "arXiv:submit/7628396 [cs.RO]",
+  "abstract": "We present IsaacIPC, a robotic simulation framework that couples GPU accelerated incremental potential contact (IPC) with Isaac Sim / Isaac Lab. IsaacIPC maps simulated deformation between simulation and visual meshes, enabling real-time realistic rendering with applications to data collection and policy evaluation. For tactile sensing, we introduce the geometric mortar contact potential (GMCP), which defines a barrier potential over contact samples on tactile surfaces to better resolve contact-pressure distributions. We evaluate GMCP on contact benchmarks and demonstrate IsaacIPC on rigid-deformable robotic simulations including a quadruped robot, a dexterous hand, and a universal manipulation interface (UMI) gripper.",
+  "keywords": [
+    "Contact Simulation",
+    "Robotic Simulation",
+    "Tactile",
+    "Embodied Intelligence",
+    "Data Engine",
+    "IsaacSim/Lab"
+  ],
+  "tags": ["tactile simulation", "mortar contact potential"],
+  "difficulty": "Advanced",
+  "paper_nature": ["System design", "Theoretical"],
+  "githubLinks": [
+    "https://github.com/spiriMirror/libuipc",
+    "https://github.com/Genesis-Embodied-AI/Genesis",
+    "https://github.com/NVIDIA/warp"
+  ],
+  "codeLinks": [],
+  "pageCount": 8
+}

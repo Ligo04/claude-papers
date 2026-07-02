@@ -1,0 +1,40 @@
+{
+  "id": "enpire",
+  "title": "ENPIRE: Agentic Robot Policy Self-Improvement in the Real World",
+  "slug": "enpire",
+  "authors": [
+    "Wenli Xiao",
+    "Jia Xie",
+    "Tonghe Zhang",
+    "Haotian Lin",
+    "Letian \"Max\" Fu",
+    "Haoru Xue",
+    "Jalen Lu",
+    "Yi Yang",
+    "Cunxi Dai",
+    "Zi Wang",
+    "Jimmy Wu",
+    "Guanzhi Wang",
+    "S. Shankar Sastry",
+    "Ken Goldberg",
+    "Linxi \"Jim\" Fan",
+    "Yuke Zhu",
+    "Guanya Shi"
+  ],
+  "affiliations": ["NVIDIA", "CMU", "UC Berkeley"],
+  "year": 2026,
+  "date": "2026-06",
+  "abstract": "Achieving dexterous robotic manipulation in the real world relies heavily on human supervision and algorithmic engineering, which is a central bottleneck in the pursuit of general physical intelligence. Although emerging coding agents can generate code to automate algorithm search, their successes remain largely confined to digital environments. We conjecture that the missing abstraction to automate robotics research is a repeatable feedback loop for real-world policy improvement: reset the scene, execute a policy, verify the outcome, and refine the next iteration. To bridge this gap, we introduce ENPIRE, a harness framework for coding agents that instantiates this physical feedback routine with four core modules: an Environment module (EN) for automatic reset and verification, a Policy Improvement module (PI) that launches policy refinement, a Rollout module (R) to evaluate policies with single or multiple physical robots operating in parallel, and an Evolution module (E) in which coding agents analyze logs, consult literature, improve training infrastructure and algorithm code to address failure modes. This closed-loop system transforms real-world robot learning into a controllable optimization procedure that agents can manage, thus minimizing human effort while allowing fair ablations across training recipes and agent variants. Powered by ENPIRE, frontier coding agents can autonomously develop a policy to achieve a 99% success rate on challenging, dexterous manipulation tasks in the real world, such as PushT, organizing pins into a pin box, and using a cutter to cut a zip tie. Coding agents can improve policies with various PI regimes, such as heuristic learning, tool calling, behavior cloning, offline or online RL. Moreover, ENPIRE can be significantly accelerated on a robot fleet, and we propose two metrics, namely Mean Robot Utilization (MRU) and Mean Token Utilization (MTU) to measure the efficiency of multiagent physical autoresearch. We also include simulation results in RoboCasa. Our findings suggest a practical and scalable path toward autonomously advancing robotics in the real world.",
+  "tags": ["autonomous-research", "coding-agent"],
+  "githubLinks": [
+    "https://github.com/huggingface/gym-pusht"
+  ],
+  "codeLinks": [
+    "https://research.nvidia.com/labs/gear/enpire/",
+    "https://drive.google.com/drive/folders/1J8w1yQux9ODYqTNZ2ynOIFjerBIQtw1V?usp=sharing"
+  ],
+  "source": "Project page (no public PDF/arXiv found as of 2026-06-18)",
+  "projectUrl": "https://research.nvidia.com/labs/gear/enpire/",
+  "difficulty": "Advanced",
+  "paperNature": "System design + Empirical"
+}

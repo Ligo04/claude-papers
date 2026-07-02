@@ -1,0 +1,49 @@
+{
+  "id": "t-rex-tactile-reactive-manipulation",
+  "title": "T-Rex: Tactile-Reactive Dexterous Manipulation",
+  "slug": "t-rex-tactile-reactive-manipulation",
+  "authors": [
+    "Dantong Niu",
+    "Zhuoyang Liu",
+    "Zekai Wang",
+    "Boning Shao",
+    "Zhao-Heng Yin",
+    "Anirudh Pai",
+    "Yuvan Sharma",
+    "Ruijie Zheng",
+    "Yunfan Jiang",
+    "Letian Fu",
+    "Wei Zhan",
+    "David M. Chan",
+    "Yutong Bai",
+    "Roei Herzig",
+    "Jiahui Lei",
+    "Li Fei-Fei",
+    "Ken Goldberg",
+    "Jitendra Malik",
+    "Pieter Abbeel",
+    "Yuke Zhu",
+    "Danfei Xu",
+    "Jim (Linxi) Fan",
+    "Trevor Darrell"
+  ],
+  "abstract": "The ability to react dynamically to tactile signals has long been considered crucial to agile human-level dexterity. Yet contemporary learning-based VLAs for robotic manipulation generally either overlook the tactile modality or are limited to encoders with static cues, in part due to the scarcity of diverse training data and standardized evaluation, architectural constraints in current Vision-Language-Action (VLA) models, and limitations of static tactile encoders. In this paper, we push the frontier of tactile-reactive manipulation addressing all of these limitations. We propose a large-scale, 100-hour tactile-rich dataset collected via a novel, data-efficient recipe that prioritizes elementary motor primitives. To effectively exploit naturally high-frequency touch signals without sacrificing the existing capabilities of existing VLAs, we introduce a variable-rate Mix-of-Transformer (MoT) architecture equipped with a novel temporal tactile VQ-VAE encoder. We demonstrate the effectiveness of tactile-reactive policies on 12 manipulation tasks requiring delicate force control, deformable object manipulation, achieving over 30% higher average success rate than the strongest baseline.",
+  "year": 2026,
+  "date": "2026-06-18",
+  "tags": [
+    "触觉操作",
+    "视觉-语言-动作"
+  ],
+  "githubLinks": [
+    "https://github.com/RoboVerseOrg/ViTacFormer",
+    "https://github.com/xiaoxiaoxh/reactive_diffusion_policy",
+    "https://github.com/Nvidia/Isaac-GR00T",
+    "https://github.com/Physical-Intelligence/openpi"
+  ],
+  "codeLinks": [
+    "https://tactile-rex.github.io/"
+  ],
+  "arxiv": "2606.17055",
+  "difficulty": "Advanced",
+  "nature": "Architecture + Empirical (dataset & benchmark)"
+}

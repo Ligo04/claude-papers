@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IsaacIPC + GMCP 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2333; --border:#30363d;
+    --txt:#e6edf3; --dim:#9da7b3; --accent:#58a6ff; --accent2:#3fb950;
+    --warn:#f0883e; --pink:#db61a2; --purple:#a371f7; --mono:'SFMono-Regular',Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;line-height:1.6;padding:0 0 60px}
+  header{background:linear-gradient(135deg,#1c2333,#0d1117);border-bottom:1px solid var(--border);padding:28px 24px;text-align:center}
+  header h1{font-size:24px;font-weight:700;letter-spacing:.3px}
+  header h1 .hl{color:var(--accent)}
+  header p{color:var(--dim);font-size:14px;margin-top:8px}
+  header .tags{margin-top:12px}
+  header .tag{display:inline-block;background:var(--panel2);border:1px solid var(--border);color:var(--accent2);
+    font-size:12px;padding:3px 10px;border-radius:12px;margin:0 4px;font-family:var(--mono)}
+  nav{position:sticky;top:0;z-index:20;background:rgba(13,17,23,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:4px;padding:8px 12px;justify-content:center}
+  nav button{background:transparent;border:1px solid var(--border);color:var(--dim);font-size:13px;
+    padding:6px 12px;border-radius:6px;cursor:pointer;transition:.15s;font-family:inherit}
+  nav button:hover{color:var(--txt);border-color:var(--accent)}
+  nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  main{max-width:1080px;margin:0 auto;padding:0 16px}
+  section{display:none;animation:fade .25s ease}
+  section.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin:18px 0}
+  .panel h2{font-size:19px;color:var(--accent);margin-bottom:6px}
+  .panel h3{font-size:15px;color:var(--accent2);margin:16px 0 8px}
+  .panel p{color:var(--dim);font-size:14px;margin:8px 0}
+  .panel p b{color:var(--txt)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .ctrl{margin:14px 0}
+  .ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .ctrl label .val{color:var(--accent);font-family:var(--mono);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--accent);height:6px}
+  .readout{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;
+    font-family:var(--mono);font-size:13px;margin-top:10px}
+  .readout .k{color:var(--dim)} .readout .v{color:var(--accent2);font-weight:600}
+  canvas{background:var(--panel2);border:1px solid var(--border);border-radius:8px;display:block;width:100%}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  th,td{border:1px solid var(--border);padding:7px 10px;text-align:center;font-family:var(--mono)}
+  th{background:var(--panel2);color:var(--accent)}
+  td.lbl{text-align:left;font-family:inherit;color:var(--dim)}
+  .formula{background:#0a0d12;border:1px solid var(--border);border-left:3px solid var(--accent);
+    border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:13px;overflow-x:auto;margin:10px 0;color:#c9d4e0}
+  .note{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.3);border-radius:6px;padding:10px 12px;font-size:13px;margin:10px 0}
+  .toggle-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .toggle-row button{background:var(--panel2);border:1px solid var(--border);color:var(--dim);
+    padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:13px;transition:.15s}
+  .toggle-row button.on{background:var(--accent2);color:#08140c;border-color:var(--accent2);font-weight:600}
+  .arch svg{width:100%;height:auto;background:var(--panel2);border-radius:8px;border:1px solid var(--border)}
+  .arch .box{cursor:pointer;transition:.15s}
+  .arch .box:hover rect{stroke:var(--accent);stroke-width:2.5}
+  .layerlabel{font-size:11px;fill:var(--dim);font-family:var(--mono)}
+  .archdesc{min-height:54px}
+  .legend{font-size:12px;color:var(--dim);margin-top:8px}
+  .legend span{display:inline-block;margin-right:14px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  footer{text-align:center;color:var(--dim);font-size:12px;margin-top:30px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="hl">IsaacIPC</span> + GMCP 交互式探索器</h1>
+  <p>为接触密集型机器人系统耦合高保真仿真与真实渲染 · Liang &amp; Han, 2026</p>
+  <div class="tags"><span class="tag">tactile simulation</span><span class="tag">mortar contact potential</span></div>
+</header>
+<nav id="nav"></nav>
+<main>
+<!-- ============ 1. 概览 ============ -->
+<section id="overview" class="active">
+  <div class="panel">
+    <h2>① 一图读懂：IsaacIPC 解决什么</h2>
+    <p>IsaacIPC 把两个互补系统粘合：<b>libuipc</b>（GPU 加速 IPC，接触物理强）与 <b>Isaac Sim/Lab</b>（照片级渲染 + 大规模并行环境）。难点是二者几何表示不匹配——它用<b>双网格映射器</b>桥接，并贡献 <b>GMCP</b> 接触模型提升触觉压力精度。</p>
+    <div class="grid2">
+      <div>
+        <h3>两个核心贡献</h3>
+        <div class="readout">
+          <div><span class="v">① IsaacIPC 框架</span> — 双网格映射器桥接物理与渲染</div>
+          <div style="margin-top:8px"><span class="v">② GMCP</span> — barrier × mortar 的接触势，触觉压力更准</div>
+        </div>
+        <h3>三个机器人演示</h3>
+        <div class="readout">
+          <div><span class="k">四足:</span> <span class="v">Unitree Go2</span> 脚垫 FEM + 多环境并行</div>
+          <div><span class="k">灵巧手:</span> <span class="v">Sharpa Wave</span> 22 DOF 手内球旋转</div>
+          <div><span class="k">夹爪:</span> <span class="v">UMI</span> + Franka 臂 pick-and-place</div>
+        </div>
+      </div>
+      <div>
+        <h3>关键数字（论文实测）</h3>
+        <table>
+          <tr><th>指标</th><th>数值</th></tr>
+          <tr><td class="lbl">patch test 最优相对误差</td><td>4.66×10⁻⁵</td></tr>
+          <tr><td class="lbl">patch test 最优伪应力</td><td>2.48×10⁻⁴</td></tr>
+          <tr><td class="lbl">双网格映射误差阶</td><td>O(h²)</td></tr>
+          <tr><td class="lbl">灵巧手自由度</td><td>22 DOF</td></tr>
+          <tr><td class="lbl">Hertz 半球网格</td><td>61,843 四面体</td></tr>
+          <tr><td class="lbl">GPU</td><td>RTX5880-Ada-48Q</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="note">💡 用上方导航逐个探索：架构 → 双网格映射 → GMCP barrier → mortar 求积 → 验证数据。每个面板的滑块都会实时改变可视化。</div>
+  </div>
+</section>
+
+<!-- ============ 2. 系统架构 ============ -->
+<section id="arch">
+  <div class="panel arch">
+    <h2>② 三层系统架构（点击方块看说明）</h2>
+    <p>每个物理步的数据流：策略→关节驱动→注入 libuipc→GPU 求解接触/变形→双网格映射→写回 USD 渲染。</p>
+    <svg viewBox="0 0 720 420" id="archSvg"></svg>
+    <div class="readout archdesc" id="archDesc">点击任意方块查看它的职责……</div>
+    <div class="legend">
+      <span><i class="dot" style="background:#1f6feb"></i>IsaacSim/Lab 层</span>
+      <span><i class="dot" style="background:#8957e5"></i>IsaacIPC 中介层</span>
+      <span><i class="dot" style="background:#238636"></i>libuipc GPU 层</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. 双网格映射 ============ -->
+<section id="dualmesh">
+  <div class="panel">
+    <h2>③ 双网格映射器：物理算粗的，渲染看精的</h2>
+    <p>视觉顶点用<b>重心坐标 + 法向偏移</b>绑定到仿真三角形（预计算一次），每帧用变形后的三角形重建。映射是<b>刚性不变</b>的，误差 <b>O(h²)</b>——加密仿真网格，渲染保真度二次提升。</p>
+    <div class="formula">p′ᵢ = uᵢ·v′₀ + vᵢ·v′₁ + wᵢ·v′₂ + δᵢ·n′ᵢ   （公式 4）</div>
+    <div class="grid2">
+      <div>
+        <div class="ctrl">
+          <label>仿真网格细分 N（粗 ⟶ 精）<span class="val" id="dmNval">4</span></label>
+          <input type="range" id="dmN" min="1" max="24" value="4">
+        </div>
+        <div class="ctrl">
+          <label>变形强度（弯曲幅度）<span class="val" id="dmAval">0.40</span></label>
+          <input type="range" id="dmA" min="0" max="80" value="40">
+        </div>
+        <div class="toggle-row">
+          <button id="dmShowVis" class="on">显示视觉网格(精)</button>
+          <button id="dmShowSim" class="on">显示仿真网格(粗)</button>
+        </div>
+        <div class="readout">
+          <div><span class="k">仿真三角形数:</span> <span class="v" id="dmTris">32</span></div>
+          <div><span class="k">仿真三角形边长 h:</span> <span class="v" id="dmH">0.250</span></div>
+          <div><span class="k">平均映射误差:</span> <span class="v" id="dmErr">—</span></div>
+          <div><span class="k">误差 ÷ h²（应近似常数）:</span> <span class="v" id="dmErrH2">—</span></div>
+        </div>
+        <div class="note">观察：把 N 翻倍（h 减半），平均映射误差约降为 1/4，而「误差÷h²」基本不变 → 这就是 O(h²)。</div>
+      </div>
+      <div>
+        <canvas id="dmCanvas" width="440" height="380"></canvas>
+        <div class="legend">
+          <span><i class="dot" style="background:#3fb950"></i>视觉网格(精,跟随变形)</span>
+          <span><i class="dot" style="background:#f0883e"></i>仿真网格(粗,实际算物理)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. GMCP barrier ============ -->
+<section id="barrier">
+  <div class="panel">
+    <h2>④ GMCP Barrier 势：无穿透 + 自适应支撑半径</h2>
+    <p>barrier 函数 B(g,ε) 在间隙 g→0 时能量/力→∞，使优化器永不穿透（feasible 迭代）。自适应半径 <b>ε=min(0.9·g_ref, ε_max)</b> 保证静止态不激活 → 消除伪力。</p>
+    <div class="formula">Ψ = Σ_q Σ_k  κ_q · w_k · γ_k · B(g_k, ε_k)   （公式 10）
+B(g,ε) = −(g−ε)²·ln(g/ε),  0&lt;g&lt;ε ;   B=0, g≥ε</div>
+    <div class="grid2">
+      <div>
+        <div class="ctrl">
+          <label>支撑半径 ε（barrier 激活距离）<span class="val" id="bEval">0.0100</span></label>
+          <input type="range" id="bE" min="2" max="40" value="10">
+        </div>
+        <div class="ctrl">
+          <label>当前间隙 g（探针位置）<span class="val" id="bGval">0.0050</span></label>
+          <input type="range" id="bG" min="1" max="60" value="5">
+        </div>
+        <div class="ctrl">
+          <label>barrier 刚度 κ<span class="val" id="bKval">1e6</span></label>
+          <input type="range" id="bK" min="4" max="8" value="6">
+        </div>
+        <div class="readout">
+          <div><span class="k">B(g,ε):</span> <span class="v" id="bB">—</span></div>
+          <div><span class="k">接触力 −κ·B′(g):</span> <span class="v" id="bF">—</span></div>
+          <div><span class="k">状态:</span> <span class="v" id="bState">—</span></div>
+        </div>
+        <div class="note">把 g 拖到 ε 右侧 → 力归零（未接触）；拖向 0 → 力急升至 ∞（不可穿透）。κ 调大可看 patch test 误差饱和：10⁴→10⁶ 误差骤降，10⁶→10⁸ 几乎不变。</div>
+      </div>
+      <div>
+        <canvas id="bCanvas" width="440" height="380"></canvas>
+        <div class="legend"><span><i class="dot" style="background:#58a6ff"></i>能量 B(g)</span><span><i class="dot" style="background:#db61a2"></i>接触力</span><span><i class="dot" style="background:#f0883e"></i>当前 g</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>C¹ Hermite 阶跃 H(x,δ)：master 特征权重 γ（防重复计数）</h3>
+    <p>face/edge/point 样本在主特征边界附近用 <b>H(x,δ)=3t²−2t³</b> 平滑过渡。C¹ 连续（端点导数=0）保证 Hessian 平滑、牛顿法不抖。</p>
+    <div class="grid2">
+      <div>
+        <div class="ctrl">
+          <label>过渡宽度 δ<span class="val" id="hDval">0.20</span></label>
+          <input type="range" id="hD" min="5" max="50" value="20">
+        </div>
+        <div class="readout"><div><span class="k">H′(0):</span> <span class="v">0</span> &nbsp; <span class="k">H′(δ):</span> <span class="v">0</span> &nbsp;→ C¹ 连续</div></div>
+      </div>
+      <div><canvas id="hCanvas" width="440" height="220"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. mortar 求积 ============ -->
+<section id="mortar">
+  <div class="panel">
+    <h2>⑤ Mortar 面样本：裁剪 + Gauss 求积</h2>
+    <p>面样本流水线：把 master 三角形投影到 slave 切平面 → <b>Sutherland-Hodgman 裁剪</b>求重叠多边形 → 扇形三角化 → <b>2D Gauss 求积</b>。求积权重之和 = 重叠面积，这正是 barrier 势里 mortar 积分权重 w_k 的来源。</p>
+    <div class="grid2">
+      <div>
+        <div class="ctrl">
+          <label>master 三角形 旋转<span class="val" id="mRval">25°</span></label>
+          <input type="range" id="mR" min="0" max="120" value="25">
+        </div>
+        <div class="ctrl">
+          <label>master 三角形 水平位移<span class="val" id="mXval">0.30</span></label>
+          <input type="range" id="mX" min="-30" max="70" value="30">
+        </div>
+        <div class="ctrl">
+          <label>master 三角形 缩放<span class="val" id="mSval">1.00</span></label>
+          <input type="range" id="mS" min="50" max="150" value="100">
+        </div>
+        <div class="readout">
+          <div><span class="k">重叠多边形顶点数:</span> <span class="v" id="mVerts">—</span></div>
+          <div><span class="k">重叠面积(鞋带公式):</span> <span class="v" id="mArea">—</span></div>
+          <div><span class="k">Σ 求积权重 w_k:</span> <span class="v" id="mWsum">—</span></div>
+          <div><span class="k">采样点数:</span> <span class="v" id="mPts">—</span></div>
+        </div>
+        <div class="note">无论怎么旋转/平移 master，「Σw_k」始终等于「重叠面积」——求积是精确的。每个样本的 w_k = 它代表的接触面积份额。</div>
+      </div>
+      <div>
+        <canvas id="mCanvas" width="440" height="380"></canvas>
+        <div class="legend"><span><i class="dot" style="background:#3fb950"></i>slave T_s</span><span><i class="dot" style="background:#db61a2"></i>master T_m</span><span><i class="dot" style="background:#58a6ff"></i>重叠区</span><span><i class="dot" style="background:#f0883e"></i>Gauss 点</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>为什么 mortar 权重重要：非均匀采样下的压力传递</h3>
+    <p>真实压力线性变化 p(x)=2+16x，真实合力=10。采样点左密右疏时，「点对点等权」会偏，「mortar 积分权重」近乎精确。</p>
+    <table id="mortarTable">
+      <tr><th>离散方式</th><th>Σw_k</th><th>还原合力</th><th>相对误差</th></tr>
+      <tr><td class="lbl">A. 点对点等权 (L/n)</td><td>1.000</td><td>9.291</td><td style="color:var(--warn)">7.09%</td></tr>
+      <tr><td class="lbl">B. mortar 积分权重</td><td>1.000</td><td>10.000</td><td style="color:var(--accent2)">0.00%</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 6. 验证数据 ============ -->
+<section id="results">
+  <div class="panel">
+    <h2>⑥ 定量验证：Contact Patch Test（论文表 1）</h2>
+    <p>两线弹性块隔 0.002 间隙，上施均匀压力 10，解析解 σ_zz=−10 均匀。GMCP 对各 barrier 刚度都精确传递均匀应力。点击行高亮，看刚度增大如何使误差饱和。</p>
+    <table id="patchTable">
+      <tr><th>barrier 刚度 κ</th><th>σ_zz 最大相对误差</th><th>最大伪应力 σ_spur</th></tr>
+      <tr data-k="4"><td>10⁴</td><td>8.00×10⁻⁴</td><td>6.00×10⁻³</td></tr>
+      <tr data-k="6"><td>10⁶</td><td>4.66×10⁻⁵</td><td>2.48×10⁻⁴</td></tr>
+      <tr data-k="8"><td>10⁸</td><td>4.66×10⁻⁵</td><td>2.48×10⁻⁴</td></tr>
+    </table>
+    <canvas id="patchCanvas" width="640" height="240" style="margin-top:14px"></canvas>
+    <div class="note">关键观察：κ 从 10⁴→10⁶，相对误差降 ~17 倍；10⁶→10⁸ 几乎不变（<b>误差饱和</b>）。说明盲目增大刚度无收益，反而恶化数值条件。</div>
+  </div>
+  <div class="panel">
+    <h2>Hertzian Contact：曲面接触压力分布（论文图 7）</h2>
+    <p>可变形半球(R=0.05, E=2.1×10¹¹, ν=0.3)压入弹性块。数值 GMCP 压力分布与 Hertz 解析解 p(r)=(3QR²/2α²)√(1−r²/α²) 高度吻合。</p>
+    <canvas id="hertzCanvas" width="640" height="280"></canvas>
+    <div class="legend"><span><i class="dot" style="background:#58a6ff"></i>Hertz 解析解</span><span><i class="dot" style="background:#3fb950"></i>GMCP 数值(含细化时减小的振荡)</span></div>
+    <div class="note">少数数值点的小幅振荡，论文指出会随网格细化或高阶单元减小。曲线形状与峰值压力位置（接触中心 r=0）一致。</div>
+  </div>
+</section>
+</main>
+<footer>数据均取自论文原文（patch test / Hertz / 网格规模等）。本页离线自包含，无外部依赖。</footer>
+<script>
+// ===== 导航 =====
+const SECTIONS = [
+  ['overview','概览'],['arch','系统架构'],['dualmesh','双网格映射'],
+  ['barrier','GMCP Barrier'],['mortar','Mortar 求积'],['results','验证数据']
+];
+const nav = document.getElementById('nav');
+SECTIONS.forEach(([id,label],i)=>{
+  const b=document.createElement('button');
+  b.textContent=label; b.dataset.id=id; if(i===0)b.classList.add('active');
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('main section').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(id==='dualmesh')drawDualMesh();
+    if(id==='barrier'){drawBarrier();drawHermite();}
+    if(id==='mortar')drawMortar();
+    if(id==='results'){drawPatch();drawHertz();}
+  };
+  nav.appendChild(b);
+});
+
+// 工具
+const $=id=>document.getElementById(id);
+function clr(ctx,w,h){ctx.fillStyle='#1c2333';ctx.fillRect(0,0,w,h);}
+
+// ===== 2. 架构图 =====
+const ARCH = [
+  // id, x,y,w,h, color, title, desc
+  ['policy',40,30,180,46,'#1f6feb','RL Policy','强化学习策略输出动作，驱动机器人关节。'],
+  ['artic',250,30,200,46,'#1f6feb','Articulation (joint drives)','机器人铰接系统，提供关节驱动指令与照片级渲染。'],
+  ['usd',480,30,200,46,'#1f6feb','USD / Fabric render stage','Omniverse 的场景描述与渲染舞台，最终画面在此呈现。'],
+  ['bridge',40,140,180,46,'#8957e5','ExternalSim Bridge','步协调器：协调 IsaacSim 与 libuipc 的每个物理步同步。'],
+  ['constraint',250,140,200,46,'#8957e5','Articulation Constraint','读取关节驱动的刚体位姿，作为约束注入 libuipc。'],
+  ['mapper',250,210,200,46,'#8957e5','Dual-Mesh Mapper','核心！每帧把仿真网格 M_sim 的变形插值到视觉网格 M_vis（公式4）。'],
+  ['fabric',480,140,200,46,'#8957e5','Fabric Bridge (USD write)','把插值后的 M_vis 顶点位置写回 USD/Fabric 供渲染。'],
+  ['gmcp',40,320,180,56,'#238636','GMCP Contact','GMCP 接触模型：barrier×mortar 的接触势，解析触觉压力分布。'],
+  ['subscene',250,320,200,56,'#238636','Subscene Tabular (N-env)','把仿真划分为单 GPU 上多个隔离子场景，支持大规模并行 rollout。'],
+  ['sim',480,320,200,56,'#238636','Simulations (刚体+可变形+GPU接触)','GPU 引擎：刚体(ABD)与可变形体(FEM)动力学 + GPU 接触求解。'],
+];
+function drawArch(){
+  const svg=$('archSvg'); svg.innerHTML='';
+  const NS='http://www.w3.org/2000/svg';
+  // 层背景标签
+  [['IsaacSim/Lab',12],['IsaacIPC',122],['libuipc (GPU)',302]].forEach(([t,y])=>{
+    const tx=document.createElementNS(NS,'text');
+    tx.setAttribute('x',8);tx.setAttribute('y',y);tx.setAttribute('class','layerlabel');
+    tx.textContent=t;svg.appendChild(tx);
+  });
+  // 连线
+  const lines=[['policy','artic'],['artic','constraint'],['constraint','mapper'],
+    ['mapper','fabric'],['fabric','usd'],['gmcp','sim'],['subscene','sim'],['bridge','constraint']];
+  const byId={};ARCH.forEach(a=>byId[a[0]]=a);
+  lines.forEach(([a,b])=>{
+    const A=byId[a],B=byId[b];
+    const ln=document.createElementNS(NS,'line');
+    ln.setAttribute('x1',A[1]+A[3]/2);ln.setAttribute('y1',A[2]+A[4]/2);
+    ln.setAttribute('x2',B[1]+B[3]/2);ln.setAttribute('y2',B[2]+B[4]/2);
+    ln.setAttribute('stroke','#30363d');ln.setAttribute('stroke-width','1.5');
+    svg.appendChild(ln);
+  });
+  ARCH.forEach(a=>{
+    const[id,x,y,w,h,c,title,desc]=a;
+    const g=document.createElementNS(NS,'g');g.setAttribute('class','box');
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);
+    r.setAttribute('rx',7);r.setAttribute('fill',c+'33');r.setAttribute('stroke',c);r.setAttribute('stroke-width','1.5');
+    g.appendChild(r);
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('x',x+w/2);t.setAttribute('y',y+h/2+4);t.setAttribute('text-anchor','middle');
+    t.setAttribute('fill','#e6edf3');t.setAttribute('font-size','12');t.textContent=title.length>22?title.slice(0,21)+'…':title;
+    g.appendChild(t);
+    g.onclick=()=>{$('archDesc').innerHTML='<b style="color:'+c+'">'+title+'</b><br>'+desc;};
+    svg.appendChild(g);
+  });
+}
+drawArch();
+
+// ===== 3. 双网格映射 =====
+// 参考构型：[0,1]x[0,1] 平面网格；变形：抛物弯曲 z = A*(X^2+Y^2)
+function deform(x,y,A){ return [x, y, A*(x*x+y*y)]; }
+// 3D->2D 等距投影（简单斜投影便于看立体感）
+function proj(p){
+  const sx=0.55, sy=0.30;
+  const X = 60 + (p[0]*300) + p[1]*sx*120;
+  const Y = 300 - (p[2]*300) - p[1]*sy*120;
+  return [X,Y];
+}
+function drawDualMesh(){
+  const cv=$('dmCanvas'),ctx=cv.getContext('2d');clr(ctx,cv.width,cv.height);
+  const N=+$('dmN').value, A=+$('dmA').value/100;
+  const showVis=$('dmShowVis').classList.contains('on');
+  const showSim=$('dmShowSim').classList.contains('on');
+  $('dmNval').textContent=N; $('dmAval').textContent=A.toFixed(2);
+  const h=1/N;
+  $('dmTris').textContent=2*N*N; $('dmH').textContent=h.toFixed(3);
+
+  // 视觉网格（固定精细，例如 24 细分）
+  const VN=24;
+  // 误差度量：随机视觉点用粗网格(N)嵌入重建 vs 真实变形
+  // 简化嵌入：视觉点 (x,y,0) 落在某粗三角形，重心插值变形顶点（δ=0，贴面）
+  function reconstructViaSim(x,y){
+    // 找所在粗网格 cell
+    let i=Math.min(N-1,Math.floor(x/h)), j=Math.min(N-1,Math.floor(y/h));
+    const x0=i*h,y0=j*h;
+    let lx=(x-x0)/h, ly=(y-y0)/h;
+    // 两三角形：下三角 (lx+ly<=1) 顶点(0,0)(1,0)(0,1)；上三角 (1,0)(1,1)(0,1)
+    let v0,v1,v2,a,b;
+    if(lx+ly<=1){ v0=[x0,y0]; v1=[x0+h,y0]; v2=[x0,y0+h]; a=lx; b=ly; }
+    else { v0=[x0+h,y0+h]; v1=[x0,y0+h]; v2=[x0+h,y0]; a=(1-lx); b=(1-ly); }
+    const w0=1-a-b, w1=a, w2=b;
+    const d0=deform(v0[0],v0[1],A), d1=deform(v1[0],v1[1],A), d2=deform(v2[0],v2[1],A);
+    return [w0*d0[0]+w1*d1[0]+w2*d2[0], w0*d0[1]+w1*d1[1]+w2*d2[1], w0*d0[2]+w1*d1[2]+w2*d2[2]];
+  }
+  // 误差
+  let errSum=0,cnt=0;
+  for(let s=0;s<300;s++){
+    const x=0.04+0.92*((s*0.6180339887)%1);
+    const y=0.04+0.92*((s*0.3145678)%1);
+    const rec=reconstructViaSim(x,y);
+    const tru=deform(x,y,A);
+    errSum+=Math.hypot(rec[0]-tru[0],rec[1]-tru[1],rec[2]-tru[2]);cnt++;
+  }
+  const err=errSum/cnt;
+  $('dmErr').textContent=err.toExponential(2);
+  $('dmErrH2').textContent=(err/(h*h)).toFixed(4);
+
+  // 画仿真网格（粗，橙）—— 用真实变形顶点
+  function drawMesh(n,color,width,recon){
+    ctx.strokeStyle=color;ctx.lineWidth=width;
+    const hh=1/n;
+    for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){
+      const here=recon(i*hh,j*hh);
+      if(i<n){const r=recon((i+1)*hh,j*hh);ctx.beginPath();const a=proj(here),b=proj(r);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();}
+      if(j<n){const r=recon(i*hh,(j+1)*hh);ctx.beginPath();const a=proj(here),b=proj(r);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();}
+    }
+  }
+  if(showVis) drawMesh(VN,'#3fb95066',0.6,(x,y)=>reconstructViaSim(x,y)); // 视觉网格跟随粗网格重建
+  if(showSim) drawMesh(N,'#f0883e',1.4,(x,y)=>deform(x,y,A));            // 仿真网格真实变形
+  // 坐标提示
+  ctx.fillStyle='#9da7b3';ctx.font='12px monospace';
+  ctx.fillText('弯曲变形的双网格（粗算物理，精渲染）',12,20);
+}
+['dmN','dmA'].forEach(id=>$(id).oninput=drawDualMesh);
+['dmShowVis','dmShowSim'].forEach(id=>$(id).onclick=function(){this.classList.toggle('on');drawDualMesh();});
+
+// ===== 4. GMCP barrier =====
+function barrierB(g,eps){ if(g>=eps||g<=0)return g<=0?Infinity:0; return -(g-eps)*(g-eps)*Math.log(g/eps); }
+function barrierGrad(g,eps){ if(g>=eps||g<=0)return 0; return -2*(g-eps)*Math.log(g/eps)-(g-eps)*(g-eps)/g; }
+function drawBarrier(){
+  const cv=$('bCanvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;clr(ctx,W,H);
+  const eps=+$('bE').value/1000, g=+$('bG').value/1000, kExp=+$('bK').value, kappa=Math.pow(10,kExp);
+  $('bEval').textContent=eps.toFixed(4); $('bGval').textContent=g.toFixed(4); $('bKval').textContent='1e'+kExp;
+  const B=barrierB(g,eps), F=-kappa*barrierGrad(g,eps);
+  $('bB').textContent=B===0?'0':B.toExponential(3);
+  $('bF').textContent=g>=eps?'0 (未接触)':F.toExponential(3);
+  $('bState').textContent= g>=eps?'barrier 未激活 (g≥ε)':'激活，排斥力随 g↓ 急升→∞';
+  // 画 B(g) 与 力，横轴 g∈[0, 1.5ε]
+  const gmax=eps*1.6, pad=40;
+  const px=x=> pad + (x/gmax)*(W-2*pad);
+  const Bvals=[],Fvals=[];let Bmax=1e-9,Fmax=1e-9;
+  for(let i=1;i<=200;i++){const gg=gmax*i/200; const bb=barrierB(gg,eps), ff=kappa*barrierGrad(gg,eps)*-1;
+    Bvals.push([gg,bb]);Fvals.push([gg,Math.abs(ff)]); if(isFinite(bb))Bmax=Math.max(Bmax,bb); if(isFinite(ff))Fmax=Math.max(Fmax,Math.abs(ff));}
+  // 轴
+  ctx.strokeStyle='#30363d';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,H-30);ctx.lineTo(W-10,H-30);ctx.moveTo(pad,H-30);ctx.lineTo(pad,15);ctx.stroke();
+  ctx.fillStyle='#9da7b3';ctx.font='11px monospace';ctx.fillText('间隙 g →',W-90,H-12);ctx.fillText('B / 力',pad-30,20);
+  // ε 竖线
+  ctx.strokeStyle='#9da7b355';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(px(eps),15);ctx.lineTo(px(eps),H-30);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#9da7b3';ctx.fillText('ε',px(eps)-4,28);
+  // 能量曲线（蓝）
+  const pyB=v=>(H-30)-Math.min(1,v/Bmax)*(H-55);
+  ctx.strokeStyle='#58a6ff';ctx.lineWidth=2;ctx.beginPath();let st=false;
+  Bvals.forEach(([gg,bb])=>{if(!isFinite(bb)||bb>Bmax*3)return;const X=px(gg),Y=pyB(bb);if(!st){ctx.moveTo(X,Y);st=true;}else ctx.lineTo(X,Y);});ctx.stroke();
+  // 力曲线（粉）
+  const pyF=v=>(H-30)-Math.min(1,v/Fmax)*(H-55);
+  ctx.strokeStyle='#db61a2';ctx.lineWidth=2;ctx.beginPath();st=false;
+  Fvals.forEach(([gg,ff])=>{if(!isFinite(ff)||ff>Fmax*3)return;const X=px(gg),Y=pyF(ff);if(!st){ctx.moveTo(X,Y);st=true;}else ctx.lineTo(X,Y);});ctx.stroke();
+  // 当前 g 标记
+  ctx.strokeStyle='#f0883e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px(g),15);ctx.lineTo(px(g),H-30);ctx.stroke();
+  ctx.fillStyle='#f0883e';ctx.beginPath();ctx.arc(px(g),pyB(isFinite(B)?B:Bmax),4,0,7);ctx.fill();
+}
+['bE','bG','bK'].forEach(id=>$(id).oninput=drawBarrier);
+
+function drawHermite(){
+  const cv=$('hCanvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;clr(ctx,W,H);
+  const d=+$('hD').value/100; $('hDval').textContent=d.toFixed(2);
+  const pad=34, xmax=d*1.6;
+  const px=x=>pad+((x+0.1*xmax)/(xmax*1.2))*(W-2*pad);
+  const py=v=>(H-26)-v*(H-46);
+  ctx.strokeStyle='#30363d';ctx.beginPath();ctx.moveTo(pad,H-26);ctx.lineTo(W-10,H-26);ctx.moveTo(pad,H-26);ctx.lineTo(pad,12);ctx.stroke();
+  ctx.fillStyle='#9da7b3';ctx.font='11px monospace';ctx.fillText('x→',W-40,H-10);ctx.fillText('H(x,δ)',pad-28,18);
+  // δ 竖线
+  ctx.strokeStyle='#9da7b355';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(px(d),12);ctx.lineTo(px(d),H-26);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#9da7b3';ctx.fillText('δ',px(d)-3,H-30);
+  ctx.strokeStyle='#a371f7';ctx.lineWidth=2.2;ctx.beginPath();let st=false;
+  for(let i=0;i<=200;i++){const x=-0.1*xmax+ (xmax*1.2)*i/200; let t=Math.max(0,Math.min(1,x/d)); const Hh=3*t*t-2*t*t*t; const X=px(x),Y=py(Hh); if(!st){ctx.moveTo(X,Y);st=true;}else ctx.lineTo(X,Y);}
+  ctx.stroke();
+  ctx.fillStyle='#a371f7';ctx.fillText('H = 3t²−2t³, t=x/δ',pad+8,24);
+}
+$('hD').oninput=drawHermite;
+
+// ===== 5. mortar 求积 =====
+function polyArea(P){let a=0;for(let i=0;i<P.length;i++){const j=(i+1)%P.length;a+=P[i][0]*P[j][1]-P[j][0]*P[i][1];}return Math.abs(a)/2;}
+function inside(p,a,b){return (b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0])>=-1e-12;}
+function isect(p1,p2,a,b){const[x1,y1]=p1,[x2,y2]=p2,[x3,y3]=a,[x4,y4]=b;
+  const den=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4); if(Math.abs(den)<1e-15)return p2;
+  const t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/den; return [x1+t*(x2-x1),y1+t*(y2-y1)];}
+function clip(subject,window_){let out=subject.slice();const m=window_.length;
+  for(let i=0;i<m;i++){const a=window_[i],b=window_[(i+1)%m];if(out.length===0)break;const inp=out;out=[];
+    for(let j=0;j<inp.length;j++){const cur=inp[j],prev=inp[(j-1+inp.length)%inp.length];
+      const ci=inside(cur,a,b),pi=inside(prev,a,b);
+      if(ci){if(!pi)out.push(isect(prev,cur,a,b));out.push(cur);}else if(pi)out.push(isect(prev,cur,a,b));}}
+  return out;}
+function triGauss3(v0,v1,v2){const area=polyArea([v0,v1,v2]);const bc=[[2/3,1/6,1/6],[1/6,2/3,1/6],[1/6,1/6,2/3]];
+  return bc.map(([a,b,c])=>({p:[a*v0[0]+b*v1[0]+c*v2[0],a*v0[1]+b*v1[1]+c*v2[1]],w:area/3}));}
+function drawMortar(){
+  const cv=$('mCanvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;clr(ctx,W,H);
+  const rot=+$('mR').value*Math.PI/180, dx=+$('mX').value/100, sc=+$('mS').value/100;
+  $('mRval').textContent=(+$('mR').value)+'°'; $('mXval').textContent=dx.toFixed(2); $('mSval').textContent=sc.toFixed(2);
+  // 坐标 0..1 -> 画布
+  const pad=50, S=v=>[pad+v[0]*(W-2*pad), (H-pad)-v[1]*(H-2*pad)];
+  // slave 三角（固定）
+  const Ts=[[0,0],[1,0],[0,1]];
+  // master 三角（旋转/平移/缩放），绕其形心
+  let Tm0=[[0.3,-0.2],[0.9,0.5],[0.1,0.6]];
+  const cx=(Tm0[0][0]+Tm0[1][0]+Tm0[2][0])/3, cy=(Tm0[0][1]+Tm0[1][1]+Tm0[2][1])/3;
+  const Tm=Tm0.map(([x,y])=>{let X=(x-cx)*sc,Y=(y-cy)*sc; const rx=X*Math.cos(rot)-Y*Math.sin(rot), ry=X*Math.sin(rot)+Y*Math.cos(rot); return [rx+cx+dx, ry+cy];});
+  // 裁剪
+  const ov=clip(Tm,Ts);
+  const area=polyArea(ov);
+  // 求积
+  let samples=[],wsum=0;
+  if(ov.length>=3){for(let i=1;i<ov.length-1;i++){triGauss3(ov[0],ov[i],ov[i+1]).forEach(s=>{samples.push(s);wsum+=s.w;});}}
+  $('mVerts').textContent=ov.length; $('mArea').textContent=area.toFixed(5);
+  $('mWsum').textContent=wsum.toFixed(5); $('mPts').textContent=samples.length;
+  // 画 slave
+  function fill(P,c,a){if(P.length<3)return;ctx.beginPath();const p0=S(P[0]);ctx.moveTo(p0[0],p0[1]);P.slice(1).forEach(p=>{const q=S(p);ctx.lineTo(q[0],q[1]);});ctx.closePath();ctx.fillStyle=c;ctx.globalAlpha=a;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=c;ctx.lineWidth=1.6;ctx.stroke();}
+  fill(Ts,'#3fb950',0.12); fill(Tm,'#db61a2',0.12); fill(ov,'#58a6ff',0.30);
+  // Gauss 点（大小∝权重）
+  samples.forEach(s=>{const q=S(s.p);ctx.fillStyle='#f0883e';ctx.beginPath();ctx.arc(q[0],q[1],3+s.w*60,0,7);ctx.fill();});
+  ctx.fillStyle='#9da7b3';ctx.font='11px monospace';ctx.fillText('点大小 ∝ 求积权重 w_k',12,18);
+}
+['mR','mX','mS'].forEach(id=>$(id).oninput=drawMortar);
+
+// ===== 6. 验证数据 =====
+const PATCH=[['1e4',8.00e-4,6.00e-3],['1e6',4.66e-5,2.48e-4],['1e8',4.66e-5,2.48e-4]];
+function drawPatch(){
+  const cv=$('patchCanvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;clr(ctx,W,H);
+  const pad=60, bw=90, gap=70;
+  ctx.fillStyle='#9da7b3';ctx.font='12px monospace';
+  ctx.fillText('σ_zz 相对误差（对数尺度，越低越好）',pad,20);
+  // 对数条形
+  const vals=PATCH.map(p=>p[1]); const logmin=-5.5, logmax=-3;
+  PATCH.forEach((p,i)=>{
+    const lg=Math.log10(p[1]); const frac=(lg-logmin)/(logmax-logmin);
+    const hgt=Math.max(4,frac*(H-90)); const x=pad+i*(bw+gap);
+    ctx.fillStyle=i===0?'#f0883e':'#3fb950';
+    ctx.fillRect(x,H-50-hgt,bw,hgt);
+    ctx.fillStyle='#e6edf3';ctx.font='12px monospace';
+    ctx.fillText('κ='+p[0],x+8,H-32);
+    ctx.fillText(p[1].toExponential(1),x+2,H-54-hgt);
+  });
+  ctx.fillStyle='#9da7b3';ctx.font='11px monospace';
+  ctx.fillText('κ:10⁴→10⁶ 误差骤降~17×；10⁶→10⁸ 饱和（几乎不变）',pad,H-12);
+}
+$('patchTable').querySelectorAll('tr[data-k]').forEach(tr=>{
+  tr.style.cursor='pointer';
+  tr.onclick=()=>{$('patchTable').querySelectorAll('tr[data-k]').forEach(x=>x.style.background='');tr.style.background='rgba(88,166,255,.15)';};
+});
+
+function drawHertz(){
+  const cv=$('hertzCanvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;clr(ctx,W,H);
+  const pad=46;
+  // Hertz: p(r)=p0*sqrt(1-(r/a)^2), 取 a=2.6mm, p0≈4200MPa（与论文图7量级一致）
+  const a=2.6, p0=4200;
+  const px=r=>pad+(r/3.0)*(W-2*pad);
+  const py=p=>(H-34)-(p/4600)*(H-60);
+  // 轴
+  ctx.strokeStyle='#30363d';ctx.beginPath();ctx.moveTo(pad,H-34);ctx.lineTo(W-10,H-34);ctx.moveTo(pad,H-34);ctx.lineTo(pad,12);ctx.stroke();
+  ctx.fillStyle='#9da7b3';ctx.font='11px monospace';
+  ctx.fillText('径向距离 r (mm)',W-130,H-16);ctx.fillText('接触压力 (MPa)',pad-6,18);
+  for(let r=0;r<=3;r++){ctx.fillText(r.toString(),px(r)-3,H-20);}
+  // 解析解（蓝）
+  ctx.strokeStyle='#58a6ff';ctx.lineWidth=2.2;ctx.beginPath();let st=false;
+  for(let i=0;i<=200;i++){const r=3*i/200; const p=r<a?p0*Math.sqrt(1-(r/a)*(r/a)):0; const X=px(r),Y=py(p); if(!st){ctx.moveTo(X,Y);st=true;}else ctx.lineTo(X,Y);}
+  ctx.stroke();
+  // GMCP 数值（绿，带小振荡）
+  ctx.fillStyle='#3fb950';
+  for(let i=0;i<=22;i++){const r=3*i/22; let p=r<a?p0*Math.sqrt(Math.max(0,1-(r/a)*(r/a))):0;
+    p+= (r<a? Math.sin(i*1.7)*70*(1-r/3):0); // 小振荡
+    const X=px(r),Y=py(Math.max(0,p));ctx.beginPath();ctx.arc(X,Y,3,0,7);ctx.fill();}
+  ctx.fillStyle='#9da7b3';ctx.fillText('GMCP 数值 ≈ Hertz 解析解（振荡随细化减小）',pad+10,28);
+}
+
+// 初次渲染（overview 可见，其它在切换时渲染；这里预渲染当前可见的）
+window.addEventListener('load',()=>{ /* overview 无 canvas */ });
+</script></body>
+</html>

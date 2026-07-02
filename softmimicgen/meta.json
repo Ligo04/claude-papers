@@ -1,0 +1,18 @@
+{
+  "title": "SOFTMIMICGEN: A Data Generation System for Scalable Robot Learning in Deformable Object Manipulation",
+  "authors": [
+    "Masoud Moghani",
+    "Mahdi Azizian",
+    "Animesh Garg",
+    "Yuke Zhu",
+    "Sean Huver",
+    "Ajay Mandlekar"
+  ],
+  "abstract": "Large-scale robot datasets have facilitated the learning of a wide range of robot manipulation skills, but these datasets remain difficult to collect and scale further. Simulation and synthetic data generation have proven to be an effective alternative, but this paradigm has been limited to rigid-body tasks. In this paper, we introduce SOFTMIMICGEN, an automated data generation pipeline for deformable object manipulation tasks. We introduce a suite of high-fidelity simulation environments encompassing a wide range of deformable objects (stuffed animal, rope, tissue, towel) and manipulation behaviors (high-precision threading, dynamic whipping, folding, pick-and-place), across four robot embodiments. We apply SOFTMIMICGEN to generate datasets, train high-performing policies, and systematically analyze the data generation system.",
+  "year": 2026,
+  "date": "2026-03-26",
+  "tags": ["deformable manipulation", "synthetic data generation"],
+  "githubLinks": [],
+  "codeLinks": ["https://softmimicgen.github.io"],
+  "pageCount": 8
+}

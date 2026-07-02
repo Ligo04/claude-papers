@@ -1,0 +1,20 @@
+{
+  "title": "An Efficient Multilevel Preconditioned Nonlinear Conjugate Gradient Method for Incremental Potential Contact",
+  "authors": [
+    "Yu Zhang",
+    "Xing Shen",
+    "Kemeng Huang",
+    "Wei Chen",
+    "Yin Yang",
+    "Taku Komura",
+    "Tiantian Liu",
+    "Xingang Pan"
+  ],
+  "abstract": "Incremental Potential Contact (IPC) guarantees intersection-free simulation but suffers from high computational costs due to the expensive Hessian assembly and linear solves required by Newton's method. While Preconditioned Nonlinear Conjugate Gradient (PNCG) avoids Hessian assembly, it has historically struggled with poor convergence in stiff, contact-rich scenarios due to the lack of effective preconditioners. We present MAS-PNCG, a method that unlocks the power of hierarchical preconditioning for nonlinear optimization. Our key technical innovation is a Sparse-Input Woodbury update algorithm that incrementally adapts the fine-level MAS components to rapidly evolving contact sets. This bypasses the need for full preconditioner rebuilds, reducing maintenance cost to near-zero while capturing the complex spectral properties of the contact system. Furthermore, we replace heuristic PNCG search directions with a Hessian-aware 2D subspace minimization that optimally combines the preconditioned gradient and previous direction. We also apply a fast per-subdomain conservative CCD method that ensures penetration-free trajectories while avoiding overly restrictive global step sizes. Experiments demonstrate that our MAS-PNCG outperforms state-of-the-art Newton-PCG solvers, GIPC and StiffGIPC, both preconditioned with MAS up to 5.66x and 2.07x respectively.",
+  "year": 2026,
+  "venue": "arXiv preprint",
+  "date": "2026-04-21",
+  "tags": ["nonlinear CG preconditioning", "GPU IPC"],
+  "githubLinks": [],
+  "codeLinks": []
+}

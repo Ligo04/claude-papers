@@ -1,0 +1,17 @@
+{
+  "id": "untangling-surfaces-shape-mesh-repulsion",
+  "title": "Untangling Surfaces via Shape and Mesh Repulsion",
+  "slug": "untangling-surfaces-shape-mesh-repulsion",
+  "authors": [
+    "Jiří Minarčík",
+    "Michael Liu",
+    "Keenan Crane",
+    "Minchen Li"
+  ],
+  "abstract": "Self-intersections are widespread in surface meshes and invalidate downstream simulation, fabrication, and learning pipelines. We introduce an energy-based framework that enforces surface embeddedness simultaneously at the shape and mesh levels, based on the insight that successful untangling requires accounting for both global shape-level interactions and local mesh-level interactions. A shape-level energy captures global entanglement independent of discretization, while a mesh-level penalty regularizes local discrete interactions. Together, these energies enable reliable removal of self-intersections without changing mesh connectivity.",
+  "year": 2026,
+  "date": "2026-07-01",
+  "tags": ["surface untangling", "repulsive energy"],
+  "githubLinks": ["https://github.com/Simulation-Intelligence/Mesh-Untangling"],
+  "codeLinks": ["https://github.com/Simulation-Intelligence/Mesh-Untangling"]
+}

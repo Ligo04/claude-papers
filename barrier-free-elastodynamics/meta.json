@@ -1,0 +1,28 @@
+{
+  "title": "Robust and Efficient Penetration-Free Elastodynamics without Barriers",
+  "slug": "barrier-free-elastodynamics",
+  "authors": [
+    "Juntian Zheng",
+    "Zhaofeng Luo",
+    "Minchen Li"
+  ],
+  "abstract": "We introduce a barrier-free optimization framework for non-penetration elastodynamic simulation that matches the robustness of Incremental Potential Contact (IPC) while overcoming its two primary efficiency bottlenecks: (1) reliance on logarithmic barrier functions to enforce non-penetration constraints, which leads to ill-conditioned systems and significantly slows down the convergence of iterative linear solvers; and (2) the time-of-impact (TOI) locking issue, which restricts active-set exploration in collision-intensive scenes and requires a large number of Newton iterations. We propose a novel second-order constrained optimization framework featuring a custom augmented Lagrangian solver that avoids TOI locking by immediately incorporating all requisite contact pairs detected via CCD, enabling more efficient active-set exploration and leading to significantly fewer Newton iterations. By adaptively updating Lagrange multipliers rather than increasing penalty stiffness, our method prevents stagnation at zero TOI while maintaining a well-conditioned system. We further introduce a constraint filtering and decay mechanism to keep the active set compact and stable. With a GPU-optimized simulator design, our method achieves an up to 103x speedup over GIPC on challenging, contact-rich benchmarks.",
+  "year": 2026,
+  "date": "2026-04-20",
+  "venue": "ACM Transactions on Graphics (TOG)",
+  "doi": "10.1145/3811035",
+  "arxiv": "2512.12151",
+  "projectPage": "https://simulation-intelligence.github.io/barrier-free",
+  "tags": [
+    "elastodynamics",
+    "augmented lagrangian"
+  ],
+  "githubLinks": [
+    "https://github.com/KemengHuang/GPU_IPC",
+    "https://github.com/st-tech/ppf-contact-solver",
+    "https://github.com/newton-physics/newton"
+  ],
+  "codeLinks": [
+    "https://simulation-intelligence.github.io/barrier-free"
+  ]
+}

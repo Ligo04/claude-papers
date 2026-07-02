@@ -1,0 +1,18 @@
+{
+  "title": "IMPACT: Learning Internal-Model Predictive Control for Forceful Robotic Manipulation",
+  "slug": "impact-internal-model-predictive-control",
+  "authors": ["Jiawei Gao", "Chaoqi Liu", "Peilin Wu", "Haonan Chen", "Yilun Du"],
+  "affiliations": ["Harvard University", "Stanford University"],
+  "abstract": "Real-world robotic manipulation tasks often involve forceful interactions with the environment, such as using tools of varying weights, transporting objects with different masses, and performing contact-rich tasks like table wiping. Previous learning-based approaches typically employ imitation learning policies that output target end-effector poses tracked by low-level impedance controllers. In these systems, forceful interactions are either implicitly realized through steady-state tracking errors or explicitly commanded using wrist force/torque or tactile sensors. However, implicit approaches generalize poorly across object weights, while explicit approaches require specialized hardware and increase system complexity. In this work, we propose IMPACT, a framework that decouples these forceful tasks into task-planning and internal-model-based predictive control. Extensive simulation and real-world experiments demonstrate that the proposed framework achieves higher success rates and improved generalization to unseen object weights, as well as better safety and energy efficiency.",
+  "year": 2026,
+  "date": "2026-06-09",
+  "arxiv": "2606.10818",
+  "url": "https://arxiv.org/abs/2606.10818",
+  "projectPage": "https://gao-jiawei.com/IMPACT/",
+  "venue": "arXiv preprint (cs.RO)",
+  "tags": ["forceful manipulation", "internal model control"],
+  "githubLinks": [],
+  "codeLinks": ["https://gao-jiawei.com/IMPACT/"],
+  "difficulty": "Advanced",
+  "nature": "System design / Novel control architecture"
+}

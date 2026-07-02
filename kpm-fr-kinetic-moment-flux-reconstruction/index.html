@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KPM-FR 交互式浏览器</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#141b24; --panel2:#1b2430; --border:#28323f;
+    --fg:#e6edf3; --muted:#93a1b0; --accent:#39d0d8; --accent2:#ffcf5c;
+    --good:#4ec9b0; --bad:#f2687b; --purple:#c39cff; --blue:#5aa9ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  header{padding:26px 22px 18px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#0f1720,#0b0f14)}
+  h1{margin:0 0 6px;font-size:21px}
+  .sub{color:var(--muted);font-size:13px}
+  .tags span{display:inline-block;background:#12303050;color:var(--accent);
+    border:1px solid #23484a;border-radius:12px;padding:2px 10px;font-size:12px;margin:8px 6px 0 0}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 22px 60px}
+  .metric{display:inline-block;background:var(--panel2);border:1px solid var(--border);
+    border-radius:8px;padding:10px 14px;margin:6px 8px 6px 0;min-width:110px;text-align:center}
+  .metric .n{font-size:19px;font-weight:700;color:var(--good)}
+  .metric .l{font-size:11px;color:var(--muted)}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+  .tab{background:var(--panel);border:1px solid var(--border);color:var(--muted);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;transition:.15s}
+  .tab:hover{color:var(--fg);border-color:var(--accent)}
+  .tab.active{background:var(--accent);color:#04181a;border-color:var(--accent);font-weight:600}
+  .view{display:none;animation:fade .25s}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin:14px 0}
+  .card h3{margin:0 0 10px;font-size:16px;color:var(--accent2)}
+  .card p{color:var(--muted);font-size:14px;margin:6px 0}
+  label.ctl{display:block;margin:14px 0 6px;font-size:13px}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .val{color:var(--accent);font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{border:1px solid var(--border);padding:7px 9px;text-align:center}
+  th{background:var(--panel2);color:var(--muted)}
+  tr.hl td{background:#123028;color:#bff0e0}
+  canvas{background:#070b10;border:1px solid var(--border);border-radius:8px;width:100%;display:block}
+  .formula{background:#070b10;border:1px solid var(--border);border-radius:8px;padding:12px;
+    font-family:ui-monospace,monospace;font-size:13.5px;color:var(--purple);margin:10px 0;overflow-x:auto}
+  .note{font-size:12px;color:var(--muted);margin-top:6px}
+  .barbg{background:#070b10;border-radius:4px;overflow:hidden;border:1px solid var(--border);height:26px;position:relative;margin:6px 0}
+  .bar{height:100%;display:flex;align-items:center;padding-left:8px;font-size:12px;color:#04181a;font-weight:700;white-space:nowrap;transition:width .3s}
+  .tri{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;margin:10px 0}
+  .tri .obj{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--panel2)}
+  .tri .obj .t{font-size:14px;font-weight:700}
+  .tri .obj .s{font-size:22px;font-weight:800;margin-top:4px}
+  .stage{border:1px solid var(--border);border-radius:10px;padding:14px;margin:8px 0;background:var(--panel2);cursor:pointer;transition:.15s}
+  .stage:hover{border-color:var(--accent)}
+  .stage.open{border-color:var(--accent);background:#152230}
+  .stage h4{margin:0;font-size:14px;display:flex;justify-content:space-between}
+  .stage .body{max-height:0;overflow:hidden;transition:max-height .3s;color:var(--muted);font-size:13px}
+  .stage.open .body{max-height:340px;margin-top:10px}
+  code{background:#070b10;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px;color:var(--accent2)}
+</style>
+</head>
+<body>
+<header>
+  <h1>KPM-FR：面向高阶高性能流体仿真的动理学预测矩通量重构</h1>
+  <div class="sub">Zike Xu · Xuan Zhang · Xiaopei Liu — ShanghaiTech · ACM TOG 45(4) Art.67（SIGGRAPH 2026）· DOI:10.1145/3811292</div>
+  <div class="tags"><span>fluid simulation</span><span>gas-kinetic scheme</span><span>flux reconstruction</span><span>GPU</span><span>low-dissipation</span></div>
+</header>
+
+<div class="wrap">
+  <div>
+    <span class="metric"><div class="n">8B+</div><div class="l">点更新/秒 (RTX 4090)</div></span>
+    <span class="metric"><div class="n">42 B</div><div class="l">每点内存</div></span>
+    <span class="metric"><div class="n">18%</div><div class="l">内存 vs 图形 LBM</div></span>
+    <span class="metric"><div class="n">1.8B</div><div class="l">最大 solution points</div></span>
+    <span class="metric"><div class="n">2</div><div class="l">kernel/步</div></span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-v="tri">① 三难困境</div>
+    <div class="tab" data-v="pipe">② 预测-校正流水线</div>
+    <div class="tab" data-v="fr">③ 高阶 FR 精度</div>
+    <div class="tab" data-v="mem">④ 内存对比</div>
+    <div class="tab" data-v="band">⑤ 预测矩带宽</div>
+  </div>
+
+  <!-- ① 三难 -->
+  <div class="view active" id="tri">
+    <div class="card">
+      <h3>为什么"低耗散 / 高吞吐 / 小内存"历来只能三选二？</h3>
+      <p>点击方法，看它在三个目标上的取舍。三者被"单元间如何传信息"这件事绑死——KPM-FR 通过重设计传输载荷同时松开它们。</p>
+      <div class="tabs" id="triBtns" style="margin:10px 0"></div>
+      <div class="tri" id="triGrid"></div>
+      <div class="note" id="triDesc"></div>
+    </div>
+  </div>
+
+  <!-- ② pipeline -->
+  <div class="view" id="pipe">
+    <div class="card">
+      <h3>predictor-corrector 循环 → 每步两个融合 kernel（点击展开）</h3>
+      <p>只有紧凑"预测矩"经过全局 DRAM；FR 微分与梯度全在片上（on-chip），不溢出内存。对照论文 Fig.2。</p>
+      <div id="pipeStages"></div>
+    </div>
+  </div>
+
+  <!-- ③ FR -->
+  <div class="view" id="fr">
+    <div class="card">
+      <h3>高阶 Flux Reconstruction：阶数越高，耗散越低</h3>
+      <p>拖动单元内 solution point 数 K（度 P=K-1）。观察对 sin(πr) 求导误差如何随 K 快速下降——这就是 KPM-FR 低数值耗散的根源。</p>
+      <div class="grid2">
+        <div>
+          <label class="ctl">solution points K = <span class="val" id="Kval">4</span>（度 P = <span id="Pval">3</span>，Gauss-Lobatto）</label>
+          <input type="range" id="K" min="2" max="9" value="4">
+          <div class="formula" id="frInfo"></div>
+          <div class="note">FR 半离散：∂U/∂t = -(2/L)(Q F + C F*)，Q = D - C R；D,R,C 全局常量。</div>
+        </div>
+        <div>
+          <canvas id="frCanvas" height="240"></canvas>
+          <div class="note">红点：K 个 Gauss-Lobatto 点；曲线：度 P 多项式重构（谱类分辨率）。</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:10px">d/dr sin(πr) 最大误差随 K：</div>
+      <table id="frConv"></table>
+    </div>
+  </div>
+
+  <!-- ④ memory -->
+  <div class="view" id="mem">
+    <div class="card">
+      <h3>内存占用：不存分布函数的胜利</h3>
+      <p>KPM-FR 每点 42 字节；LBM 家族因存分布函数/重构而更大。拖动网格规模，看总显存。</p>
+      <div id="memBars"></div>
+      <label class="ctl" style="margin-top:16px">网格规模：<span class="val" id="Nval">512³ ≈ 1.34 亿点</span></label>
+      <input type="range" id="N" min="0" max="4" value="1">
+      <table id="memTable"></table>
+      <div class="note" id="memNote"></div>
+    </div>
+  </div>
+
+  <!-- ⑤ bandwidth -->
+  <div class="view" id="band">
+    <div class="card">
+      <h3>预测矩：把跨单元载荷压到物理必需的最小</h3>
+      <p>公共通量 F*(h) 朴素实现需邻居的 ∇g（3D 每点 16 标量）。利用"平衡态可由 U 重建、只需传非平衡部分"，KPM-FR 把载荷降到少数预测矩标量 → off-chip 流量骤降 → 逼近带宽 roofline。</p>
+      <label class="ctl">预测矩标量数 = <span class="val" id="Sval">5</span> / 16（朴素传梯度）</label>
+      <input type="range" id="S" min="1" max="16" value="5">
+      <div class="grid2">
+        <div>
+          <div class="formula" id="bandInfo"></div>
+        </div>
+        <div>
+          <canvas id="bandCanvas" height="200"></canvas>
+          <div class="note">柱：单元界面 off-chip 传输载荷（越低越逼近 roofline）。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Tabs ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  if(!t.dataset.v) return;
+  t.onclick=()=>{
+    document.querySelectorAll('.tabs > .tab[data-v]').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.v).classList.add('active');
+  };
+});
+
+// ---------- ① 三难 ----------
+const methods={
+  'LBM (D3Q27)':{diss:5,thru:4,mem:1,d:'低耗散来自逐方向非局部流动，但要存 27 个分布函数 → 内存巨大。低耗散与内存被 streaming 绑死。'},
+  'MR-LBM':{diss:3,thru:3,mem:3,d:'只存矩省内存，但 streaming 需从矩重构分布函数 f_i → 重新引入耗散 + 共享内存瓶颈。'},
+  'GKS (二阶FV)':{diss:2,thru:2,mem:4,d:'通量式、不存分布 → 省内存，但解析式极复杂(算术强度高) + 二阶有限体积耗散大。'},
+  '高阶 NS-FR/DG':{diss:5,thru:3,mem:3,d:'高阶低耗散，但黏性(二阶导跨单元一致)需 BR1/BR2/LDG 等昂贵辅助 + 通信开销。'},
+  'KPM-FR (本文)':{diss:5,thru:5,mem:5,d:'矩空间演化 + 预测矩最小载荷 + 单步双 kernel：低耗散(高阶FR)、高吞吐(带宽饱和)、小内存(不存分布)三者同时达成。'}
+};
+const triBtns=document.getElementById('triBtns');
+Object.keys(methods).forEach((m,i)=>{
+  const b=document.createElement('div');b.className='tab'+(m.includes('KPM')?' active':'');
+  b.textContent=m;b.onclick=()=>{document.querySelectorAll('#triBtns .tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderTri(m);};
+  triBtns.appendChild(b);
+});
+function bars(v){return '█'.repeat(v)+'░'.repeat(5-v);}
+function renderTri(m){
+  const o=methods[m];
+  const objs=[['低耗散(保真)',o.diss,'var(--good)'],['高吞吐',o.thru,'var(--blue)'],['小内存',o.mem,'var(--accent2)']];
+  document.getElementById('triGrid').innerHTML=objs.map(([t,v,c])=>
+    `<div class="obj"><div class="t">${t}</div><div class="s" style="color:${c}">${v}/5</div><div style="font-family:monospace;color:${c}">${bars(v)}</div></div>`).join('');
+  document.getElementById('triDesc').innerHTML='<b style="color:var(--fg)">'+m+'：</b>'+o.d;
+}
+renderTri('KPM-FR (本文)');
+
+// ---------- ② pipeline ----------
+const stages=[
+  {t:'PREDICTOR kernel — 编码(encode)',d:'读单元 U(0)（K^d 个 solution point）→ 片上做 FR 微分得 ∇g(0)（小密矩阵乘 D,C,Q）→ 由平衡/非平衡分解把物理态编码成<b>紧凑预测矩</b> → 连同元内通量 F(h) 写入全局 DRAM。梯度不落 DRAM。'},
+  {t:'全局内存 — 传输(transmit)',d:'界面是<b>带宽受限信道</b>。只有紧凑预测矩标量经过 off-chip DRAM（朴素方案要传 16 标量/点的梯度）。这是唯一的 off-chip 跨单元流量。'},
+  {t:'CORRECTOR kernel — 解码(decode)+更新',d:'读回邻居预测矩 → 平衡部分由本地 U <b>自行重建</b> → 闭式组装公共态 U*(h)（半程矩，式14）与公共通量 F*(h)（迎风，式15）→ 单步更新 U^(n+1)=U^(n)-(2Δt/L)(QF+CF*)（式10）。公共通量只算一次（RK2 要两次）。'}
+];
+const ps=document.getElementById('pipeStages');
+stages.forEach((s,i)=>{
+  const el=document.createElement('div');el.className='stage'+(i===0?' open':'');
+  el.innerHTML=`<h4>${s.t}<span style="color:var(--accent)">▼</span></h4><div class="body">${s.d}</div>`;
+  el.onclick=()=>el.classList.toggle('open');ps.appendChild(el);
+  if(i<stages.length-1){const a=document.createElement('div');a.style.cssText='text-align:center;color:var(--accent);font-size:13px';a.textContent='↓';ps.appendChild(a);}
+});
+
+// ---------- ③ FR ----------
+function gll(K){ // Gauss-Lobatto-Legendre via Newton
+  if(K===2)return[-1,1];
+  let x=[];for(let i=0;i<K;i++)x.push(Math.cos(Math.PI*i/(K-1)));
+  let xold=[...x].map(v=>2);let iter=0;
+  while(Math.max(...x.map((v,i)=>Math.abs(v-xold[i])))>1e-14 && iter++<100){
+    xold=[...x];
+    for(let i=0;i<K;i++){
+      let P=[1,x[i]];for(let k=2;k<K;k++)P.push(((2*k-1)*x[i]*P[k-1]-(k-1)*P[k-2])/k);
+      x[i]=xold[i]-(x[i]*P[K-1]-P[K-2])/(K*P[K-1]);
+    }
+  }
+  return x.sort((a,b)=>a-b);
+}
+function lagrange(nodes,j,r){let v=1;for(let m=0;m<nodes.length;m++)if(m!==j)v*=(r-nodes[m])/(nodes[j]-nodes[m]);return v;}
+function diffMat(nodes){const K=nodes.length,D=[];for(let i=0;i<K;i++){D.push(new Array(K).fill(0));for(let j=0;j<K;j++){if(i!==j){let num=1;for(let m=0;m<K;m++)if(m!==j&&m!==i)num*=(nodes[i]-nodes[m]);let den=1;for(let m=0;m<K;m++)if(m!==j)den*=(nodes[j]-nodes[m]);D[i][j]=num/den;}}let s=0;for(let k=0;k<K;k++)if(k!==i)s+=D[i][k];D[i][i]=-s;}return D;}
+const convData={};
+function frConvergence(){for(let K=3;K<=8;K++){const nodes=gll(K),D=diffMat(nodes);let err=0;for(let i=0;i<K;i++){let d=0;for(let j=0;j<K;j++)d+=D[i][j]*Math.sin(Math.PI*nodes[j]);err=Math.max(err,Math.abs(d-Math.PI*Math.cos(Math.PI*nodes[i])));}convData[K]=err;}}
+frConvergence();
+function drawFR(){
+  const K=+document.getElementById('K').value;
+  document.getElementById('Kval').textContent=K;document.getElementById('Pval').textContent=K-1;
+  const nodes=gll(K);
+  document.getElementById('frInfo').innerHTML=`K = ${K} solution points，度 P = ${K-1}<br>SP(Gauss-Lobatto) = [${nodes.map(v=>v.toFixed(3)).join(', ')}]<br>校正矩阵 C 稀疏：g'_LB(r₁)=${(-K*(K-1)/2).toFixed(1)}，其余边界内为 0`;
+  // canvas: 画一个度 P 多项式插值 (随机控制点), 示意谱类重构
+  const c=document.getElementById('frCanvas'),x=c.getContext('2d');const W=c.width=c.clientWidth,H=c.height;x.clearRect(0,0,W,H);
+  const seed=K;const rnd=(i)=>0.5+0.4*Math.sin(seed*2.1+i*1.7)+0.15*Math.cos(i*3.3);
+  const yv=nodes.map((r,i)=>rnd(i));
+  const X=r=>30+(r+1)/2*(W-50),Y=v=>H-20-v*(H-45);
+  // polynomial curve via lagrange
+  x.strokeStyle='var(--accent)';x.lineWidth=2;x.beginPath();
+  for(let px=0;px<=200;px++){const r=-1+2*px/200;let val=0;for(let j=0;j<K;j++)val+=yv[j]*lagrange(nodes,j,r);if(px===0)x.moveTo(X(r),Y(val));else x.lineTo(X(r),Y(val));}
+  x.stroke();
+  // nodes
+  nodes.forEach((r,i)=>{x.fillStyle='#f2687b';x.beginPath();x.arc(X(r),Y(yv[i]),5,0,7);x.fill();});
+  x.fillStyle='var(--muted)';x.font='11px monospace';x.fillText('-1',X(-1)-4,H-6);x.fillText('r',W-18,H-6);x.fillText('+1',X(1)-6,H-6);
+  // conv table
+  const tb=document.getElementById('frConv');let rows='<tr><th>K</th>'+[3,4,5,6,7,8].map(k=>`<th${k===K?' style="color:var(--accent)"':''}>${k}</th>`).join('')+'</tr>';
+  rows+='<tr><td>max误差</td>'+[3,4,5,6,7,8].map(k=>`<td${k===K?' class="hl"':''}>${convData[k].toExponential(1)}</td>`).join('')+'</tr>';
+  tb.innerHTML=rows;
+}
+document.getElementById('K').oninput=drawFR;
+
+// ---------- ④ memory ----------
+const memMethods=[['KPM-FR (本文)',42,'var(--good)'],['MR-LBM [Li23]',79,'var(--blue)'],['in-place LBM (CFD) [Geier25]',124,'var(--purple)'],['标准图形 LBM [Lyu23]',233,'var(--accent2)']];
+function human(b){const u=['B','KiB','MiB','GiB','TiB'];let i=0;while(b>=1024&&i<u.length-1){b/=1024;i++;}return b.toFixed(2)+' '+u[i];}
+function drawMemBars(){
+  document.getElementById('memBars').innerHTML=memMethods.map(([n,b,c])=>{
+    const w=b/233*100;const pct=n.includes('KPM')?'← 基准':(42/b*100).toFixed(0)+'% of KPM 参照';
+    return `<div style="font-size:12px;color:var(--muted);margin-top:8px">${n}</div><div class="barbg"><div class="bar" style="width:${w}%;background:${c}">${b} B</div></div>`;
+  }).join('');
+}
+drawMemBars();
+const grids=[['256³ ≈ 1600 万点',256**3],['512³ ≈ 1.34 亿点',512**3],['768³ ≈ 4.5 亿点',768**3],['1024³ ≈ 10.7 亿点',1024**3],['18 亿点（论文最大）',1.8e9]];
+function drawMemTable(){
+  const idx=+document.getElementById('N').value;const [gn,npts]=grids[idx];
+  document.getElementById('Nval').textContent=gn;
+  let rows='<tr><th>方法</th><th>每点</th><th>总显存</th><th>RTX4090 24GiB 可行?</th></tr>';
+  memMethods.forEach(([n,b])=>{const tot=npts*b;const ok=tot<24*2**30;rows+=`<tr class="${n.includes('KPM')?'hl':''}"><td>${n}</td><td>${b} B</td><td>${human(tot)}</td><td style="color:${ok?'var(--good)':'var(--bad)'}">${ok?'✓ 可行':'✗ 超显存'}</td></tr>`;});
+  document.getElementById('memTable').innerHTML=rows;
+  const kpmTot=npts*42;
+  document.getElementById('memNote').innerHTML=`赛车 demo：2000×332×800 ≈ 5.3 亿点 × 42B ≈ 20.8 GiB（论文报告 21 GiB）→ 塞进 RTX 4090；标准图形 LBM 需 ≈ 115 GiB，远超显存。`;
+}
+document.getElementById('N').oninput=drawMemTable;
+
+// ---------- ⑤ bandwidth ----------
+function drawBand(){
+  const S=+document.getElementById('S').value;
+  document.getElementById('Sval').textContent=S;
+  const naive=16, ratio=S/naive;
+  document.getElementById('bandInfo').innerHTML=`朴素方案：传邻居梯度 ∇g = <b style="color:var(--bad)">16</b> 标量/点（3D）<br>预测矩方案：传 <b style="color:var(--good)">${S}</b> 标量/点<br>载荷压缩比：<span class="val">${(ratio*100).toFixed(0)}%</span>（约 ${(1/ratio).toFixed(1)}× 更少）<br><br>18 亿点 × fp32：<br>　朴素 ${(1.8e9*16*4/2**30).toFixed(0)} GiB → 预测矩 ${(1.8e9*S*4/2**30).toFixed(1)} GiB<br>　省 ${(1.8e9*(16-S)*4/2**30).toFixed(0)} GiB off-chip 流量`;
+  const c=document.getElementById('bandCanvas'),x=c.getContext('2d');const W=c.width=c.clientWidth,H=c.height;x.clearRect(0,0,W,H);
+  const items=[['朴素传梯度',16,'#f2687b'],['预测矩',S,'#4ec9b0']];
+  const bw=W/2-40,maxv=16;
+  items.forEach(([n,v,col],i)=>{const h=v/maxv*(H-50);const bx=40+i*(bw+40);x.fillStyle=col;x.fillRect(bx,H-30-h,bw,h);x.fillStyle='var(--fg)';x.font='13px sans-serif';x.fillText(n,bx+bw/2-30,H-10);x.fillText(v+' 标量',bx+bw/2-22,H-38-h);});
+  // roofline line
+  x.strokeStyle='var(--accent2)';x.setLineDash([5,4]);x.beginPath();x.moveTo(20,45);x.lineTo(W-20,45);x.stroke();x.setLineDash([]);
+  x.fillStyle='var(--accent2)';x.font='11px sans-serif';x.fillText('↓ 载荷越低越逼近带宽 roofline',24,40);
+}
+document.getElementById('S').oninput=drawBand;
+
+// init
+drawFR();drawMemTable();drawBand();
+window.addEventListener('resize',()=>{drawFR();drawBand();});
+</script>
+</body>
+</html>

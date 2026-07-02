@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barrier-Free Elastodynamics — 交互式探索器</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --border:#2d3748;
+  --txt:#e6edf3; --muted:#9aa7b4; --accent:#58a6ff; --ok:#3fb950;
+  --warn:#f0883e; --bad:#f85149; --purple:#bc8cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
+  "PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;padding:24px;max-width:1180px;margin:0 auto}
+h1{font-size:1.7rem;margin-bottom:4px;background:linear-gradient(90deg,#58a6ff,#bc8cff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.25rem;margin:6px 0;color:var(--accent)}
+.sub{color:var(--muted);font-size:.92rem;margin-bottom:18px}
+.sub a{color:var(--accent);text-decoration:none}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:20px;margin-bottom:22px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{padding:9px 16px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+  cursor:pointer;font-size:.9rem;transition:.15s;user-select:none}
+.tab:hover{border-color:var(--accent)}
+.tab.active{background:var(--accent);color:#06101f;font-weight:600;border-color:var(--accent)}
+.view{display:none}.view.active{display:block}
+canvas{background:#0a0e14;border:1px solid var(--border);border-radius:8px;display:block;width:100%}
+.row{display:flex;gap:20px;flex-wrap:wrap}
+.col{flex:1;min-width:280px}
+.ctrl{margin:12px 0}
+.ctrl label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:5px}
+.ctrl .val{color:var(--accent);font-weight:600;font-family:monospace}
+input[type=range]{width:100%;accent-color:var(--accent)}
+button{background:var(--accent);color:#06101f;border:none;padding:9px 16px;border-radius:8px;
+  cursor:pointer;font-weight:600;font-size:.88rem}
+button:hover{filter:brightness(1.1)}
+button.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--border)}
+.toggle-group{display:flex;gap:8px;margin:10px 0}
+.note{background:var(--panel2);border-left:3px solid var(--accent);padding:10px 14px;
+  border-radius:6px;font-size:.86rem;color:var(--muted);margin:12px 0}
+.note b{color:var(--txt)}
+.stat{display:inline-block;background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;margin:5px;text-align:center;min-width:110px}
+.stat .num{font-size:1.4rem;font-weight:700;font-family:monospace}
+.stat .lbl{font-size:.74rem;color:var(--muted);margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:.84rem;margin-top:10px}
+th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600;text-align:right}
+td:first-child,th:first-child{text-align:left}
+tr:hover td{background:var(--panel2)}
+.bar{height:18px;border-radius:4px;background:linear-gradient(90deg,#58a6ff,#bc8cff);display:inline-block;vertical-align:middle}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.82rem;margin:8px 0}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.eq{font-family:"Cambria Math",Georgia,serif;background:var(--panel2);padding:3px 7px;
+  border-radius:5px;font-style:italic}
+.big{font-size:2.6rem;font-weight:800;font-family:monospace;color:var(--ok)}
+select{background:var(--panel2);color:var(--txt);border:1px solid var(--border);
+  border-radius:6px;padding:7px 10px;font-size:.86rem}
+</style>
+</head>
+<body>
+<h1>Barrier-Free Elastodynamics</h1>
+<div class="sub">
+  无障碍函数的鲁棒高效无穿透弹性动力学 · Zheng, Luo, Li (CMU + Genesis AI) · ACM TOG 2026 ·
+  <a href="https://arxiv.org/abs/2512.12151" target="_blank">arXiv:2512.12151</a> ·
+  <a href="https://simulation-intelligence.github.io/barrier-free" target="_blank">项目主页</a>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-view="toi">① TOI Locking 动画</div>
+  <div class="tab" data-view="al">② 增广拉格朗日 vs 罚</div>
+  <div class="tab" data-view="cond">③ 病态对比(barrier vs AL)</div>
+  <div class="tab" data-view="perf">④ 性能仪表盘(真实数据)</div>
+  <div class="tab" data-view="pipe">⑤ 算法流程</div>
+</div>
+
+<!-- ====================== VIEW 1: TOI LOCKING ====================== -->
+<div class="view active" id="view-toi">
+  <div class="card">
+    <h2>① 为什么 IPC 会 TOI Locking?为什么本文不会?</h2>
+    <p class="sub">IPC 每次 Newton 迭代被最小 TOI 截断,只能纳入最早的一个接触对,其余信息随中间态 x̂ 被丢弃 → 需要大量迭代逐个发现。本文保留 x̂,一次性纳入 CCD 检测到的所有接触对。</p>
+    <div class="row">
+      <div class="col">
+        <canvas id="toiCanvas" height="340"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:#3fb950"></span>无穿透态 x^[k]</span>
+          <span><span class="dot" style="background:#f0883e"></span>中间态 x̂(可能穿透)</span>
+          <span><span class="dot" style="background:#f85149"></span>最小 TOI(卡住的接触)</span>
+          <span><span class="dot" style="background:#58a6ff"></span>活跃约束</span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="toggle-group">
+          <button id="btnIPC" class="sec">IPC 模式</button>
+          <button id="btnOurs">本文模式</button>
+          <button id="btnStep" class="sec">单步 ▶</button>
+          <button id="btnReset" class="sec">重置</button>
+        </div>
+        <div class="ctrl">
+          <label>接触对数量 <span class="val" id="nContactVal">8</span></label>
+          <input type="range" id="nContact" min="3" max="14" value="8">
+        </div>
+        <div id="toiStats"></div>
+        <div class="note" id="toiNote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== VIEW 2: AL vs PENALTY ====================== -->
+<div class="view" id="view-al">
+  <div class="card">
+    <h2>② 增广拉格朗日 vs 朴素罚:为什么更新 λ 而不是加大 μ</h2>
+    <p class="sub">1D 接触:质点被外力推向墙,约束 <span class="eq">c(x)=x−δ≥0</span>。拖动滑块看两种方法如何收敛。朴素罚残留穿透 ≈ F/μ;增广拉格朗日靠乘子 λ 精确收敛到 δ。</p>
+    <div class="row">
+      <div class="col">
+        <canvas id="alCanvas" height="300"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:#f85149"></span>朴素罚结果</span>
+          <span><span class="dot" style="background:#3fb950"></span>增广拉格朗日结果</span>
+          <span><span class="dot" style="background:#9aa7b4"></span>墙 / 目标偏移 δ</span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="ctrl">
+          <label>罚刚度 μ <span class="val" id="muVal">1e3</span></label>
+          <input type="range" id="muSlider" min="3" max="9" step="0.1" value="3">
+        </div>
+        <div class="ctrl">
+          <label>外力 F_ext <span class="val" id="fVal">5000</span></label>
+          <input type="range" id="fSlider" min="500" max="20000" step="500" value="5000">
+        </div>
+        <div id="alStats"></div>
+        <div class="note" id="alNote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== VIEW 3: CONDITIONING ====================== -->
+<div class="view" id="view-cond">
+  <div class="card">
+    <h2>③ 病态对比:barrier 的 Hessian 在 d→0 时爆炸</h2>
+    <p class="sub">拖动接触距离 d。IPC 的对数障碍接触 Hessian ~ <span class="eq">O(d⁻²)</span> 在 d→0 时发散(病态,PCG 慢);本文的二次 AL 接触 Hessian 恒 ~ μ(良态)。论文实测系统条件数比 IPC 小 2 个数量级。</p>
+    <div class="row">
+      <div class="col">
+        <canvas id="condCanvas" height="320"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:#f85149"></span>IPC log-barrier Hessian ∝ d⁻²</span>
+          <span><span class="dot" style="background:#3fb950"></span>本文 AL Hessian ∝ μ(常数)</span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="ctrl">
+          <label>接触距离 d (相对 d̂) <span class="val" id="dVal">0.50</span></label>
+          <input type="range" id="dSlider" min="1" max="100" value="50">
+        </div>
+        <div id="condStats"></div>
+        <div class="note">
+          <b>论文实测(球压缩测试)</b>:本文系统条件数比 IPC <b>小约 100×</b>,
+          即便只用简单 block-Jacobi 预条件,PCG 平均仅需 <b>63.1 次迭代</b>。
+          GIPC 因 barrier 病态需要 <b>3.79×–6.96×</b> 更多 PCG 迭代。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== VIEW 4: PERFORMANCE ====================== -->
+<div class="view" id="view-perf">
+  <div class="card">
+    <h2>④ 性能仪表盘(Table 1 真实数据,RTX 4090)</h2>
+    <p class="sub">选择对比基线,查看本文相对它的加速比与原因分解。所有数据来自论文 Table 1 / §6.4。</p>
+    <div style="text-align:center;margin:14px 0">
+      <div class="big" id="bigAccel">103×</div>
+      <div class="sub" id="bigLabel">最高加速比 vs GIPC(原残差终止)</div>
+    </div>
+    <div class="ctrl" style="max-width:420px;margin:0 auto">
+      <label>对比基线</label>
+      <select id="baselineSel">
+        <option value="gipc">GIPC(原残差终止)</option>
+        <option value="gipc_toi">GIPC(同 TOI 终止)</option>
+        <option value="cubic">Cubic Barrier [Ando 2024]</option>
+        <option value="ogc">OGC [Chen 2025]</option>
+      </select>
+    </div>
+    <div id="perfStats" style="text-align:center;margin-top:14px"></div>
+    <div class="note" id="perfNote"></div>
+  </div>
+  <div class="card">
+    <h2>代表性场景统计(Table 1/2)</h2>
+    <table id="sceneTable">
+      <thead><tr><th>场景</th><th>四面体数</th><th>峰值接触对</th><th>avg Newton</th><th>avg CG</th><th>时间/步(s)</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="note">点击表头无排序;数值为 avg(peak)。COR=corotated, SNH=Stable Neo-Hookean。</div>
+  </div>
+</div>
+
+<!-- ====================== VIEW 5: PIPELINE ====================== -->
+<div class="view" id="view-pipe">
+  <div class="card">
+    <h2>⑤ 算法流程(Algorithm 1 主循环)</h2>
+    <p class="sub">点击每一步查看说明。这是本文时间步进的核心循环,对应论文 Algorithm 1。</p>
+    <div class="row">
+      <div class="col" id="pipeSteps"></div>
+      <div class="col">
+        <div class="note" id="pipeNote" style="min-height:200px">点击左侧任一步骤查看详细说明。</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// ---------- tab 切换 ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('view-'+t.dataset.view).classList.add('active');
+    if(t.dataset.view==='cond') drawCond();
+    if(t.dataset.view==='al') drawAL();
+  });
+});
+
+// 高 DPI canvas 辅助
+function setupCanvas(cv){
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth, h=cv.height;
+  cv.width=w*dpr; cv.height=h*dpr;
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+  return {ctx,w,h};
+}
+
+// ============ VIEW 1: TOI LOCKING 动画 ============
+const toiCv=document.getElementById('toiCanvas');
+let toiMode='ipc', toiK=0, nContact=8, toiContacts=[], toiActive=new Set();
+
+function genContacts(n){
+  // 每个接触对有一个 TOI(碰撞时刻),随机但可复现
+  toiContacts=[];
+  for(let i=0;i<n;i++){
+    toiContacts.push({toi:0.08+0.9*((i*0.618+0.13)%1), resolved:false});
+  }
+  toiContacts.sort((a,b)=>a.toi-b.toi);
+}
+function resetTOI(){toiK=0;toiActive=new Set();toiContacts.forEach(c=>c.resolved=false);drawTOI();updateTOIStats();}
+
+function stepTOI(){
+  if(toiMode==='ipc'){
+    // IPC:每步只解决当前最小 TOI 的那一个接触对
+    const un=toiContacts.filter(c=>!c.resolved);
+    if(un.length){ un.sort((a,b)=>a.toi-b.toi); un[0].resolved=true; toiActive.add(toiContacts.indexOf(un[0])); }
+  }else{
+    // 本文:一次性把所有 CCD 检测到的接触对纳入(filtering 后),都解决
+    toiContacts.forEach((c,i)=>{c.resolved=true;toiActive.add(i);});
+  }
+  toiK++;
+  drawTOI(); updateTOIStats();
+}
+function updateTOIStats(){
+  const resolved=toiContacts.filter(c=>c.resolved).length;
+  const itersToFinish = toiMode==='ipc' ? nContact : 1;
+  document.getElementById('toiStats').innerHTML=
+    `<div class="stat"><div class="num">${toiK}</div><div class="lbl">已迭代步数</div></div>`+
+    `<div class="stat"><div class="num">${resolved}/${nContact}</div><div class="lbl">已纳入接触对</div></div>`+
+    `<div class="stat"><div class="num" style="color:${toiMode==='ipc'?'var(--bad)':'var(--ok)'}">${itersToFinish}</div><div class="lbl">解决全部所需步</div></div>`;
+  document.getElementById('toiNote').innerHTML = toiMode==='ipc'
+    ? `<b>IPC 模式</b>:每次 Newton 被最小 TOI 截断,只纳入<b>最早的一个</b>接触对,其余随 x̂ 丢弃。解决 ${nContact} 个接触对约需 <b>${nContact} 步</b>(线性增长)。这就是 TOI locking。`
+    : `<b>本文模式</b>:保留中间态 x̂,UpdateActiveSet 把 CCD 检测到的<b>所有</b>接触对(经 filtering)一次性纳入活跃集 C,<b>1 步</b>即覆盖全部 → 大幅减少 Newton 迭代。`;
+}
+function drawTOI(){
+  const {ctx,w,h}=setupCanvas(toiCv);
+  ctx.clearRect(0,0,w,h);
+  // 标题区
+  ctx.fillStyle='#9aa7b4';ctx.font='13px monospace';
+  ctx.fillText(toiMode==='ipc'?'IPC: 逐个发现接触对':'Ours: 一次性纳入所有接触对',12,20);
+  // 画一条"碰撞时间轴" 0..1,接触对按 TOI 排布
+  const x0=50,x1=w-30,yAxis=h-50;
+  ctx.strokeStyle='#2d3748';ctx.beginPath();ctx.moveTo(x0,yAxis);ctx.lineTo(x1,yAxis);ctx.stroke();
+  ctx.fillStyle='#9aa7b4';ctx.font='11px monospace';
+  ctx.fillText('TOI=0 (最早碰撞)',x0-10,yAxis+18);
+  ctx.fillText('TOI=1',x1-30,yAxis+18);
+  // 接触对
+  toiContacts.forEach((c,i)=>{
+    const px=x0+(x1-x0)*c.toi;
+    const py=yAxis-40-(i% (Math.ceil(nContact/2)))*0; // 单排
+    const isMin = !c.resolved && c.toi===Math.min(...toiContacts.filter(z=>!z.resolved).map(z=>z.toi));
+    const color = c.resolved?'#3fb950':(isMin&&toiMode==='ipc'?'#f85149':'#f0883e');
+    ctx.fillStyle=color;
+    ctx.beginPath();ctx.arc(px,yAxis-50,9,0,7);ctx.fill();
+    ctx.strokeStyle=color;ctx.beginPath();ctx.moveTo(px,yAxis-41);ctx.lineTo(px,yAxis);ctx.stroke();
+    if(toiActive.has(i)){ctx.strokeStyle='#58a6ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,yAxis-50,13,0,7);ctx.stroke();ctx.lineWidth=1;}
+  });
+  // 进度条
+  const resolved=toiContacts.filter(c=>c.resolved).length;
+  ctx.fillStyle='#1c2230';ctx.fillRect(x0,30,x1-x0,16);
+  ctx.fillStyle=toiMode==='ipc'?'#f0883e':'#3fb950';
+  ctx.fillRect(x0,30,(x1-x0)*resolved/nContact,16);
+  ctx.fillStyle='#e6edf3';ctx.font='11px monospace';
+  ctx.fillText(`已解决 ${resolved}/${nContact} 接触对`,x0+6,42);
+}
+document.getElementById('btnIPC').onclick=()=>{toiMode='ipc';document.getElementById('btnIPC').classList.remove('sec');document.getElementById('btnOurs').classList.add('sec');resetTOI();};
+document.getElementById('btnOurs').onclick=()=>{toiMode='ours';document.getElementById('btnOurs').classList.remove('sec');document.getElementById('btnIPC').classList.add('sec');resetTOI();};
+document.getElementById('btnStep').onclick=stepTOI;
+document.getElementById('btnReset').onclick=resetTOI;
+document.getElementById('nContact').oninput=e=>{nContact=+e.target.value;document.getElementById('nContactVal').textContent=nContact;genContacts(nContact);resetTOI();};
+genContacts(8);resetTOI();
+
+// ============ VIEW 2: AL vs PENALTY ============
+const alCv=document.getElementById('alCanvas');
+const K_EL=1e3, X_REST=2.0, DELTA_AL=0.05;
+function solveNaive(mu,F){
+  let x=X_REST;
+  for(let i=0;i<300;i++){
+    let g=K_EL*(x-X_REST)+F, c=x-DELTA_AL, h=K_EL;
+    if(c<0){g+=mu*c;h+=mu;}
+    let step=-g/h; x+=step; if(Math.abs(step)<1e-12)break;
+  }
+  return x;
+}
+function solveAL(mu,F){
+  let x=X_REST, lam=0;
+  for(let o=0;o<60;o++){
+    for(let i=0;i<60;i++){
+      let c=x-DELTA_AL, s=Math.max(0,c-lam/mu);
+      let g=K_EL*(x-X_REST)+F+mu*(c-lam/mu-s), h=K_EL+mu;
+      let step=-g/h; x+=step; if(Math.abs(step)<1e-12)break;
+    }
+    let c=x-DELTA_AL, s=Math.max(0,c-lam/mu);
+    lam=lam-mu*(c-s);
+    if(Math.abs(c)<1e-12&&o>0)break;
+  }
+  return {x,lam};
+}
+function drawAL(){
+  const {ctx,w,h}=setupCanvas(alCv);
+  ctx.clearRect(0,0,w,h);
+  const mu=Math.pow(10,+document.getElementById('muSlider').value);
+  const F=+document.getElementById('fSlider').value;
+  const xN=solveNaive(mu,F), {x:xA,lam}=solveAL(mu,F);
+  // 坐标:x∈[-2, 2.5] 映射到画布
+  const xmin=-2, xmax=2.5, mapx=x=>60+(x-xmin)/(xmax-xmin)*(w-90);
+  const wallX=mapx(0), targX=mapx(DELTA_AL), cy=h/2;
+  // 墙
+  ctx.fillStyle='#2d3748';ctx.fillRect(0,40,wallX,h-80);
+  ctx.fillStyle='#9aa7b4';ctx.font='12px monospace';ctx.fillText('墙 (x=0)',wallX-50,30);
+  // 目标 δ 虚线
+  ctx.strokeStyle='#9aa7b4';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(targX,40);ctx.lineTo(targX,h-40);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillText('目标 δ='+DELTA_AL,targX+6,h-22);
+  // 朴素罚质点
+  const drawBall=(x,color,lbl,yoff)=>{
+    const px=mapx(x);
+    ctx.fillStyle=color;ctx.beginPath();ctx.arc(px,cy+yoff,15,0,7);ctx.fill();
+    ctx.fillStyle='#06101f';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText(lbl,px,cy+yoff+4);ctx.textAlign='left';
+    ctx.fillStyle=color;ctx.font='11px monospace';
+    ctx.fillText('x='+x.toFixed(4),px-26,cy+yoff+(yoff<0?-22:34));
+  };
+  drawBall(xN,'#f85149','P',-40);
+  drawBall(xA,'#3fb950','AL',40);
+  // 外力箭头
+  ctx.strokeStyle='#f0883e';ctx.fillStyle='#f0883e';
+  const ax=mapx(1.6);ctx.beginPath();ctx.moveTo(ax+40,cy);ctx.lineTo(ax,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ax,cy);ctx.lineTo(ax+10,cy-5);ctx.lineTo(ax+10,cy+5);ctx.fill();
+  ctx.fillText('F_ext',ax+44,cy+4);
+  // stats
+  const resN=Math.max(0,DELTA_AL-xN), resA=Math.max(0,DELTA_AL-xA);
+  const condN=(K_EL+(xN-DELTA_AL<0?mu:0))/K_EL, condA=(K_EL+mu)/K_EL;
+  document.getElementById('muVal').textContent=mu.toExponential(0);
+  document.getElementById('fVal').textContent=F;
+  document.getElementById('alStats').innerHTML=
+    `<div class="stat"><div class="num" style="color:var(--bad)">${resN.toFixed(4)}</div><div class="lbl">罚:残留穿透</div></div>`+
+    `<div class="stat"><div class="num" style="color:var(--ok)">${resA<1e-6?'≈0':resA.toFixed(4)}</div><div class="lbl">AL:残留穿透</div></div>`+
+    `<div class="stat"><div class="num">${condN.toExponential(0)}</div><div class="lbl">罚:条件数比</div></div>`+
+    `<div class="stat"><div class="num">${lam.toFixed(0)}</div><div class="lbl">AL 乘子 λ</div></div>`;
+  document.getElementById('alNote').innerHTML=
+    `朴素罚残留穿透 ≈ F/μ = ${(F/mu).toFixed(4)},要消除它必须把 μ 推到极大(→ 条件数 ${condN.toExponential(0)} 病态)。`+
+    `<br>增广拉格朗日用同样 μ,靠乘子 <b>λ→${lam.toFixed(0)}</b>(≈接触力)精确停在 δ,残留 ≈0 且条件数仅 ${condA.toExponential(0)}(良态)。`;
+}
+document.getElementById('muSlider').oninput=drawAL;
+document.getElementById('fSlider').oninput=drawAL;
+
+// ============ VIEW 3: CONDITIONING ============
+const condCv=document.getElementById('condCanvas');
+function drawCond(){
+  const {ctx,w,h}=setupCanvas(condCv);
+  ctx.clearRect(0,0,w,h);
+  const dRel=+document.getElementById('dSlider').value/100; // d/d̂ ∈ (0,1]
+  // barrier Hessian ∝ 1/d^2 ;  AL Hessian ∝ const(μ)
+  const pad=46, x0=pad, x1=w-20, y0=20, y1=h-40;
+  ctx.strokeStyle='#2d3748';ctx.beginPath();ctx.moveTo(x0,y1);ctx.lineTo(x1,y1);ctx.moveTo(x0,y0);ctx.lineTo(x0,y1);ctx.stroke();
+  ctx.fillStyle='#9aa7b4';ctx.font='11px monospace';
+  ctx.fillText('接触距离 d/d̂ →',x1-110,y1+18);
+  ctx.save();ctx.translate(14,h/2);ctx.rotate(-Math.PI/2);ctx.fillText('log(Hessian 量级)',0,0);ctx.restore();
+  // 曲线:log scale on y. barrier: log(1/d^2)= -2 log d ; al: log(const)
+  const N=200;
+  const ymap=v=>{const lo=-1,hi=6;return y1-(v-lo)/(hi-lo)*(y1-y0);}; // v=log10
+  // barrier
+  ctx.strokeStyle='#f85149';ctx.lineWidth=2;ctx.beginPath();
+  for(let i=0;i<=N;i++){const d=0.01+(1-0.01)*i/N;const v=Math.log10(1/(d*d));const px=x0+(d)*(x1-x0);
+    if(i===0)ctx.moveTo(px,ymap(v));else ctx.lineTo(px,ymap(v));}
+  ctx.stroke();
+  // AL constant (proportional to mu ~ log10(1e3)=3 baseline)
+  ctx.strokeStyle='#3fb950';ctx.beginPath();const vAL=Math.log10(1);
+  ctx.moveTo(x0,ymap(vAL));ctx.lineTo(x1,ymap(vAL));ctx.stroke();ctx.lineWidth=1;
+  // marker at current d
+  const px=x0+dRel*(x1-x0);
+  ctx.strokeStyle='#9aa7b4';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(px,y0);ctx.lineTo(px,y1);ctx.stroke();ctx.setLineDash([]);
+  const vB=Math.log10(1/(dRel*dRel));
+  ctx.fillStyle='#f85149';ctx.beginPath();ctx.arc(px,ymap(vB),6,0,7);ctx.fill();
+  ctx.fillStyle='#3fb950';ctx.beginPath();ctx.arc(px,ymap(vAL),6,0,7);ctx.fill();
+  // stats
+  const barrierH=1/(dRel*dRel), ratio=barrierH/1;
+  document.getElementById('dVal').textContent=dRel.toFixed(2);
+  document.getElementById('condStats').innerHTML=
+    `<div class="stat"><div class="num" style="color:var(--bad)">${barrierH<1e4?barrierH.toFixed(1):barrierH.toExponential(1)}</div><div class="lbl">barrier Hessian ∝d⁻²</div></div>`+
+    `<div class="stat"><div class="num" style="color:var(--ok)">~1</div><div class="lbl">AL Hessian (常数)</div></div>`+
+    `<div class="stat"><div class="num">${ratio<1e4?ratio.toFixed(0)+'×':ratio.toExponential(1)}</div><div class="lbl">barrier/AL 比</div></div>`;
+}
+document.getElementById('dSlider').oninput=drawCond;
+
+// ============ VIEW 4: PERFORMANCE DASHBOARD ============
+// 真实数据来自论文 §6.4 / Table 1
+const baselines={
+  gipc:{accel:'103.15×',label:'最高加速比 vs GIPC(原残差终止)',
+    note:'GIPC 因 TOI locking 需 <b>4.4×–10.3×</b> 更多 Newton 迭代;因 barrier 病态需 <b>3.79×–6.96×</b> 更多 PCG 迭代;线搜索每次回溯还要重建 BVH。综合(含 GPU 优化)本文最高快 <b>103.15×</b>。',
+    stats:[['4.4–10.3×','GIPC 多用的 Newton'],['3.79–6.96×','GIPC 多用的 PCG'],['98.5×','Teaser(2.61M DoF)加速']]},
+  gipc_toi:{accel:'59.18×',label:'加速比 vs GIPC(同 TOI 终止,公平对比)',
+    note:'即便给 GIPC 用与本文相同的 TOI 终止准则(ε=1e-3),本文仍快 <b>59.18×</b>——说明加速主要来自算法(无 TOI locking + 良态),而非终止准则差异。',
+    stats:[['59.18×','同终止下加速'],['ε=1e-3','统一终止阈值'],['1e-4','统一 CG 容差']]},
+  cubic:{accel:'84.4×',label:'最高加速比 vs Cubic Barrier [Ando 2024]',
+    note:'Cubic Barrier 接触 Hessian ~O(d⁻¹),d→0 时条件数发散(类 IPC)。本文<b>双精度</b>对其<b>单精度</b>:中等场景快 <b>5.05×</b>,难场景最高 <b>84.4×</b>。Cubic Barrier 在两个难例因 PCG 不收敛而<b>失败</b>。',
+    stats:[['5.05×','中等场景'],['84.4×','难场景最高'],['23.9×','仅 PCG 阶段']]},
+  ogc:{accel:'33.1×',label:'加速比 vs OGC [Chen 2025]',
+    note:'OGC 用低阶收敛的 VBD 优化器。本文<b>双精度</b>对其<b>单精度</b>快 <b>33.1×</b>,且 OGC 在难场景出现<b>严重伪影</b>,即便花费数量级更多时间。',
+    stats:[['33.1×','加速比'],['严重伪影','OGC 难场景'],['VBD','OGC 优化器']]},
+};
+function updatePerf(){
+  const k=document.getElementById('baselineSel').value, b=baselines[k];
+  document.getElementById('bigAccel').textContent=b.accel;
+  document.getElementById('bigLabel').textContent=b.label;
+  document.getElementById('perfStats').innerHTML=b.stats.map(s=>
+    `<div class="stat"><div class="num">${s[0]}</div><div class="lbl">${s[1]}</div></div>`).join('');
+  document.getElementById('perfNote').innerHTML=b.note;
+}
+document.getElementById('baselineSel').onchange=updatePerf;
+updatePerf();
+
+// 场景表(Table 1/2 真实数据)
+const scenes=[
+  ['Squishy balls (Fig.1)','2.25M','1.45M','30.1 (47)','28.3 (146)','5.37 (12.39)'],
+  ['Compressing chains (Fig.3)','167.4k','542.8k','16.1 (103)','67.1 (773)','0.66 (56.86)'],
+  ['Animal well (Fig.4)','1.34M','102.6k','19.2 (37)','53.6 (669)','1.30 (4.11)'],
+  ['Ramen (Fig.5)','95.8k','26.6k','20.8 (51)','73.0 (179)','0.33 (0.97)'],
+  ['Twisting rods (Fig.6)','33.6k','6.7k','13.4 (31)','82.5 (1520)','0.18 (0.45)'],
+  ['Near-rigid E=1GPa (Fig.14)','4.0k','2.7k','7.1 (27)','200.7 (1168)','0.13 (0.74)'],
+  ['Pig 100m/s (Fig.15)','43.6k','31.3k','7.6 (195)','83.7 (280)','0.17 (7.60)'],
+  ['Armadillo hole (Fig.17)','64.4k','22.9k','16.9 (94)','171.2 (3.8k)','0.44 (5.83)'],
+];
+document.querySelector('#sceneTable tbody').innerHTML=scenes.map(r=>
+  '<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join('');
+
+// ============ VIEW 5: PIPELINE ============
+const steps=[
+  ['1. 惯性目标 x̃','计算 x̃ = x_t + h·v_t + h²·M⁻¹·f_ext,作为本步无接触时的目标位置(惯性外推)。'],
+  ['2. 初始化','x^[0]=x̂^[0]=x_t,继承上一步的活跃集 C_t。中间态 x̂ 是本框架的优化主角(与 IPC 丢弃中间态相反)。'],
+  ['3. 处理移动边界 (§5.3)','把边界顶点直接移到目标位置并消去其 DoF(无罚),利用 x̂ 允许穿透的特性,免去 IPC 高刚度弹簧的额外病态迭代。'],
+  ['4. while β^[k] > ε','TOI 累积终止:前 K_min 个中间态权重和 < ε 时停止。K_min=1 即半隐式欧拉;摩擦/布料用 6。'],
+  ['5. SolveSubproblem (Alg.2)','增广拉格朗日子问题:交替更新松弛变量 s(闭式)和投影 Newton 更新 x̂,线搜索取满步长 r=1 时终止内迭代,然后更新乘子 λ 与衰减 γ。'],
+  ['6. UpdateActiveSet (Alg.3)','收集 CCD 检测到的穿透对,filtering(每顶点最早碰撞对)避免冗余,decay(γ<0.01 移除)平滑淘汰失活约束。'],
+  ['7. MaxStepSize (CCD)','用 CCD 计算保守步长 α^[k+1],保证 x^[k]→x^[k+1] 无穿透(且对 Neo-Hookean 无反转)。'],
+  ['8. 更新无穿透路径','x^[k+1]=(1-α)x^[k]+α·x̂^[k+1];更新 β^[k+1]。回到步骤 4。'],
+  ['9. 返回','x_{t+1}=x^[k],v_{t+1}=(x^[k]-x_t)/h,以及活跃集 C^[k] 传给下一步。'],
+];
+document.getElementById('pipeSteps').innerHTML=steps.map((s,i)=>
+  `<div class="tab" style="display:block;margin-bottom:8px;text-align:left" data-step="${i}">${s[0]}</div>`).join('');
+document.querySelectorAll('#pipeSteps .tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('#pipeSteps .tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('pipeNote').innerHTML='<b>'+steps[t.dataset.step][0]+'</b><br><br>'+steps[t.dataset.step][1];
+  };
+});
+
+// 初次渲染
+drawAL(); drawCond();
+
+</script>
+</body>
+</html>

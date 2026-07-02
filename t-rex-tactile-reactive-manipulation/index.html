@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T-Rex：触觉反应式灵巧操作 — 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#2d3645;
+    --txt:#e6edf3; --muted:#8b949e; --accent:#ff7b3d; --accent2:#3da9ff;
+    --slow:#3da9ff; --fast:#ff7b3d; --good:#3fb950; --bad:#f85149;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--txt);line-height:1.7;}
+  header{padding:28px 24px 18px;border-bottom:1px solid var(--line);
+         background:linear-gradient(180deg,#11161f,#0d1117);}
+  header h1{margin:0 0 4px;font-size:1.6rem}
+  header h1 .rex{color:var(--accent)}
+  header .sub{color:var(--muted);font-size:.92rem}
+  header .meta{margin-top:8px;font-size:.8rem;color:var(--muted)}
+  header .meta a{color:var(--accent2);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+  .tab{padding:8px 16px;background:var(--panel);border:1px solid var(--line);
+       border-radius:8px;cursor:pointer;font-size:.9rem;color:var(--muted);user-select:none}
+  .tab.active{background:var(--accent);color:#11161f;border-color:var(--accent);font-weight:600}
+  .panel{display:none;animation:fade .25s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
+  .card h2{margin:0 0 6px;font-size:1.15rem}
+  .card h3{margin:18px 0 6px;font-size:.98rem;color:var(--accent2)}
+  .note{color:var(--muted);font-size:.88rem;margin:0 0 14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  label.ctl{display:block;margin:14px 0 4px;font-size:.85rem;color:var(--muted)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .val{color:var(--accent);font-weight:700}
+  canvas{background:var(--panel2);border-radius:10px;width:100%;display:block}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  table{width:100%;border-collapse:collapse;font-size:.86rem;margin-top:6px}
+  th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .bar{height:13px;border-radius:4px;background:var(--accent2);display:inline-block;vertical-align:middle}
+  tr.ours td{background:rgba(255,123,61,.08);font-weight:600}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.74rem;margin:2px 4px 2px 0;
+        background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .big{font-size:2.1rem;font-weight:800;color:var(--accent)}
+  .kpi{display:flex;gap:22px;flex-wrap:wrap;margin-top:6px}
+  .kpi .b{text-align:center}
+  .kpi .b .l{font-size:.74rem;color:var(--muted)}
+  .freqbar{display:flex;height:34px;border-radius:8px;overflow:hidden;margin-top:8px;border:1px solid var(--line)}
+  .seg{display:flex;align-items:center;justify-content:center;font-size:.78rem;color:#11161f;font-weight:700}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:.85em}
+  .tag{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="rex">T-Rex</span>：触觉反应式灵巧操作</h1>
+  <div class="sub">慢视觉<b>规划</b> · 快触觉<b>精修</b> —— 都在一个流匹配去噪器里</div>
+  <div class="meta">Niu, Liu, Wang 等 · UC Berkeley / NVIDIA / Stanford · arXiv:2606.17055（2026） ·
+     <a href="https://tactile-rex.github.io/" target="_blank" rel="noopener">项目主页</a> ·
+     下方所有数字均来自论文</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active" data-t="cascade">⚙️ 级联去噪</div>
+    <div class="tab" data-t="freq">⏱️ 慢 / 快 速率</div>
+    <div class="tab" data-t="results">📊 基准成绩</div>
+    <div class="tab" data-t="ablation">🔬 消融</div>
+    <div class="tab" data-t="recipe">🧪 训练配方</div>
+  </div>
+
+  <!-- ============ CASCADE ============ -->
+  <div class="panel active" id="cascade">
+    <div class="card">
+      <h2>τ_split 机制</h2>
+      <p class="note">动作生成 = 把一条流匹配轨迹从纯噪声（τ=1）去噪到干净动作（τ=0）。T-Rex 在
+      <code>τ_split</code> 处<b>分裂</b>这条轨迹。重的<b style="color:var(--slow)">动作专家</b>
+      <i>每个 chunk 跑一次</i>去噪上段（约 5 Hz，跑视觉主干）。它缓存视觉上下文，然后轻的
+      <b style="color:var(--fast)">触觉专家</b><i>在 chunk 内多次</i>用实时触觉完成下段（约 20 Hz，复用缓存）。拖动分裂点：</p>
+
+      <div class="grid2">
+        <div>
+          <label class="ctl">τ_split（去噪交接点）= <span class="val" id="tsv">0.40</span></label>
+          <input type="range" id="ts" min="0.05" max="0.95" step="0.05" value="0.40">
+          <label class="ctl">Euler 总步数 N = <span class="val" id="nv">10</span></label>
+          <input type="range" id="n" min="6" max="20" step="1" value="10">
+
+          <div style="margin-top:16px" class="tag">由此产生的调度</div>
+          <div class="freqbar" id="schedbar"></div>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--slow)"></span>动作专家（视觉，慢）</span>
+            <span><span class="dot" style="background:var(--fast)"></span>触觉专家（触觉，快）</span>
+          </div>
+          <p class="note" id="schedtext" style="margin-top:12px"></p>
+        </div>
+        <div>
+          <canvas id="cv" height="300"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--slow)"></span>慢段：τ 1→split</span>
+            <span><span class="dot" style="background:var(--fast)"></span>快段：split→0（×多次精修）</span>
+            <span><span class="dot" style="background:var(--good)"></span>干净动作（τ=0）</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="verdict" style="margin-top:16px;padding:12px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line)"></div>
+      <p class="note" style="margin-top:8px">论文使用 <b>τ_split = 0.4</b>、<b>N=10</b> → 慢步 K_slow=6、
+      快步 K_fast=4，触觉专家在 chunk 偏移 {0,4,8,12} 处触发。图 4 显示<b>中间分裂最佳</b>：太小则精修缺乏规划，太大则规划缺乏触觉。</p>
+    </div>
+  </div>
+
+  <!-- ============ FREQ ============ -->
+  <div class="panel" id="freq">
+    <div class="card">
+      <h2>为什么解耦速率能击败频率不匹配</h2>
+      <p class="note">触觉反应式控制需要约 20 Hz；VLM 主干跑约 5 Hz。T-Rex 不用两个网络，而是
+      <b>每个 chunk 跑一次</b>重的视觉前向，并在<b>缓存</b>的上下文上重跑廉价的触觉专家。设置触觉回路快多少倍，看看省下多少算力。</p>
+
+      <label class="ctl">动作 chunk 长度 T_a = <span class="val" id="tav">16</span></label>
+      <input type="range" id="ta" min="4" max="32" step="2" value="16">
+      <label class="ctl">每个 chunk 的触觉精修次数 = <span class="val" id="rfv">4</span></label>
+      <input type="range" id="rf" min="1" max="8" step="1" value="4">
+
+      <div class="grid2" style="margin-top:18px">
+        <div class="card" style="margin:0;background:var(--panel2)">
+          <div class="tag">若每次精修都重跑视觉（天真做法）</div>
+          <div class="big" id="naive">—</div>
+          <div class="note">每个 chunk 的重视觉主干前向次数</div>
+        </div>
+        <div class="card" style="margin:0;background:var(--panel2)">
+          <div class="tag">T-Rex：缓存并复用</div>
+          <div class="big" id="trex" style="color:var(--good)">—</div>
+          <div class="note">每个 chunk 的重视觉前向（恒为 1）→ 重计算减少 <span id="save" class="val"></span></div>
+        </div>
+      </div>
+      <canvas id="fcv" height="150" style="margin-top:18px"></canvas>
+      <p class="note" style="margin-top:10px">权衡（见 <code>insights.md</code>）：缓存的视觉上下文在整个 chunk（约 0.2 秒）内是
+      <b>过时的</b>。对手内*力*动态没问题；但它<b>不能</b>替代快速*视觉*反应。</p>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div class="panel" id="results">
+    <div class="card">
+      <h2>12 任务基准 —— 平均成功率</h2>
+      <p class="note">真实世界、双臂 Dexmate Vega-1，配两只 22 自由度 Sharpa Wave 手。每任务 16 次试验，
+      跨任务平均（表 1）。点击行查看每个方法的做法。</p>
+      <table id="restab"><thead><tr><th>方法</th><th>思路</th><th class="num">平均成功率</th><th style="width:38%"></th></tr></thead><tbody></tbody></table>
+      <div class="kpi" style="margin-top:18px">
+        <div class="b"><div class="big">+30</div><div class="l">高出最强基线（EgoScale 35→65）</div></div>
+        <div class="b"><div class="big" style="color:var(--bad)">−11</div><div class="l">π₀.₅ 天真加触觉反而*下降*（17→6）</div></div>
+        <div class="b"><div class="big">12</div><div class="l">个富接触任务</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>逐任务成功率（%）—— T-Rex vs 最强基线</h3>
+      <p class="note">T-Rex（本文）vs EgoScale，覆盖全部 12 个任务（表 1）。只展示这两行，因为它们的逐任务数字能从论文无歧义地转录。
+      T-Rex 在每个任务上都领先，在力敏感 / 可形变任务（劈杯、挤膏、擦盘）上差距最大。</p>
+      <canvas id="taskcv" height="300"></canvas>
+    </div>
+  </div>
+
+  <!-- ============ ABLATION ============ -->
+  <div class="panel" id="ablation">
+    <div class="card">
+      <h2>每个组件值多少</h2>
+      <p class="note">在 6 个代表性任务上的消融；完整模型 = 65%（表 2）。把组件切到 OFF，扣除其实测贡献。</p>
+      <div id="ablctls"></div>
+      <div style="margin-top:18px">
+        <div class="tag">估计平均成功率</div>
+        <div class="big" id="ablval">65%</div>
+        <div class="freqbar" style="height:26px"><div class="seg" id="ablbar" style="background:var(--accent);width:100%">65%</div></div>
+      </div>
+      <p class="note" style="margin-top:14px">数字是论文实测的配置（现实中并非可加——存在重叠）；这只是相对影响的交互式示意。
+      <b>触觉本身是最大杠杆（−23%）</b>；时间维度 VQ-VAE 与异步精修更小但真实。</p>
+      <table id="abltab"><thead><tr><th>配置</th><th class="num">平均</th><th class="num">Δ</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <!-- ============ RECIPE ============ -->
+  <div class="panel" id="recipe">
+    <div class="card">
+      <h2>三阶段训练配方</h2>
+      <p class="note">触觉能力在<b>中训练</b>注入，而非预训练——绕开预训练规模触觉数据的成本。切换各阶段（表 3）。</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px">
+        <button class="tab" id="bPre">人类预训练</button>
+        <button class="tab active" id="bMid">触觉中训练</button>
+      </div>
+      <div style="margin-top:18px">
+        <div class="tag">平均成功率（6 任务）</div>
+        <div class="big" id="recval">—</div>
+        <div class="freqbar" style="height:26px"><div class="seg" id="recbar" style="background:var(--accent)">—</div></div>
+      </div>
+      <table style="margin-top:18px"><thead><tr><th>预训练</th><th>中训练</th><th class="num">平均成功率</th></tr></thead>
+        <tbody>
+          <tr><td>✗</td><td>✗</td><td class="num">18%</td></tr>
+          <tr><td>✓</td><td>✗</td><td class="num">34%</td></tr>
+          <tr><td>✗</td><td>✓</td><td class="num">45%</td></tr>
+          <tr class="ours"><td>✓</td><td>✓</td><td class="num">65%</td></tr>
+        </tbody></table>
+      <h3>各阶段数据规模</h3>
+      <div>
+        <span class="pill">预训练：22,889 小时人类第一视角视频</span>
+        <span class="pill">中训练：100 小时触觉同步双臂遥操作</span>
+        <span class="pill">后训练：约 100 条演示 / 任务</span>
+        <span class="pill">22 个运动基元</span>
+        <span class="pill">200+ 物体</span>
+        <span class="pill">7700+ 条轨迹</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- tab switching ----------
+document.querySelectorAll('.tab[data-t]').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab[data-t]').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.t).classList.add('active');
+    if(t.dataset.t==='results') drawTasks();
+    if(t.dataset.t==='freq') drawFreq();
+  };
+});
+
+// ================= CASCADE =================
+const ts=document.getElementById('ts'), nEl=document.getElementById('n');
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+function resize(c){c.width=c.clientWidth*devicePixelRatio;c.getContext('2d').setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
+function drawCascade(){
+  const tsplit=+ts.value, N=+nEl.value;
+  document.getElementById('tsv').textContent=tsplit.toFixed(2);
+  document.getElementById('nv').textContent=N;
+  const kSlow=Math.max(1,Math.round(N*(1-tsplit)));
+  const kFast=Math.max(1,N-kSlow);
+  const sb=document.getElementById('schedbar');
+  const slowPct=(1-tsplit)*100, fastPct=tsplit*100;
+  sb.innerHTML=`<div class="seg" style="background:var(--slow);width:${slowPct}%">慢 ×${kSlow}</div>`+
+               `<div class="seg" style="background:var(--fast);width:${fastPct}%">快 ×${kFast}</div>`;
+  document.getElementById('schedtext').innerHTML=
+    `动作专家在 <b>${kSlow}</b> 步内积分 τ: 1→${tsplit.toFixed(2)}（每 chunk 一次）。`+
+    `触觉专家在 <b>${kFast}</b> 步内积分 τ: ${tsplit.toFixed(2)}→0，用新鲜触觉重跑。`;
+  const v=document.getElementById('verdict');
+  let msg,col;
+  if(tsplit<0.2){msg="⚠️ τ_split 太小：动作专家几乎交出一个纯噪声规划——触觉专家得在视觉运动先验太弱的情况下做大部分工作。成功率下降（图 4）。";col="var(--bad)";}
+  else if(tsplit>0.7){msg="⚠️ τ_split 太大：触觉介入前规划几乎已完成——触觉专家几乎无处精修。反应性丧失（图 4）。";col="var(--bad)";}
+  else if(Math.abs(tsplit-0.4)<0.08){msg="✅ 接近论文的甜点区（0.4）：动作专家定下扎实的粗规划，给触觉专家留下有意义的最后一段用触觉精修。";col="var(--good)";}
+  else{msg="🔸 可行，但论文发现约 0.4 最优——在强视觉运动规划与充足触觉精修空间之间取得平衡。";col="var(--accent2)";}
+  v.style.borderColor=col; v.innerHTML=`<span style="color:${col};font-weight:600">${msg}</span>`;
+  resize(cv);
+  const W=cv.clientWidth,H=cv.clientHeight,pad=34;
+  ctx.clearRect(0,0,W,H);
+  const x0=pad,x1=W-pad,y0=H-pad,y1=20;
+  const Xt=tau=>x0+(1-tau)*(x1-x0);
+  const Y=val=>y1+(1-val)*(y0-y1);
+  ctx.strokeStyle='#3a4658';ctx.lineWidth=1;ctx.beginPath();
+  ctx.moveTo(x0,y0);ctx.lineTo(x1,y0);ctx.stroke();
+  ctx.fillStyle='#8b949e';ctx.font='11px sans-serif';
+  ctx.fillText('τ=1（噪声）',x0,y0+16);ctx.fillText('τ=0（干净动作）',x1-95,y0+16);
+  ctx.fillText('去噪进度 →',x0,y1-4);
+  ctx.strokeStyle=getCSS('--slow');ctx.lineWidth=3.5;
+  ctx.beginPath();ctx.moveTo(Xt(1),Y(0));
+  ctx.lineTo(Xt(tsplit),Y(1-tsplit));ctx.stroke();
+  ctx.setLineDash([4,4]);ctx.strokeStyle='#5a6678';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(Xt(tsplit),y1);ctx.lineTo(Xt(tsplit),y0);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#c9d4e0';ctx.fillText('τ_split='+tsplit.toFixed(2),Xt(tsplit)-26,y1+2);
+  ctx.strokeStyle=getCSS('--fast');ctx.lineWidth=2;
+  for(let r=0;r<kFast;r++){
+    const jitter=(r-(kFast-1)/2)*0.04;
+    ctx.globalAlpha=0.45+0.55*(r/Math.max(1,kFast-1));
+    ctx.beginPath();ctx.moveTo(Xt(tsplit),Y(1-tsplit));
+    ctx.lineTo(Xt(0),Y(1+jitter));ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  ctx.fillStyle=getCSS('--good');ctx.beginPath();ctx.arc(Xt(0),Y(1),5,0,7);ctx.fill();
+  ctx.fillStyle=getCSS('--slow');ctx.beginPath();ctx.arc(Xt(tsplit),Y(1-tsplit),5,0,7);ctx.fill();
+}
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+ts.oninput=drawCascade; nEl.oninput=drawCascade;
+
+// ================= FREQ =================
+const ta=document.getElementById('ta'), rf=document.getElementById('rf');
+function drawFreq(){
+  const T=+ta.value, R=+rf.value;
+  document.getElementById('tav').textContent=T;
+  document.getElementById('rfv').textContent=R;
+  document.getElementById('naive').textContent=R;
+  document.getElementById('trex').textContent='1';
+  const save=Math.round((1-1/R)*100);
+  document.getElementById('save').textContent=save+'%';
+  const c=document.getElementById('fcv');resize(c);const x=c.getContext('2d');
+  const W=c.clientWidth,H=c.clientHeight;x.clearRect(0,0,W,H);
+  const m=30, bw=(W-2*m)/T;
+  for(let i=0;i<T;i++){
+    x.fillStyle='#222b39';x.fillRect(m+i*bw+1,H-40,bw-2,24);
+  }
+  x.fillStyle=getCSS('--slow');x.fillRect(m,H-40,bw-2,24);
+  x.fillStyle='#c9d4e0';x.font='11px sans-serif';x.fillText('视觉前向 ×1（整个 chunk 缓存复用）',m,H-50);
+  const step=T/R;
+  x.fillStyle=getCSS('--fast');
+  for(let r=0;r<R;r++){const idx=Math.round(r*step);x.fillRect(m+idx*bw+1,H-40,bw-2,24);}
+  x.fillStyle='#8b949e';x.fillText('橙色 = 在缓存上下文上的触觉精修 →',m,H-12);
+}
+ta.oninput=drawFreq; rf.oninput=drawFreq;
+
+// ================= RESULTS =================
+const TASKS=["翻页","传鸡蛋","擦盘","挤膏","劈杯","分麻将","开锁","补药片","酸碱中和","抽卡","发扑克","拧灯泡"];
+// 每方法的“平均”取自表 1。逐任务分解（d 数组）只包含能从论文无歧义解析到其平均值的行
+// （T-Rex、EgoScale）；下方逐任务对比图仅限这两行，以免呈现转录有误的数字。
+const METHODS={
+  "ViTacFormer":{avg:13,desc:"ACT 式视触觉模仿，交叉注意力融合 + 未来触觉预测（从零训练）"},
+  "RDP":{avg:6,desc:"Reactive Diffusion Policy：慢-快视触觉扩散，平行夹爪，任务专用"},
+  "Tactile-VLA":{avg:15,desc:"触觉感知 VLA，整合触觉用于富接触推理"},
+  "EgoScale":{avg:35,desc:"最强基线：大规模第一视角预训练 + 手姿监督（无触觉反应性）",d:[68,44,34,38,33,36,19,12,43,41,28,18]},
+  "π0.5":{avg:17,desc:"大型预训练 VLA 在任务数据上微调；对触觉盲"},
+  "π0.5 + 触觉":{avg:6,desc:"π0.5 天真拼接触觉——反而低于 π0.5（17→6）：整合方式很关键！"},
+  "T-Rex（本文）":{avg:65,desc:"MoT + 异步级联流匹配 + 时间维度触觉 VQ-VAE + 触觉中训练",d:[96,75,69,66,78,65,47,41,76,70,57,35]}
+};
+(function(){
+  const tb=document.querySelector('#restab tbody');
+  const max=65;
+  Object.entries(METHODS).sort((a,b)=>b[1].avg-a[1].avg).forEach(([m,o])=>{
+    const tr=document.createElement('tr');
+    if(m.includes('本文'))tr.className='ours';
+    tr.innerHTML=`<td>${m}</td><td style="color:var(--muted);font-size:.8rem">${o.desc}</td>`+
+      `<td class="num">${o.avg}%</td><td><span class="bar" style="width:${o.avg/max*100}%;background:${m.includes('本文')?'var(--accent)':'var(--accent2)'}"></span></td>`;
+    tb.appendChild(tr);
+  });
+})();
+const TASK_A="T-Rex（本文）", TASK_B="EgoScale";
+function drawTasks(){
+  const c=document.getElementById('taskcv');resize(c);const x=c.getContext('2d');
+  const W=c.clientWidth,H=c.clientHeight;x.clearRect(0,0,W,H);
+  const A=METHODS[TASK_A],B=METHODS[TASK_B];
+  const m=44, bottom=H-70, top=14, n=TASKS.length, gw=(W-2*m)/n;
+  x.strokeStyle='#222b39';x.fillStyle='#8b949e';x.font='10px sans-serif';
+  for(let g=0;g<=100;g+=25){const y=top+(1-g/100)*(bottom-top);
+    x.beginPath();x.moveTo(m,y);x.lineTo(W-m,y);x.stroke();x.fillText(g+'%',6,y+3);}
+  for(let i=0;i<n;i++){
+    const bx=m+i*gw, bw=gw*0.34;
+    const ya=A.d[i]/100*(bottom-top), yb=B.d[i]/100*(bottom-top);
+    x.fillStyle=getCSS('--accent');x.fillRect(bx+gw*0.12,bottom-ya,bw,ya);
+    x.fillStyle=getCSS('--accent2');x.fillRect(bx+gw*0.12+bw+3,bottom-yb,bw,yb);
+    x.save();x.translate(bx+gw*0.5,bottom+8);x.rotate(-Math.PI/5);
+    x.fillStyle='#8b949e';x.font='11px sans-serif';x.fillText(TASKS[i],-26,0);x.restore();
+  }
+  x.fillStyle=getCSS('--accent');x.fillRect(m,2,11,11);
+  x.fillStyle='#c9d4e0';x.font='11px sans-serif';x.fillText(TASK_A,m+16,11);
+  const off=m+16+x.measureText(TASK_A).width+18;
+  x.fillStyle=getCSS('--accent2');x.fillRect(off,2,11,11);
+  x.fillStyle='#c9d4e0';x.fillText(TASK_B,off+16,11);
+}
+
+// ================= ABLATION =================
+const ABL=[
+  {k:'tactile',label:'触觉模态（任何触觉）',full:65,off:42},
+  {k:'vqvae',label:'时间维度力 VQ-VAE',full:65,off:58},
+  {k:'deform',label:'形变图',full:65,off:59},
+  {k:'async',label:'异步精修',full:65,off:60},
+];
+(function(){
+  const c=document.getElementById('ablctls');
+  ABL.forEach(a=>{
+    const id='abl_'+a.k;
+    c.innerHTML+=`<label class="ctl" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+      <input type="checkbox" id="${id}" checked style="accent-color:var(--accent);width:auto">
+      ${a.label} <span style="color:var(--muted);font-size:.8rem">（关闭 → ${a.off}%，Δ ${a.off-65}%）</span></label>`;
+  });
+  const tb=document.querySelector('#abltab tbody');
+  [["完整模型",65,0],["去掉触觉",42,-23],["MLP 力 + 形变（无 VQ-VAE）",58,-7],
+   ["仅形变",54,-11],["MLP 力 + VQ-VAE（无形变）",59,-6],["去掉异步（同步）",60,-5]]
+   .forEach(([n,v,d])=>{const tr=document.createElement('tr');if(d===0)tr.className='ours';
+     tr.innerHTML=`<td>${n}</td><td class="num">${v}%</td><td class="num" style="color:${d<0?'var(--bad)':'var(--muted)'}">${d===0?'—':d+'%'}</td>`;tb.appendChild(tr);});
+  setTimeout(()=>{ABL.forEach(a=>document.getElementById('abl_'+a.k).onchange=updAbl);updAbl();},0);
+})();
+function updAbl(){
+  let worst=65;
+  ABL.forEach(a=>{if(!document.getElementById('abl_'+a.k).checked) worst=Math.min(worst,a.off);});
+  const val=worst;
+  document.getElementById('ablval').textContent=val+'%';
+  const bar=document.getElementById('ablbar');
+  bar.style.width=(val/65*100)+'%';bar.textContent=val+'%';
+  bar.style.background=val>=60?'var(--good)':val>=50?'var(--accent)':'var(--bad)';
+}
+
+// ================= RECIPE =================
+const recData={'11':65,'10':34,'01':45,'00':18};
+let pre=true,mid=true;
+function updRec(){
+  document.getElementById('bPre').classList.toggle('active',pre);
+  document.getElementById('bMid').classList.toggle('active',mid);
+  const v=recData[(pre?'1':'0')+(mid?'1':'0')];
+  document.getElementById('recval').textContent=v+'%';
+  const b=document.getElementById('recbar');b.style.width=(v/65*100)+'%';b.textContent=v+'%';
+  b.style.background=v>=60?'var(--good)':v>=40?'var(--accent)':'var(--bad)';
+}
+document.getElementById('bPre').onclick=()=>{pre=!pre;updRec();};
+document.getElementById('bMid').onclick=()=>{mid=!mid;updRec();};
+
+// init
+drawCascade();drawFreq();updRec();
+window.addEventListener('resize',()=>{drawCascade();drawFreq();
+  if(document.getElementById('results').classList.contains('active'))drawTasks();});
+</script>
+</body>
+</html>

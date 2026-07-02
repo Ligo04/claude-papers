@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeformGen 交互式解读</title>
+<style>
+  :root{
+    --bg:#0e1117; --panel:#161b22; --panel2:#1c2330; --line:#2d3748;
+    --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --accent2:#f78166;
+    --green:#3fb950; --rigid:#58a6ff; --deform:#f78166; --src:#3fb950;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  header{padding:28px 24px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#161b22,#0e1117)}
+  header h1{margin:0 0 6px;font-size:24px}
+  header p{margin:0;color:var(--muted);font-size:14px}
+  .badge{display:inline-block;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);border-radius:12px;padding:2px 10px;font-size:12px;margin-right:6px}
+  nav{display:flex;gap:4px;padding:12px 24px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tab{padding:10px 16px;cursor:pointer;border:1px solid transparent;border-bottom:none;
+    border-radius:8px 8px 0 0;color:var(--muted);font-size:14px;font-weight:600}
+  .tab.active{background:var(--panel);color:var(--txt);border-color:var(--line)}
+  main{padding:24px;max-width:1100px;margin:0 auto}
+  .view{display:none}.view.active{display:block}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+  h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:18px 0 8px;color:var(--accent)}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .col{flex:1;min-width:280px}
+  canvas{background:#0a0d12;border:1px solid var(--line);border-radius:8px;width:100%;height:auto}
+  label{display:block;font-size:13px;color:var(--muted);margin:14px 0 4px}
+  input[type=range]{width:100%}
+  .val{color:var(--accent);font-weight:600}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin:10px 0}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:center}
+  th{background:var(--panel2);color:var(--accent)}
+  td.task{text-align:left;font-weight:600}
+  .best{background:rgba(63,185,80,.18);font-weight:700;color:#7ee787}
+  .muted{color:var(--muted);font-size:13px}
+  .pill{display:inline-block;padding:1px 8px;border-radius:8px;font-size:12px;font-weight:600}
+  .strat-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .strat-btns button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px}
+  .strat-btns button.active{border-color:var(--accent);color:var(--accent)}
+  .kpi{font-size:13px;margin:6px 0}
+  .kpi b{color:var(--txt)}
+  .bar{height:9px;border-radius:5px;background:var(--panel2);overflow:hidden;margin-top:3px}
+  .bar>div{height:100%;border-radius:5px}
+  .note{font-size:12px;color:var(--muted);border-left:3px solid var(--accent);padding-left:10px;margin-top:10px}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>DeformGen：基于动力学的拓扑数据增强</h1>
+  <p>Dynamics-Based Topology Augmentation for Deformable Manipulation Policy Learning · arXiv:2606.25939 (2026)</p>
+  <div style="margin-top:10px">
+    <span class="badge">可变形操作</span><span class="badge">数据增强</span>
+    <span class="badge">PhysTwin 仿真</span><span class="badge">cs.RO</span>
+  </div>
+</header>
+
+<nav>
+  <div class="tab active" data-v="v1">① 状态增强：合法流形</div>
+  <div class="tab" data-v="v2">② 轨迹增强：形变场扭曲</div>
+  <div class="tab" data-v="v3">③ 实验结果仪表盘</div>
+</nav>
+
+<main>
+<!-- ============ VIEW 1 ============ -->
+<section class="view active" id="v1">
+  <div class="card">
+    <h2>四种增强策略：谁留在物理可行流形 S<sub>real</sub> 内？</h2>
+    <p class="muted">构型空间 S=ℝ<sup>3N</sup> 极高维，物理可行子集 S<sub>real</sub> 很薄（蓝色阴影区）。
+    点击不同策略，观察它生成的状态落在哪里。核心论点（论文 Table 1）：只有动力学方法
+    既<b>留在 S<sub>real</sub> 内</b>又获得真正的<b>形状多样性</b>。</p>
+    <div class="strat-btns" id="stratBtns"></div>
+    <div class="row">
+      <div class="col" style="flex:1.3">
+        <canvas id="manifold" width="560" height="380"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--src)"></span>源状态 s₀</span>
+          <span><span class="dot" style="background:#1f6feb;opacity:.5"></span>S<sub>real</sub> 流形</span>
+          <span><span class="dot" style="background:var(--accent2)"></span>生成的增强状态</span>
+        </div>
+      </div>
+      <div class="col">
+        <h3 id="stratName">—</h3>
+        <p id="stratDesc" class="muted"></p>
+        <div class="kpi">合法率 <b><span id="kpiValid">—</span></b>
+          <div class="bar"><div id="barValid" style="background:var(--green)"></div></div></div>
+        <div class="kpi">形状多样性（非刚性残差） <b><span id="kpiDiv">—</span></b>
+          <div class="bar"><div id="barDiv" style="background:var(--accent2)"></div></div></div>
+        <div class="note" id="stratVerdict"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>对照表（论文 Table 1）</h3>
+    <table>
+      <tr><th>策略</th><th>拓扑连贯</th><th>可达集</th><th>⊆ S<sub>real</sub></th></tr>
+      <tr><td class="task">(i) 全局刚性</td><td>✓</td><td>s₀ 的 6-DoF 子空间</td><td>✓</td></tr>
+      <tr><td class="task">(ii) 逐粒子扰动</td><td>✗</td><td>整个 S</td><td>✗</td></tr>
+      <tr><td class="task">(iii) 运动学拓扑</td><td>✓</td><td>整个 S</td><td>✗</td></tr>
+      <tr class="best"><td class="task">(iv) 动力学（本文）</td><td>✓</td><td>可达集 R(s₀)⊆S<sub>real</sub></td><td>✓</td></tr>
+    </table>
+    <p class="note"><b>关键不对称性（Assumption 1）：</b>仿真器从合法状态出发能近似保持合法，
+    但<b>无法</b>把非法状态可靠拉回合法。所以"先破坏再修复"行不通——动力学方法从不离开流形。</p>
+  </div>
+</section>
+
+<!-- ============ VIEW 2 ============ -->
+<section class="view" id="v2">
+  <div class="card">
+    <h2>形变场扭曲：把单条示教轨迹"扭"到变形后的物体上</h2>
+    <p class="muted">绳子从直线被弯成抛物线。蓝色是源示教轨迹，绿色是<b>刚性迁移</b>（整体平移），
+    橙色是<b>形变场扭曲</b>（本文）。调节滑块观察形变场如何让轨迹贴合新几何。</p>
+    <div class="row">
+      <div class="col" style="flex:1.4">
+        <canvas id="warp" width="600" height="380"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:#888"></span>源点云（直绳）</span>
+          <span><span class="dot" style="background:var(--accent2)"></span>形变后点云（弯绳）</span>
+          <span><span class="dot" style="background:var(--rigid)"></span>源轨迹</span>
+          <span><span class="dot" style="background:var(--green)"></span>刚性迁移</span>
+          <span><span class="dot" style="background:#e3b341"></span>形变场扭曲</span>
+        </div>
+      </div>
+      <div class="col">
+        <label>绳子弯曲程度 <span class="val" id="bendV"></span></label>
+        <input type="range" id="bend" min="0" max="100" value="55">
+        <label>最近邻数 K <span class="val" id="kV"></span> <span class="muted">（小K=局部精确；大K=全局）</span></label>
+        <input type="range" id="k" min="1" max="20" value="20">
+        <label>时间衰减 α 起始值 <span class="val" id="aV"></span> <span class="muted">（控制贴合 vs 回归原路径）</span></label>
+        <input type="range" id="alpha" min="0" max="100" value="100">
+        <div class="note" style="margin-top:16px">
+          <b>位置：</b><code>x_warp = x + α·Σ w̃ᵢδᵢ</code>（KNN 反距离加权）<br>
+          <b>姿态：</b>局部雅可比 → 投影 SO(3) → SLERP，桌面场景约束到 Z 轴。<br>
+          观察：靠近弯曲大的绳尾，扭曲轨迹抬升更多；刚性迁移则处处一样、与几何错位。
+        </div>
+        <div class="kpi" style="margin-top:12px">轨迹-物体对齐误差（越低越好）</div>
+        <div class="kpi">刚性迁移 <b><span id="errRigid" style="color:var(--green)"></span></b></div>
+        <div class="kpi">形变场扭曲 <b><span id="errWarp" style="color:#e3b341"></span></b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VIEW 3 ============ -->
+<section class="view" id="v3">
+  <div class="card">
+    <h2>主结果：策略成功率（%，未见状态）— 论文 Table 2</h2>
+    <p class="muted">三任务、四架构。每个任务仅 <b>1 条</b> 示教 → 合成 1000 训练轨迹。
+    高亮为该(架构×任务)下最优。切换架构查看。</p>
+    <div class="strat-btns" id="archBtns"></div>
+    <table id="resTable"></table>
+    <p class="note" id="resNote"></p>
+  </div>
+  <div class="card">
+    <h3>消融：增强数据量的影响（论文 Table 4，平均成功率 %）</h3>
+    <canvas id="scaleChart" width="560" height="240"></canvas>
+    <p class="muted">成功率随合成数据量单调上升。ACT：19.5%→61.5%（N:100→750）；SmolVLA：36.8%→63.2%。</p>
+  </div>
+  <div class="card">
+    <h3>解耦设计：三档对比隔离两个组件的贡献</h3>
+    <table>
+      <tr><th>对比</th><th>变量</th><th>结论</th></tr>
+      <tr><td class="task">SMG* vs DG</td><td>状态增强（刚性 vs 拓扑）</td><td>拓扑状态多样性 → 提升泛化</td></tr>
+      <tr><td class="task">DG* vs DG</td><td>轨迹迁移（局部刚性 vs 形变场）</td><td>形变感知扭曲 → 互补增益</td></tr>
+    </table>
+    <p class="note">SMG*=刚性状态增强+形变场扭曲；DG*=拓扑状态增强+局部刚性迁移；DG=完整 DeformGen。</p>
+  </div>
+</section>
+</main>
+
+<script>
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');document.getElementById(t.dataset.v).classList.add('active');
+});
+
+// ================= VIEW 1: manifold =================
+const strategies = {
+  rigid:{name:'(i) 全局刚性变换', valid:100, div:2,
+    desc:'对所有粒子施加同一个 SE(3) 变换。保持所有粒子间关系，必在 S_real 内，但只能在 6 维位姿子空间移动，捕捉不到任何形状变化。',
+    verdict:'✅ 合法 / ❌ 无形状多样性 —— Fig.8 中非刚性残差≈0。'},
+  particle:{name:'(ii) 逐粒子加噪', valid:8, div:88,
+    desc:'对每个粒子独立加随机噪声。覆盖-合理两难：噪声大破坏连接性，噪声小只有局部褶皱。',
+    verdict:'❌ 大量跌出 S_real，事后修复不可靠（Assumption 1）。'},
+  kinematic:{name:'(iii) 运动学拓扑形变场', valid:22, div:80,
+    desc:'施加平滑的几何形变场。能保持拓扑连贯，但忽略材料约束，产生"看起来连贯、动力学不可行"的状态。',
+    verdict:'❌ 有形状变化但违反物理约束，跌出 S_real。'},
+  dynamics:{name:'(iv) 动力学（本文）', valid:99, div:64,
+    desc:'从合法状态 s₀ 施加局部力 f，用仿真器前向演化 s_aug=Φ_sim(s₀,f,Δt) 再稳定化。通过仿真器自身动力学，从不显式离开 S_real。',
+    verdict:'✅ 既留在 S_real 内、又获得真正的拓扑多样性 —— 这就是核心贡献。'}
+};
+const mc = document.getElementById('manifold'), mx = mc.getContext('2d');
+const btnWrap = document.getElementById('stratBtns');
+let curStrat='dynamics';
+Object.keys(strategies).forEach(k=>{
+  const b=document.createElement('button');b.textContent=strategies[k].name;
+  b.onclick=()=>{curStrat=k;updateStratBtns();drawManifold();};
+  b.dataset.k=k;btnWrap.appendChild(b);
+});
+function updateStratBtns(){btnWrap.querySelectorAll('button').forEach(b=>
+  b.classList.toggle('active',b.dataset.k===curStrat));}
+
+// deterministic pseudo-random
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+function drawManifold(){
+  const W=mc.width,H=mc.height;mx.clearRect(0,0,W,H);
+  const cx=W*0.42,cy=H*0.5;
+  // S_real 流形 = 一条弯曲的带状区域
+  mx.fillStyle='rgba(31,111,235,0.13)';
+  mx.beginPath();
+  for(let t=0;t<=1;t+=0.01){const x=60+t*(W-120);
+    const y=cy+80*Math.sin(t*6.0)-26;mx.lineTo(x,y);}
+  for(let t=1;t>=0;t-=0.01){const x=60+t*(W-120);
+    const y=cy+80*Math.sin(t*6.0)+26;mx.lineTo(x,y);}
+  mx.closePath();mx.fill();
+  mx.fillStyle='#1f6feb';mx.font='12px sans-serif';
+  mx.fillText('S_real（物理可行流形）',70,cy-95);
+  mx.fillStyle='rgba(139,148,158,0.5)';
+  mx.fillText('S = ℝ³ᴺ（整个构型空间）',W-220,30);
+
+  const S=strategies[curStrat],rnd=mulberry(42);
+  const onManifold=(x)=>cy+80*Math.sin(((x-60)/(W-120))*6.0);
+  for(let i=0;i<140;i++){
+    let x,y,valid=rnd()*100<S.valid;
+    if(curStrat==='rigid'){ // 紧贴源附近，沿流形小范围
+      x=cx+(rnd()-0.5)*70; y=onManifold(x)+(rnd()-0.5)*8;
+    }else if(curStrat==='dynamics'){ // 沿流形大范围铺开，留在带内
+      x=70+rnd()*(W-140); y=onManifold(x)+(rnd()-0.5)*40;
+    }else if(curStrat==='particle'){ // 到处乱飞，大多在带外
+      x=70+rnd()*(W-140); y=valid?onManifold(x)+(rnd()-0.5)*30:rnd()*H;
+    }else{ // kinematic：铺开但很多偏离带
+      x=70+rnd()*(W-140);
+      y=valid?onManifold(x)+(rnd()-0.5)*40:onManifold(x)+(rnd()-0.5)*220;
+    }
+    const inside=Math.abs(y-onManifold(x))<30;
+    mx.fillStyle=inside?'rgba(247,129,102,0.85)':'rgba(247,129,102,0.35)';
+    mx.beginPath();mx.arc(x,y,3,0,7);mx.fill();
+  }
+  // 源状态
+  mx.fillStyle='#3fb950';mx.beginPath();mx.arc(cx,onManifold(cx),7,0,7);mx.fill();
+  mx.strokeStyle='#fff';mx.lineWidth=1.5;mx.stroke();
+
+  document.getElementById('stratName').textContent=S.name;
+  document.getElementById('stratDesc').textContent=S.desc;
+  document.getElementById('kpiValid').textContent=S.valid+'%';
+  document.getElementById('kpiDiv').textContent=S.div+' / 100';
+  document.getElementById('barValid').style.width=S.valid+'%';
+  document.getElementById('barDiv').style.width=S.div+'%';
+  document.getElementById('stratVerdict').innerHTML=S.verdict;
+}
+updateStratBtns();drawManifold();
+
+// ================= VIEW 2: warping =================
+const wc=document.getElementById('warp'),wx=wc.getContext('2d');
+const N=20;
+function knnWeights(xt,pts,K){
+  const d=pts.map((p,i)=>({i,dist:Math.hypot(p[0]-xt[0],p[1]-xt[1])}));
+  d.sort((a,b)=>a.dist-b.dist);const nn=d.slice(0,K);
+  let sw=0;nn.forEach(o=>{o.w=1/(o.dist+1e-4);sw+=o.w;});
+  nn.forEach(o=>o.w/=sw);return nn;
+}
+function drawWarp(){
+  const bend=+document.getElementById('bend').value/100;
+  const K=+document.getElementById('k').value;
+  const a0=+document.getElementById('alpha').value/100;
+  document.getElementById('bendV').textContent=(bend*100|0)+'%';
+  document.getElementById('kV').textContent=K;
+  document.getElementById('aV').textContent=a0.toFixed(2);
+  const W=wc.width,H=wc.height;wx.clearRect(0,0,W,H);
+  const mapx=x=>60+x*(W-120), mapy=y=>H-90-y*220;
+  // 源点云（直绳 y=0），形变后点云（抛物线）
+  const pOrig=[],pDef=[],delta=[];
+  for(let i=0;i<N;i++){const x=i/(N-1);
+    pOrig.push([x,0]); const yd=bend*0.6*x*x; pDef.push([x,yd]); delta.push([0,yd]);}
+  // 画点云
+  const drawCloud=(pts,col)=>{wx.fillStyle=col;pts.forEach(p=>{
+    wx.beginPath();wx.arc(mapx(p[0]),mapy(p[1]),3,0,7);wx.fill();});};
+  wx.strokeStyle='#555';wx.beginPath();pOrig.forEach((p,i)=>{const X=mapx(p[0]),Y=mapy(p[1]);
+    i?wx.lineTo(X,Y):wx.moveTo(X,Y);});wx.stroke();drawCloud(pOrig,'#888');
+  wx.strokeStyle='var(--accent2)';wx.beginPath();pDef.forEach((p,i)=>{const X=mapx(p[0]),Y=mapy(p[1]);
+    i?wx.lineTo(X,Y):wx.moveTo(X,Y);});wx.strokeStyle='#f78166';wx.stroke();drawCloud(pDef,'#f78166');
+  // 源轨迹：绳上方 0.12
+  const T=14,traj=[];for(let t=0;t<T;t++){const x=0.05+t/(T-1)*0.9;traj.push([x,0.12]);}
+  // 刚性迁移：平均位移
+  let mdy=delta.reduce((s,d)=>s+d[1],0)/N;
+  const rigid=traj.map(p=>[p[0],p[1]+mdy]);
+  // 形变场扭曲
+  const warp=traj.map((p,t)=>{const a=a0;const nn=knnWeights(p,pOrig,K);
+    let dy=0;nn.forEach(o=>dy+=o.w*delta[o.i][1]);return [p[0],p[1]+a*dy];});
+  const line=(pts,col,wd)=>{wx.strokeStyle=col;wx.lineWidth=wd;wx.beginPath();
+    pts.forEach((p,i)=>{const X=mapx(p[0]),Y=mapy(p[1]);i?wx.lineTo(X,Y):wx.moveTo(X,Y);});wx.stroke();
+    wx.fillStyle=col;pts.forEach(p=>{wx.beginPath();wx.arc(mapx(p[0]),mapy(p[1]),2.5,0,7);wx.fill();});};
+  line(traj,'#58a6ff',1.5);line(rigid,'#3fb950',2);line(warp,'#e3b341',2.5);
+  // 对齐误差 = 轨迹到"理想贴合曲线(物体上方固定高度)"的偏差
+  const ideal=traj.map(p=>[p[0],0.12+bend*0.6*p[0]*p[0]]);
+  const err=(pts)=>Math.sqrt(pts.reduce((s,p,i)=>s+(p[1]-ideal[i][1])**2,0)/T);
+  document.getElementById('errRigid').textContent=err(rigid).toFixed(3);
+  document.getElementById('errWarp').textContent=err(warp).toFixed(3);
+}
+['bend','k','alpha'].forEach(id=>document.getElementById(id).oninput=drawWarp);
+drawWarp();
+
+// ================= VIEW 3: results =================
+const data={ // Table 2 success rate %
+ ACT:{Rope:[0,68,90,90.5],Toy:[0,73,49,75.5],Cloth:[4,3.5,1.5,11],Avg:[1.33,48.17,46.83,59.0]},
+ DP:{Rope:[0,64,64,57.5],Toy:[0,49.5,56.5,54],Cloth:[7,0.5,2.5,0.5],Avg:[2.33,38.0,41.0,37.33]},
+ SmolVLA:{Rope:[0,62.5,88,92],Toy:[0,42,49.5,53.5],Cloth:[7.5,16.5,27.5,24],Avg:[2.5,40.33,55.0,56.5]},
+ "π₀":{Rope:[0,56,98.5,99],Toy:[0,10,32.5,58],Cloth:[7,17.5,24,13],Avg:[2.33,27.83,51.67,56.67]}
+};
+const cols=['1 Src.','SMG*','DG*','DG'];
+const notes={
+ ACT:'DG 平均最高(59.0)，全面超越刚性增强 SMG*(48.2)。',
+ DP:'唯一 DG* 略胜 DG 的架构(41.0 vs 37.3)——方法×架构交互不稳定。',
+ SmolVLA:'DG 平均最高(56.5)，绳子任务 92% 接近满分。',
+ "π₀":'DG 平均最高(56.7)，玩具装箱从 10%(SMG*) 跃升到 58%。'
+};
+const archWrap=document.getElementById('archBtns');let curArch='ACT';
+Object.keys(data).forEach(a=>{const b=document.createElement('button');b.textContent=a;
+  b.dataset.a=a;b.onclick=()=>{curArch=a;drawRes();};archWrap.appendChild(b);});
+function drawRes(){
+  archWrap.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.a===curArch));
+  const d=data[curArch];let html='<tr><th>任务</th>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  ['Rope','Toy','Cloth','Avg'].forEach(task=>{
+    const vals=d[task],mx=Math.max(...vals);
+    const label=task==='Avg'?'<b>平均</b>':({Rope:'绳子穿夹',Toy:'玩具装箱',Cloth:'叠布'})[task];
+    html+=`<tr><td class="task">${label}</td>`+vals.map(v=>
+      `<td class="${v===mx&&mx>0?'best':''}">${v.toFixed(v%1?2:0)}</td>`).join('')+'</tr>';
+  });
+  document.getElementById('resTable').innerHTML=html;
+  document.getElementById('resNote').innerHTML='<b>'+curArch+'：</b>'+notes[curArch];
+}
+drawRes();
+
+// scale chart (Table 4)
+const sc=document.getElementById('scaleChart'),sx=sc.getContext('2d');
+const Ns=[100,250,500,750];
+const series={ACT:[19.5,51.5,58.67,61.5],SmolVLA:[36.83,38.0,55.83,63.17]};
+(function(){const W=sc.width,H=sc.height,pad=44;sx.clearRect(0,0,W,H);
+  sx.strokeStyle='#2d3748';sx.fillStyle='#8b949e';sx.font='11px sans-serif';
+  for(let g=0;g<=4;g++){const y=H-pad-g/4*(H-2*pad);sx.beginPath();
+    sx.moveTo(pad,y);sx.lineTo(W-12,y);sx.stroke();sx.fillText((g*20)+'%',6,y+3);}
+  Ns.forEach((n,i)=>{const x=pad+i/(Ns.length-1)*(W-pad-20);sx.fillText('N='+n,x-14,H-pad+16);});
+  const cols2={ACT:'#58a6ff',SmolVLA:'#f78166'};
+  Object.keys(series).forEach(k=>{sx.strokeStyle=cols2[k];sx.lineWidth=2.5;sx.beginPath();
+    series[k].forEach((v,i)=>{const x=pad+i/(Ns.length-1)*(W-pad-20),y=H-pad-v/100*(H-2*pad);
+      i?sx.lineTo(x,y):sx.moveTo(x,y);});sx.stroke();
+    sx.fillStyle=cols2[k];series[k].forEach((v,i)=>{const x=pad+i/(Ns.length-1)*(W-pad-20),
+      y=H-pad-v/100*(H-2*pad);sx.beginPath();sx.arc(x,y,3.5,0,7);sx.fill();});});
+  sx.fillStyle='#58a6ff';sx.fillText('● ACT',W-90,24);
+  sx.fillStyle='#f78166';sx.fillText('● SmolVLA',W-90,40);
+})();
+</script>
+</body>
+</html>

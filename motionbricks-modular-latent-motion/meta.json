@@ -1,0 +1,28 @@
+{
+  "title": "MotionBricks: Scalable Real-Time Motions with Modular Latent Generative Model and Smart Primitives",
+  "authors": [
+    "Tingwu Wang",
+    "Olivier Dionne",
+    "Michael De Ruyter",
+    "David Minor",
+    "Davis Rempe",
+    "Kaifeng Zhao",
+    "Mathis Petrovich",
+    "Ye Yuan",
+    "Chenran Li",
+    "Zhengyi Luo",
+    "Brian Robison",
+    "Xavier Blackwell",
+    "Bernardo Antoniazzi",
+    "Xue Bin Peng",
+    "Yuke Zhu",
+    "Simon Yuen"
+  ],
+  "abstract": "Runtime interactive motion control has been one of the foundational pillars supporting animation and robotics applications. We introduce MotionBricks: a large-scale, real-time generative framework that seamlessly combines a powerful low-level latent neural backbone with a flexible, universal high-level behavior system built upon smart primitives. For the low-level neural backbone, we adopt motion in-betweening as the foundational paradigm, featuring a novel multi-head tokenizer and a progressive coarse-to-fine generation pipeline. We further introduce smart primitives — smart locomotion and smart object — that provide a unified, robust, and intuitive keyframe interface for authoring both navigation and object interaction. Quantitatively, MotionBricks produces state-of-the-art motion quality on open-source and proprietary datasets of various scales, while achieving a real-time throughput of 15,000 FPS with 2ms latency. We deploy MotionBricks on the Unitree G1 humanoid robot for real-world whole-body control.",
+  "year": 2026,
+  "venue": "SIGGRAPH 2026 (ACM Trans. Graph.)",
+  "date": "2026-04-27",
+  "tags": ["real-time motion synthesis", "modular latent generation"],
+  "githubLinks": [],
+  "codeLinks": ["https://nvlabs.github.io/motionbricks"]
+}

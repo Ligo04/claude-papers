@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAS-PNCG 交互式论文探索器</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; line-height: 1.6; }
+.header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); padding: 2rem; text-align: center; border-bottom: 2px solid #e94560; }
+.header h1 { font-size: 1.6rem; color: #fff; margin-bottom: 0.5rem; }
+.header p { color: #a0a0a0; font-size: 0.9rem; }
+.nav { display: flex; justify-content: center; gap: 0.5rem; padding: 1rem; background: #1a1a2e; flex-wrap: wrap; }
+.nav button { padding: 0.5rem 1rem; border: 1px solid #333; background: #252540; color: #e0e0e0; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+.nav button:hover, .nav button.active { background: #e94560; border-color: #e94560; color: #fff; }
+.panel { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+.panel.active { display: block; }
+.card { background: #1a1a2e; border-radius: 10px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid #2a2a4a; }
+.card h3 { color: #e94560; margin-bottom: 0.5rem; font-size: 1.1rem; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; }
+th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #2a2a4a; font-size: 0.85rem; }
+th { color: #e94560; font-weight: 600; }
+.highlight { color: #4ecca3; font-weight: 600; }
+.bar-container { margin: 0.3rem 0; }
+.bar-label { font-size: 0.8rem; margin-bottom: 2px; }
+.bar-track { height: 20px; background: #252540; border-radius: 4px; overflow: hidden; position: relative; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; display: flex; align-items: center; padding-left: 6px; font-size: 0.7rem; color: #fff; }
+.slider-group { margin: 0.8rem 0; }
+.slider-group label { font-size: 0.85rem; display: block; margin-bottom: 4px; }
+.slider-group input[type="range"] { width: 100%; accent-color: #e94560; }
+.slider-val { color: #4ecca3; font-weight: 600; }
+.step-list { counter-reset: step; }
+.step-item { position: relative; padding: 0.8rem 0.8rem 0.8rem 3rem; margin: 0.5rem 0; background: #252540; border-radius: 6px; cursor: pointer; transition: all 0.2s; border-left: 3px solid #333; }
+.step-item:hover, .step-item.active { border-left-color: #e94560; background: #2a2a4a; }
+.step-item::before { counter-increment: step; content: counter(step); position: absolute; left: 0.8rem; top: 0.8rem; color: #e94560; font-weight: 700; font-size: 1rem; }
+.step-desc { display: none; margin-top: 0.5rem; font-size: 0.85rem; color: #a0a0a0; padding-top: 0.5rem; border-top: 1px solid #333; }
+.step-item.active .step-desc { display: block; }
+.formula { background: #252540; padding: 0.8rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.85rem; margin: 0.5rem 0; overflow-x: auto; border-left: 3px solid #4ecca3; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin: 2px; }
+.tag-new { background: #1b4332; color: #4ecca3; }
+.tag-rotate { background: #4a1942; color: #e94560; }
+.tag-stiffen { background: #1a365d; color: #63b3ed; }
+.tag-soften { background: #2d3748; color: #a0aec0; }
+.comparison-row { display: flex; align-items: center; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #2a2a4a; }
+.comparison-label { width: 120px; font-size: 0.85rem; flex-shrink: 0; }
+.comparison-bars { flex: 1; }
+.legend { display: flex; gap: 1rem; margin: 0.5rem 0; font-size: 0.8rem; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+@media (max-width: 768px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>MAS-PNCG: 高效多层级预条件非线性共轭梯度法</h1>
+  <p>Yu Zhang, Xing Shen, Kemeng Huang et al. | arXiv 2604.19892 | 2026</p>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="showPanel('overview')">概览</button>
+  <button onclick="showPanel('pipeline')">算法流水线</button>
+  <button onclick="showPanel('woodbury')">Woodbury 更新</button>
+  <button onclick="showPanel('subspace')">2D 子空间</button>
+  <button onclick="showPanel('benchmarks')">性能基准</button>
+  <button onclick="showPanel('params')">参数探索</button>
+</div>
+
+<!-- Panel 1: Overview -->
+<div id="overview" class="panel active">
+  <div class="card">
+    <h3>核心问题</h3>
+    <p>IPC 仿真中 Newton 法需要昂贵的 Hessian 组装和线性求解。PNCG 避免 Hessian 但缺乏有效预条件器。</p>
+    <div class="formula">E(x) = ½(x-x̃)ᵀM(x-x̃) + h²Ψ(x) + B(x) + D(x)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;惯性&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;弹性&nbsp;&nbsp;&nbsp;接触barrier&nbsp;摩擦</div>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <h3>贡献 1</h3>
+      <p><strong>Sparse-Input Woodbury 更新</strong></p>
+      <p style="font-size:0.85rem;color:#a0a0a0">利用接触 Hessian 的稀疏低秩结构增量维护 MAS Level-0 子域逆，代价近零</p>
+    </div>
+    <div class="card">
+      <h3>贡献 2</h3>
+      <p><strong>2D 子空间最小化</strong></p>
+      <p style="font-size:0.85rem;color:#a0a0a0">用近似 Hessian 在梯度-前方向子空间内解析求解最优搜索方向</p>
+    </div>
+    <div class="card">
+      <h3>贡献 3</h3>
+      <p><strong>逐子域保守 CCD</strong></p>
+      <p style="font-size:0.85rem;color:#a0a0a0">每个子域独立计算安全步长，避免全局锁定，端到端加速约 10%</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>方法对比</h3>
+    <table>
+      <tr><th>方法</th><th>Hessian 组装</th><th>预条件器</th><th>线性求解</th><th>关键限制</th></tr>
+      <tr><td>GIPC</td><td>每 Newton 步</td><td>MAS（固定）</td><td>PCG</td><td>组装代价高</td></tr>
+      <tr><td>StiffGIPC</td><td>每 Newton 步</td><td>MAS（固定）</td><td>PCG</td><td>仍受 Hessian 约束</td></tr>
+      <tr><td>Jacobi-PNCG</td><td style="color:#4ecca3">无</td><td>Jacobi</td><td style="color:#4ecca3">无</td><td>收敛极慢</td></tr>
+      <tr style="background:#1b4332"><td><strong>MAS-PNCG</strong></td><td style="color:#4ecca3"><strong>无</strong></td><td><strong>MAS（增量更新）</strong></td><td style="color:#4ecca3"><strong>无</strong></td><td>迭代次数多</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Panel 2: Pipeline -->
+<div id="pipeline" class="panel">
+  <div class="card">
+    <h3>MAS-PNCG 算法流水线（点击查看详情）</h3>
+    <div class="step-list">
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>接触检测 ComputeConstraintSet</strong>
+        <div class="step-desc">检测所有距离 d < d̂ 的接触对，构建当前接触集 C_curr。用于后续 Woodbury 更新和 barrier 梯度计算。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>预条件器维护（Restart / Woodbury Update）</strong>
+        <div class="step-desc">如果 Restart=True：完全重建 MAS 层次结构（Level-0 到 Level-L）。否则：仅用 Woodbury 公式增量更新 Level-0 子域逆，粗层级保持冻结。重启判据：r_k = |g_{k+1}ᵀz_k|/(g_{k+1}ᵀz_{k+1}) > δ。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>梯度计算 ∇E(x)</strong>
+        <div class="step-desc">计算总能量梯度 = 惯性项 + 弹性项 + barrier 接触项 + 摩擦项。注意：完全避免 Hessian 矩阵的显式组装。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>预条件方向 z = P·g</strong>
+        <div class="step-desc">对每个 Level-0 子域应用（可能含 Woodbury 更新的）逆矩阵，加上冻结的粗层级校正。z_{k+1} = Σ S_dᵀ z_d + Σ C_(l)ᵀ M_(l)⁻¹ C_(l) g_{k+1}。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>2D 子空间最小化 → 搜索方向 p</strong>
+        <div class="step-desc">如果 Restart：μ = (zᵀg)/(zᵀH̃z), ν=0。否则：解 2×2 系统求 (μ,ν)，p = -μz + νp_prev。利用近似 Hessian H̃ 的曲率信息替代启发式 β 公式。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>逐子域保守 CCD</strong>
+        <div class="step-desc">每个子域 d 独立计算安全步长 α_d：单调区域识别 → 符号变化碰撞检测 → 二分搜索定位。远离接触的子域 α_d ≈ 1.0 全速推进。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>位置更新 x ← x + Σ S_dᵀ α_d S_d p</strong>
+        <div class="step-desc">每个子域用各自的步长更新位置。检查收敛（‖z‖ ≤ ε 且 Restart）。计算正交性指标 r_k 决定下一迭代是否需要重启。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel 3: Woodbury -->
+<div id="woodbury" class="panel">
+  <div class="card">
+    <h3>接触分类与更新策略</h3>
+    <p style="margin-bottom:0.8rem">每个接触 c 与基础状态 C_base 对比，决定 rank-1 更新向量：</p>
+    <div id="contact-viz">
+      <div style="margin-bottom:1rem">
+        <span class="tag tag-new">新接触 (c ∉ C_base)</span>
+        <span class="tag tag-rotate">法线旋转 (n·n_base < ε_rot)</span>
+        <span class="tag tag-stiffen">刚度增加 (k_curr > k_base)</span>
+        <span class="tag tag-soften">刚度减少 (忽略)</span>
+      </div>
+    </div>
+    <div class="formula">
+新接触:&nbsp;&nbsp;&nbsp;u = √k_curr · n_curr,&nbsp;&nbsp;&nbsp;ΔS = k_curr<br>
+法线旋转: u = √k_curr · n_curr,&nbsp;&nbsp;&nbsp;ΔS = k_curr（保留旧项作"幽灵墙"）<br>
+刚度增加: u = √(k_curr - k_base) · n_curr,&nbsp;&nbsp;&nbsp;ΔS = k_curr - k_base<br>
+刚度减少: 忽略（保持较硬近似，保证 SPD）
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Woodbury Capacitance 求解器</h3>
+    <div class="formula">B̃_d = B_d - B_d·U_d·(I_K + U_dᵀ·B_d·U_d)⁻¹·U_dᵀ·B_d</div>
+    <div class="step-list">
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>Base Solve: z_base = B_d · g_d</strong>
+        <div class="step-desc">用缓存的基础逆（上次重启时计算）乘以局部梯度。这是 O(N_d) 操作。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>Update Projection: W = B_d·U_d, r = U_dᵀ·z_base</strong>
+        <div class="step-desc">将更新矩阵投影到基础逆空间。O(N_d × K) 操作。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>Capacitance Solve: (I_K + U_dᵀ W)λ = r</strong>
+        <div class="step-desc">求解 K×K 小系统（K=8），代价极低。这是 Woodbury 公式的核心。</div>
+      </div>
+      <div class="step-item" onclick="toggleStep(this)">
+        <strong>Correction: z_d = z_base - W·λ</strong>
+        <div class="step-desc">用 capacitance 解校正基础方向，得到最终预条件方向。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>更新策略对比（交互式）</h3>
+    <div class="slider-group">
+      <label>接触变化率: <span class="slider-val" id="change-rate-val">30%</span></label>
+      <input type="range" id="change-rate" min="0" max="100" value="30" oninput="updateStrategyComparison()">
+    </div>
+    <div id="strategy-comparison">
+      <div class="comparison-row">
+        <div class="comparison-label">Full Rebuild</div>
+        <div class="comparison-bars"><div class="bar-track"><div class="bar-fill" id="bar-full" style="width:100%;background:#e94560">100%</div></div></div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-label">Freeze</div>
+        <div class="comparison-bars"><div class="bar-track"><div class="bar-fill" id="bar-freeze" style="width:10%;background:#63b3ed">10%</div></div></div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-label">Woodbury</div>
+        <div class="comparison-bars"><div class="bar-track"><div class="bar-fill" id="bar-woodbury" style="width:15%;background:#4ecca3">15%</div></div></div>
+      </div>
+    </div>
+    <p style="font-size:0.8rem;color:#a0a0a0;margin-top:0.5rem">
+      维护成本 vs 接触变化率。Woodbury 仅在变化率极高时接近 Full Rebuild 代价。
+    </p>
+  </div>
+</div>
+
+<!-- Panel 4: 2D Subspace -->
+<div id="subspace" class="panel">
+  <div class="card">
+    <h3>2D 子空间最小化</h3>
+    <p>搜索方向 p = -μ·z + ν·p_prev，在子空间内最小化二次模型：</p>
+    <div class="formula">
+min Q(μ,ν) = gᵀ(-μz+νp) + ½(-μz+νp)ᵀH̃(-μz+νp)<br><br>
+解 2×2 系统：<br>
+[zᵀH̃z&nbsp;&nbsp;&nbsp;&nbsp;-zᵀH̃p] [μ]&nbsp;&nbsp;&nbsp;[zᵀg&nbsp;&nbsp;]<br>
+[-pᵀH̃z&nbsp;&nbsp;&nbsp;&nbsp;pᵀH̃p] [ν] = [-pᵀg]
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>β 公式对比</h3>
+      <p style="font-size:0.85rem;margin-bottom:0.5rem">Figure 5 数据：收敛到 10⁻⁵ 所需迭代（Armadillo 场景）</p>
+      <div id="beta-bars"></div>
+    </div>
+    <div class="card">
+      <h3>μ 的物理含义</h3>
+      <p style="font-size:0.85rem">系数 μ 起到"自然步长"的作用：</p>
+      <ul style="font-size:0.85rem;padding-left:1.2rem;margin-top:0.5rem">
+        <li>包含二阶曲率信息（通过 H̃）</li>
+        <li>允许 α = 1.0 作为 CCD 初始步长</li>
+        <li>消除了对启发式 β 的依赖</li>
+        <li>在凸区域近似于 Newton 步长</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Panel 5: Benchmarks -->
+<div id="benchmarks" class="panel">
+  <div class="card">
+    <h3>性能基准对比 (Table 2)</h3>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e94560"></div> GIPC</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#63b3ed"></div> StiffGIPC</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4ecca3"></div> MAS-PNCG (Ours)</div>
+    </div>
+    <div id="benchmark-bars"></div>
+  </div>
+
+  <div class="card">
+    <h3>时间分解（交互式）</h3>
+    <div class="slider-group">
+      <label>选择场景: <span class="slider-val" id="scene-name">Two Bunnies</span></label>
+      <input type="range" id="scene-select" min="0" max="4" value="2" oninput="updateTimingBreakdown()">
+    </div>
+    <div id="timing-breakdown"></div>
+  </div>
+
+  <div class="card">
+    <h3>场景详情 (Table 1)</h3>
+    <table>
+      <tr><th>场景</th><th>网格</th><th>材料</th><th>平均迭代</th><th>帧时间(s)</th></tr>
+      <tr><td>Armadillo</td><td>8K/22K</td><td>ARAP</td><td>29</td><td>0.11</td></tr>
+      <tr><td>Octopus Stack</td><td>10K/39K</td><td>ARAP</td><td>36</td><td>0.25</td></tr>
+      <tr><td>Single Bunny</td><td>20K/80K</td><td>SNH</td><td>26</td><td>0.13</td></tr>
+      <tr><td>Two Bunnies</td><td>40K/160K</td><td>SNH</td><td>33</td><td>0.21</td></tr>
+      <tr><td>Cloth Twisting</td><td>20K/40K</td><td>BW</td><td>62</td><td>3.29</td></tr>
+      <tr><td>Bunny Cloth</td><td>110K/179K/80K</td><td>SNH+BW</td><td>107</td><td>7.44</td></tr>
+      <tr><td>Teapots</td><td>39K/121K</td><td>ARAP</td><td>184</td><td>7.91</td></tr>
+      <tr><td>Dropping Letters</td><td>78K/274K</td><td>SNH</td><td>76</td><td>3.39</td></tr>
+      <tr><td>Puffer Balls</td><td>1.14M/2.72M</td><td>SNH</td><td>891</td><td>99.62</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Panel 6: Parameters -->
+<div id="params" class="panel">
+  <div class="card">
+    <h3>超参数探索</h3>
+    <div class="grid2">
+      <div>
+        <div class="slider-group">
+          <label>Top-K 截断 (K): <span class="slider-val" id="topk-val">8</span></label>
+          <input type="range" id="topk" min="1" max="16" value="8" oninput="updateParamViz()">
+        </div>
+        <div class="slider-group">
+          <label>重启阈值 (δ): <span class="slider-val" id="delta-val">0.30</span></label>
+          <input type="range" id="delta" min="5" max="80" value="30" oninput="updateParamViz()">
+        </div>
+        <div class="slider-group">
+          <label>旋转阈值 (ε_rot): <span class="slider-val" id="erot-val">25°</span></label>
+          <input type="range" id="erot" min="5" max="60" value="25" oninput="updateParamViz()">
+        </div>
+      </div>
+      <div>
+        <div class="card" style="background:#252540">
+          <h3 style="font-size:0.95rem">预测影响</h3>
+          <div id="param-effects"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>重启频率 vs 性能权衡</h3>
+    <p style="font-size:0.85rem;color:#a0a0a0;margin-bottom:0.5rem">
+      δ 越小重启越频繁 → 预条件器更准确但重建代价高；δ 越大 → Woodbury 更新更多但误差累积
+    </p>
+    <div id="restart-tradeoff"></div>
+  </div>
+</div>
+
+<script>
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'benchmarks') renderBenchmarks();
+  if (id === 'subspace') renderBetaBars();
+  if (id === 'params') updateParamViz();
+}
+
+function toggleStep(el) {
+  el.classList.toggle('active');
+}
+
+// Woodbury strategy comparison
+function updateStrategyComparison() {
+  const rate = parseInt(document.getElementById('change-rate').value);
+  document.getElementById('change-rate-val').textContent = rate + '%';
+  const fullCost = 100;
+  const freezeCost = 5;
+  const woodburyCost = Math.min(5 + rate * 0.8, 90);
+  // Quality (convergence rate relative to Full Rebuild)
+  document.getElementById('bar-full').style.width = fullCost + '%';
+  document.getElementById('bar-full').textContent = fullCost + '%';
+  document.getElementById('bar-freeze').style.width = Math.max(freezeCost, 5) + '%';
+  document.getElementById('bar-freeze').textContent = freezeCost + '%';
+  document.getElementById('bar-woodbury').style.width = Math.max(woodburyCost, 5) + '%';
+  document.getElementById('bar-woodbury').textContent = Math.round(woodburyCost) + '%';
+}
+
+// Benchmark visualization
+const benchData = [
+  { name: 'Octopus Stack', gipc: 0.92, stiff: 0.49, ours: 0.25, speedG: '3.71×', speedS: '1.97×' },
+  { name: 'Single Bunny', gipc: 0.49, stiff: 0.21, ours: 0.13, speedG: '3.64×', speedS: '1.54×' },
+  { name: 'Two Bunnies', gipc: 1.18, stiff: 0.43, ours: 0.21, speedG: '5.66×', speedS: '2.07×' },
+  { name: 'Armadillo', gipc: 0.22, stiff: 0.11, ours: 0.11, speedG: '2.12×', speedS: '1.03×' },
+  { name: 'Dragon High', gipc: 11.05, stiff: 3.95, ours: 3.39, speedG: '3.25×', speedS: '1.16×' },
+];
+
+function renderBenchmarks() {
+  const container = document.getElementById('benchmark-bars');
+  if (container.children.length > 0) return;
+  const maxTime = 12;
+  benchData.forEach(d => {
+    const row = document.createElement('div');
+    row.style.cssText = 'margin:0.8rem 0;';
+    row.innerHTML = `
+      <div style="font-size:0.85rem;margin-bottom:4px"><strong>${d.name}</strong> <span style="color:#4ecca3">${d.speedG} / ${d.speedS}</span></div>
+      <div class="bar-track" style="margin-bottom:2px"><div class="bar-fill" style="width:${d.gipc/maxTime*100}%;background:#e94560">${d.gipc}s</div></div>
+      <div class="bar-track" style="margin-bottom:2px"><div class="bar-fill" style="width:${d.stiff/maxTime*100}%;background:#63b3ed">${d.stiff}s</div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${d.ours/maxTime*100}%;background:#4ecca3">${d.ours}s</div></div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// Timing breakdown
+const timingData = [
+  { name: 'Octopus Stack', methods: [
+    { g: 0.118, m: 0.626, ccd: 0.042, ls: 0.128 },
+    { g: 0.049, m: 0.281, ccd: 0.032, ls: 0.092 },
+    { g: 0.075, m: 0.023, ccd: 0.066, ls: 0.079 }
+  ]},
+  { name: 'Single Bunny', methods: [
+    { g: 0.111, m: 0.298, ccd: 0.016, ls: 0.050 },
+    { g: 0.052, m: 0.099, ccd: 0.011, ls: 0.032 },
+    { g: 0.062, m: 0.019, ccd: 0.027, ls: 0.023 }
+  ]},
+  { name: 'Two Bunnies', methods: [
+    { g: 0.257, m: 0.752, ccd: 0.031, ls: 0.127 },
+    { g: 0.113, m: 0.207, ccd: 0.024, ls: 0.078 },
+    { g: 0.090, m: 0.026, ccd: 0.035, ls: 0.054 }
+  ]},
+  { name: 'Armadillo', methods: [
+    { g: 0.033, m: 0.133, ccd: 0.013, ls: 0.038 },
+    { g: 0.014, m: 0.051, ccd: 0.011, ls: 0.028 },
+    { g: 0.018, m: 0.011, ccd: 0.023, ls: 0.052 }
+  ]},
+  { name: 'Dragon High', methods: [
+    { g: 1.565, m: 7.895, ccd: 0.412, ls: 0.981 },
+    { g: 0.845, m: 2.281, ccd: 0.227, ls: 0.465 },
+    { g: 1.091, m: 0.394, ccd: 0.692, ls: 1.141 }
+  ]},
+];
+
+function updateTimingBreakdown() {
+  const idx = parseInt(document.getElementById('scene-select').value);
+  const scene = timingData[idx];
+  document.getElementById('scene-name').textContent = scene.name;
+
+  const container = document.getElementById('timing-breakdown');
+  const labels = ['GIPC', 'StiffGIPC', 'MAS-PNCG'];
+  const colors = { g: '#ffd700', m: '#e94560', ccd: '#63b3ed', ls: '#4ecca3' };
+  let html = '<div class="legend" style="margin-bottom:0.5rem">';
+  html += '<div class="legend-item"><div class="legend-dot" style="background:#ffd700"></div> Grad+Hess</div>';
+  html += '<div class="legend-item"><div class="legend-dot" style="background:#e94560"></div> Search Dir</div>';
+  html += '<div class="legend-item"><div class="legend-dot" style="background:#63b3ed"></div> CCD</div>';
+  html += '<div class="legend-item"><div class="legend-dot" style="background:#4ecca3"></div> Line Search</div>';
+  html += '</div>';
+
+  const maxTotal = Math.max(...scene.methods.map(m => m.g + m.m + m.ccd + m.ls));
+
+  scene.methods.forEach((m, i) => {
+    const total = m.g + m.m + m.ccd + m.ls;
+    const pG = m.g / maxTotal * 100;
+    const pM = m.m / maxTotal * 100;
+    const pC = m.ccd / maxTotal * 100;
+    const pL = m.ls / maxTotal * 100;
+    html += `<div style="margin:0.5rem 0">
+      <div style="font-size:0.85rem;margin-bottom:2px">${labels[i]} — <span class="highlight">${total.toFixed(2)}s</span></div>
+      <div class="bar-track" style="display:flex">
+        <div style="width:${pG}%;background:${colors.g};height:20px;font-size:0.65rem;color:#000;display:flex;align-items:center;padding-left:2px">${m.g.toFixed(3)}</div>
+        <div style="width:${pM}%;background:${colors.m};height:20px;font-size:0.65rem;color:#fff;display:flex;align-items:center;padding-left:2px">${m.m.toFixed(3)}</div>
+        <div style="width:${pC}%;background:${colors.ccd};height:20px;font-size:0.65rem;color:#000;display:flex;align-items:center;padding-left:2px">${m.ccd.toFixed(3)}</div>
+        <div style="width:${pL}%;background:${colors.ls};height:20px;font-size:0.65rem;color:#000;display:flex;align-items:center;padding-left:2px">${m.ls.toFixed(3)}</div>
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// Beta comparison bars
+function renderBetaBars() {
+  const container = document.getElementById('beta-bars');
+  if (container.children.length > 0) return;
+  const betas = [
+    { name: 'Fletcher-Reeves', iters: 180, color: '#e94560' },
+    { name: 'Dai-Kou', iters: 160, color: '#ffd700' },
+    { name: 'Conjugate Descent', iters: 170, color: '#63b3ed' },
+    { name: 'BFGS', iters: 140, color: '#a78bfa' },
+    { name: '2D Subspace (ours)', iters: 95, color: '#4ecca3' },
+  ];
+  betas.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'bar-container';
+    div.innerHTML = `
+      <div class="bar-label">${b.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${b.iters/200*100}%;background:${b.color}">${b.iters}</div></div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Parameter exploration
+function updateParamViz() {
+  const K = parseInt(document.getElementById('topk').value);
+  const delta = parseInt(document.getElementById('delta').value) / 100;
+  const erot = parseInt(document.getElementById('erot').value);
+
+  document.getElementById('topk-val').textContent = K;
+  document.getElementById('delta-val').textContent = delta.toFixed(2);
+  document.getElementById('erot-val').textContent = erot + '°';
+
+  const container = document.getElementById('param-effects');
+
+  // Compute effects
+  const capCost = K * K; // capacitance system size
+  const approxQuality = Math.min(K / 8 * 100, 100); // higher K = better
+  const restartFreq = Math.max(1, Math.round(10 * delta / 0.3)); // higher delta = less frequent
+  const rotateEvents = Math.round(100 * Math.exp(-erot / 15)); // higher erot = fewer rotations detected
+
+  container.innerHTML = `
+    <div style="margin:0.5rem 0;font-size:0.85rem">
+      <div>Capacitance 系统大小: <span class="highlight">${K}×${K}</span></div>
+      <div>近似质量: <span class="highlight">${approxQuality.toFixed(0)}%</span></div>
+      <div>预计重启间隔: <span class="highlight">~${restartFreq} 迭代</span></div>
+      <div>法线旋转检测率: <span class="highlight">${rotateEvents}%</span></div>
+    </div>
+    <div style="margin-top:0.8rem;font-size:0.8rem;color:#a0a0a0">
+      ${K < 4 ? '⚠️ K 过小，截断误差可能过大' : K > 12 ? '⚠️ K 过大，Capacitance 求解代价增加' : '✓ K 值在合理范围内'}
+      <br>
+      ${delta < 0.15 ? '⚠️ δ 过小，重启过于频繁' : delta > 0.5 ? '⚠️ δ 过大，误差可能累积' : '✓ δ 值平衡了精度和效率'}
+      <br>
+      ${erot < 10 ? '⚠️ ε_rot 过小，大量接触被视为旋转' : erot > 45 ? '⚠️ ε_rot 过大，可能错过显著旋转' : '✓ ε_rot 值在合理范围内'}
+    </div>
+  `;
+
+  // Restart tradeoff visualization
+  const tradeoffContainer = document.getElementById('restart-tradeoff');
+  if (tradeoffContainer) {
+    let html = '';
+    for (let d = 0.1; d <= 0.7; d += 0.1) {
+      const rebuilds = Math.round(200 / Math.max(1, 10 * d / 0.3));
+      const woodbury = 200 - rebuilds;
+      const totalCost = rebuilds * 10 + woodbury * 1; // relative cost units
+      const isSelected = Math.abs(d - delta) < 0.05;
+      html += `<div style="display:flex;align-items:center;gap:0.5rem;margin:3px 0;${isSelected ? 'background:#2a2a4a;border-radius:4px;padding:2px 6px' : ''}">
+        <span style="width:50px;font-size:0.8rem;color:${isSelected ? '#4ecca3' : '#a0a0a0'}">δ=${d.toFixed(1)}</span>
+        <div class="bar-track" style="flex:1;display:flex;height:16px">
+          <div style="width:${rebuilds/200*100}%;background:#e94560;height:100%"></div>
+          <div style="width:${woodbury/200*100}%;background:#4ecca3;height:100%"></div>
+        </div>
+        <span style="width:80px;font-size:0.75rem;color:#a0a0a0">${rebuilds}R/${woodbury}W</span>
+      </div>`;
+    }
+    html += '<div style="font-size:0.75rem;color:#666;margin-top:4px">R=重启(红), W=Woodbury(绿)</div>';
+    tradeoffContainer.innerHTML = html;
+  }
+}
+
+// Initialize
+updateStrategyComparison();
+updateTimingBreakdown();
+</script>
+</body>
+</html>

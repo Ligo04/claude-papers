@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimDist Interactive Explorer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1419; color: #e7e9ea; line-height: 1.6; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+h1 { text-align: center; font-size: 1.8em; margin-bottom: 5px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.subtitle { text-align: center; color: #8899a6; margin-bottom: 30px; font-size: 0.9em; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.card { background: #1a2332; border-radius: 12px; padding: 20px; border: 1px solid #2d3748; }
+.card h3 { color: #667eea; margin-bottom: 12px; font-size: 1.1em; }
+.full-width { grid-column: 1 / -1; }
+canvas { width: 100%; border-radius: 8px; background: #0d1117; }
+.slider-group { margin: 10px 0; }
+.slider-group label { display: flex; justify-content: space-between; font-size: 0.85em; color: #8899a6; margin-bottom: 4px; }
+.slider-group input[type="range"] { width: 100%; height: 6px; -webkit-appearance: none; background: #2d3748; border-radius: 3px; outline: none; }
+.slider-group input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #667eea; cursor: pointer; }
+.metric { display: inline-block; background: #2d3748; padding: 4px 10px; border-radius: 6px; margin: 3px; font-size: 0.8em; }
+.metric .val { color: #667eea; font-weight: bold; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+th { color: #667eea; font-weight: 600; }
+.highlight { color: #48bb78; font-weight: bold; }
+.btn-group { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+.btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #2d3748; background: #1a2332; color: #e7e9ea; cursor: pointer; font-size: 0.8em; transition: all 0.2s; }
+.btn.active { background: #667eea; border-color: #667eea; }
+.btn:hover { border-color: #667eea; }
+.pipeline { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 15px 0; }
+.pipeline-step { background: #2d3748; padding: 8px 14px; border-radius: 8px; font-size: 0.8em; text-align: center; min-width: 100px; }
+.pipeline-step.frozen { border: 2px solid #4299e1; }
+.pipeline-step.trainable { border: 2px solid #48bb78; }
+.pipeline-arrow { color: #667eea; font-size: 1.2em; }
+.legend { display: flex; gap: 15px; justify-content: center; margin-top: 10px; font-size: 0.75em; color: #8899a6; }
+.legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+.legend .frozen-l::before { background: #4299e1; }
+.legend .train-l::before { background: #48bb78; }
+@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Simulation Distillation (SimDist)</h1>
+<p class="subtitle">Pretraining World Models in Simulation for Rapid Real-World Adaptation — Interactive Explorer</p>
+
+<div class="grid">
+<!-- Architecture Pipeline -->
+<div class="card full-width">
+<h3>SimDist Architecture & Adaptation Strategy</h3>
+<div class="pipeline">
+<div class="pipeline-step frozen">Encoder E<sub>θ</sub><br><small>RGB → z (64d)</small></div>
+<span class="pipeline-arrow">→</span>
+<div class="pipeline-step frozen">History C<sub>θ</sub><br><small>proprio history</small></div>
+<span class="pipeline-arrow">→</span>
+<div class="pipeline-step trainable">Dynamics f<sub>θ</sub><br><small>z,a → ẑ (T steps)</small></div>
+<span class="pipeline-arrow">→</span>
+<div class="pipeline-step frozen">Reward R<sub>θ</sub><br><small>trajectory → r̂</small></div>
+<span class="pipeline-arrow">→</span>
+<div class="pipeline-step frozen">Value V<sub>θ</sub><br><small>trajectory → v̂</small></div>
+<span class="pipeline-arrow">→</span>
+<div class="pipeline-step frozen">Policy π<sub>θ</sub><br><small>warm-start MPPI</small></div>
+</div>
+<div class="legend">
+<span class="frozen-l">Frozen (sim-to-real transfer)</span>
+<span class="train-l">Trainable (real-world adaptation)</span>
+</div>
+</div>
+
+<!-- MPPI Planning Visualization -->
+<div class="card">
+<h3>MPPI Planning Simulation</h3>
+<canvas id="planCanvas" width="400" height="350"></canvas>
+<div class="slider-group">
+<label><span>Dynamics Noise (sim-to-real gap)</span><span id="noiseVal">0.15</span></label>
+<input type="range" id="noiseSlider" min="0" max="50" value="15">
+</div>
+<div class="slider-group">
+<label><span>Number of Samples</span><span id="samplesVal">100</span></label>
+<input type="range" id="samplesSlider" min="20" max="300" value="100">
+</div>
+<div class="slider-group">
+<label><span>Planning Horizon (T)</span><span id="horizonVal">8</span></label>
+<input type="range" id="horizonSlider" min="3" max="20" value="8">
+</div>
+<div style="margin-top:8px">
+<span class="metric">Best Return: <span class="val" id="bestReturn">-</span></span>
+<span class="metric">Mean Return: <span class="val" id="meanReturn">-</span></span>
+</div>
+</div>
+
+<!-- Dynamics Adaptation -->
+<div class="card">
+<h3>Dynamics Adaptation Progress</h3>
+<canvas id="adaptCanvas" width="400" height="350"></canvas>
+<div class="slider-group">
+<label><span>Real-World Data (episodes)</span><span id="dataVal">20</span></label>
+<input type="range" id="dataSlider" min="0" max="120" value="20">
+</div>
+<div class="slider-group">
+<label><span>Sim-to-Real Gap Severity</span><span id="gapVal">0.5</span></label>
+<input type="range" id="gapSlider" min="0" max="100" value="50">
+</div>
+<div style="margin-top:8px">
+<span class="metric">Dynamics Loss: <span class="val" id="dynLoss">-</span></span>
+<span class="metric">Improvement: <span class="val" id="dynImprove">-</span></span>
+</div>
+</div>
+
+<!-- Results Table -->
+<div class="card">
+<h3>Real-World Results (from paper)</h3>
+<div class="btn-group">
+<button class="btn active" onclick="showTask('peg')">Peg Insertion</button>
+<button class="btn" onclick="showTask('table')">Table Leg</button>
+<button class="btn" onclick="showTask('slope')">Slippery Slope</button>
+<button class="btn" onclick="showTask('foam')">Foam</button>
+</div>
+<table id="resultsTable">
+<thead><tr><th>Method</th><th>Final Performance</th><th>Data Used</th></tr></thead>
+<tbody id="resultsBody"></tbody>
+</table>
+</div>
+
+<!-- Ablation Study -->
+<div class="card">
+<h3>Ablation: What Happens If We Unfreeze?</h3>
+<canvas id="ablationCanvas" width="400" height="280"></canvas>
+<div class="btn-group" style="margin-top:10px">
+<button class="btn active" onclick="showAblation('freeze')">SimDist (freeze all)</button>
+<button class="btn" onclick="showAblation('encoder')">Unfreeze Encoder</button>
+<button class="btn" onclick="showAblation('value')">Unfreeze Value</button>
+</div>
+<p id="ablationNote" style="font-size:0.8em; color:#8899a6; margin-top:8px;"></p>
+</div>
+</div>
+</div>
+
+<script>
+// === MPPI Planning Visualization ===
+const planCanvas = document.getElementById('planCanvas');
+const planCtx = planCanvas.getContext('2d');
+const goal = {x: 340, y: 60};
+const start = {x: 60, y: 290};
+
+function drawPlanning() {
+    const noise = parseInt(document.getElementById('noiseSlider').value) / 100;
+    const nSamples = parseInt(document.getElementById('samplesSlider').value);
+    const horizon = parseInt(document.getElementById('horizonSlider').value);
+    document.getElementById('noiseVal').textContent = noise.toFixed(2);
+    document.getElementById('samplesVal').textContent = nSamples;
+    document.getElementById('horizonVal').textContent = horizon;
+
+    planCtx.clearRect(0, 0, 400, 350);
+
+    // Draw goal
+    planCtx.beginPath();
+    planCtx.arc(goal.x, goal.y, 20, 0, Math.PI*2);
+    planCtx.fillStyle = 'rgba(72, 187, 120, 0.2)';
+    planCtx.fill();
+    planCtx.strokeStyle = '#48bb78';
+    planCtx.lineWidth = 2;
+    planCtx.stroke();
+
+    // Generate trajectories
+    let trajectories = [];
+    let returns = [];
+    const dx = (goal.x - start.x) / horizon;
+    const dy = (goal.y - start.y) / horizon;
+
+    for (let s = 0; s < nSamples; s++) {
+        let traj = [{x: start.x, y: start.y}];
+        let ret = 0;
+        for (let t = 0; t < horizon; t++) {
+            let prev = traj[traj.length-1];
+            let nx = prev.x + dx + (Math.random()-0.5) * noise * 200;
+            let ny = prev.y + dy + (Math.random()-0.5) * noise * 200;
+            traj.push({x: nx, y: ny});
+            let dist = Math.sqrt((nx-goal.x)**2 + (ny-goal.y)**2);
+            ret += Math.exp(-dist/150);
+        }
+        trajectories.push(traj);
+        returns.push(ret);
+    }
+
+    // Sort and draw
+    let maxRet = Math.max(...returns);
+    let minRet = Math.min(...returns);
+    let meanRet = returns.reduce((a,b)=>a+b,0)/returns.length;
+
+    for (let s = 0; s < nSamples; s++) {
+        let alpha = (returns[s] - minRet) / (maxRet - minRet + 0.01);
+        if (alpha < 0.3) continue;
+        planCtx.beginPath();
+        planCtx.moveTo(trajectories[s][0].x, trajectories[s][0].y);
+        for (let t = 1; t < trajectories[s].length; t++) {
+            planCtx.lineTo(trajectories[s][t].x, trajectories[s][t].y);
+        }
+        planCtx.strokeStyle = `rgba(102, 126, 234, ${alpha * 0.4})`;
+        planCtx.lineWidth = 1;
+        planCtx.stroke();
+    }
+
+    // Draw optimal (weighted average)
+    let weights = returns.map(r => Math.exp((r - maxRet) / 0.5));
+    let wSum = weights.reduce((a,b)=>a+b,0);
+    let optTraj = [{x: start.x, y: start.y}];
+    for (let t = 1; t <= horizon; t++) {
+        let wx = 0, wy = 0;
+        for (let s = 0; s < nSamples; s++) {
+            wx += weights[s] * trajectories[s][t].x;
+            wy += weights[s] * trajectories[s][t].y;
+        }
+        optTraj.push({x: wx/wSum, y: wy/wSum});
+    }
+
+    planCtx.beginPath();
+    planCtx.moveTo(optTraj[0].x, optTraj[0].y);
+    for (let t = 1; t < optTraj.length; t++) {
+        planCtx.lineTo(optTraj[t].x, optTraj[t].y);
+    }
+    planCtx.strokeStyle = '#f56565';
+    planCtx.lineWidth = 3;
+    planCtx.stroke();
+
+    // Start point
+    planCtx.beginPath();
+    planCtx.arc(start.x, start.y, 8, 0, Math.PI*2);
+    planCtx.fillStyle = '#e7e9ea';
+    planCtx.fill();
+
+    // Labels
+    planCtx.fillStyle = '#8899a6';
+    planCtx.font = '11px sans-serif';
+    planCtx.fillText('Start', start.x-10, start.y+22);
+    planCtx.fillText('Goal', goal.x-10, goal.y+35);
+    planCtx.fillStyle = '#f56565';
+    planCtx.fillText('Optimal Plan', 160, 20);
+
+    document.getElementById('bestReturn').textContent = maxRet.toFixed(2);
+    document.getElementById('meanReturn').textContent = meanRet.toFixed(2);
+}
+
+// === Dynamics Adaptation Visualization ===
+const adaptCanvas = document.getElementById('adaptCanvas');
+const adaptCtx = adaptCanvas.getContext('2d');
+
+function drawAdaptation() {
+    const data = parseInt(document.getElementById('dataSlider').value);
+    const gap = parseInt(document.getElementById('gapSlider').value) / 100;
+    document.getElementById('dataVal').textContent = data;
+    document.getElementById('gapVal').textContent = gap.toFixed(2);
+
+    adaptCtx.clearRect(0, 0, 400, 350);
+
+    // Simulate loss curve
+    const pretrainLoss = 0.08 + gap * 0.3;
+    const adaptedLoss = pretrainLoss * Math.exp(-data / 30);
+    const improvement = ((pretrainLoss - adaptedLoss) / pretrainLoss * 100);
+
+    // Draw axes
+    adaptCtx.strokeStyle = '#2d3748';
+    adaptCtx.lineWidth = 1;
+    adaptCtx.beginPath();
+    adaptCtx.moveTo(50, 20);
+    adaptCtx.lineTo(50, 300);
+    adaptCtx.lineTo(380, 300);
+    adaptCtx.stroke();
+
+    // Y-axis label
+    adaptCtx.save();
+    adaptCtx.fillStyle = '#8899a6';
+    adaptCtx.font = '11px sans-serif';
+    adaptCtx.translate(15, 180);
+    adaptCtx.rotate(-Math.PI/2);
+    adaptCtx.fillText('Dynamics Loss', 0, 0);
+    adaptCtx.restore();
+    adaptCtx.fillStyle = '#8899a6';
+    adaptCtx.fillText('Episodes', 190, 330);
+
+    // Draw loss curve
+    adaptCtx.beginPath();
+    adaptCtx.moveTo(50, 300 - pretrainLoss * 700);
+    for (let ep = 0; ep <= 120; ep++) {
+        let loss;
+        if (ep <= data) {
+            loss = pretrainLoss * Math.exp(-ep / 30);
+        } else {
+            loss = pretrainLoss * Math.exp(-data / 30);
+        }
+        let x = 50 + (ep / 120) * 330;
+        let y = 300 - loss * 700;
+        adaptCtx.lineTo(x, Math.max(y, 30));
+    }
+    adaptCtx.strokeStyle = '#48bb78';
+    adaptCtx.lineWidth = 2.5;
+    adaptCtx.stroke();
+
+    // Draw pretrained baseline
+    adaptCtx.beginPath();
+    adaptCtx.setLineDash([5, 5]);
+    let baseY = 300 - pretrainLoss * 700;
+    adaptCtx.moveTo(50, baseY);
+    adaptCtx.lineTo(380, baseY);
+    adaptCtx.strokeStyle = '#f56565';
+    adaptCtx.lineWidth = 1.5;
+    adaptCtx.stroke();
+    adaptCtx.setLineDash([]);
+
+    // Data boundary
+    let dataX = 50 + (data / 120) * 330;
+    adaptCtx.beginPath();
+    adaptCtx.setLineDash([3, 3]);
+    adaptCtx.moveTo(dataX, 20);
+    adaptCtx.lineTo(dataX, 300);
+    adaptCtx.strokeStyle = '#667eea';
+    adaptCtx.lineWidth = 1;
+    adaptCtx.stroke();
+    adaptCtx.setLineDash([]);
+
+    // Labels
+    adaptCtx.fillStyle = '#f56565';
+    adaptCtx.font = '10px sans-serif';
+    adaptCtx.fillText('Pretrained (sim)', 290, baseY - 5);
+    adaptCtx.fillStyle = '#48bb78';
+    adaptCtx.fillText('After adaptation', 290, 300 - adaptedLoss * 700 - 5);
+    adaptCtx.fillStyle = '#667eea';
+    adaptCtx.fillText(`${data} ep`, dataX - 10, 315);
+
+    document.getElementById('dynLoss').textContent = adaptedLoss.toFixed(4);
+    document.getElementById('dynImprove').textContent = improvement.toFixed(1) + '%';
+}
+
+// === Results Table ===
+const results = {
+    peg: [
+        ['SimDist', '~80%', '120 episodes'],
+        ['SimDist+BC', '~85%', '120 ep + 20 demos'],
+        ['SGFT-SAC', '~40%', '120 episodes'],
+        ['RLPD', '~25%', '120 episodes'],
+        ['Diffusion Policy', '~35%', '100 demos'],
+    ],
+    table: [
+        ['SimDist', '~75%', '100 episodes'],
+        ['SimDist+BC', '~80%', '100 ep + 20 demos'],
+        ['SGFT-SAC', '~35%', '100 episodes'],
+        ['IQL', '~20%', '100 episodes'],
+        ['Diffusion Policy', '~30%', '100 demos'],
+    ],
+    slope: [
+        ['SimDist', '~1.5m forward', '30 min'],
+        ['RLPD', '~0.8m forward', '30 min'],
+        ['IQL', '~0.6m forward', '30 min'],
+    ],
+    foam: [
+        ['SimDist', '~3.0m forward', '30 min'],
+        ['RLPD', '~1.5m forward', '30 min'],
+        ['IQL', '~1.2m forward', '30 min'],
+    ]
+};
+
+function showTask(task) {
+    document.querySelectorAll('.btn-group')[0].querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    const tbody = document.getElementById('resultsBody');
+    tbody.innerHTML = '';
+    results[task].forEach((row, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row[0]}</td><td class="${i===0?'highlight':''}">${row[1]}</td><td>${row[2]}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+// === Ablation Visualization ===
+const ablationCanvas = document.getElementById('ablationCanvas');
+const ablationCtx = ablationCanvas.getContext('2d');
+
+const ablationData = {
+    freeze: {curve: t => 0.1 + 0.7*(1-Math.exp(-t/30)), color: '#48bb78', note: 'SimDist: monotonic improvement via supervised dynamics learning. No credit assignment needed.'},
+    encoder: {curve: t => 0.1 + 0.3*(1-Math.exp(-t/10)) - 0.4*Math.max(0,1-Math.exp(-(t-20)/15)), color: '#f56565', note: 'Unfreezing encoder causes complete collapse — reward/value heads receive out-of-distribution latents.'},
+    value: {curve: t => 0.1 + 0.5*(1-Math.exp(-t/20)) - 0.3*Math.max(0,1-Math.exp(-(t-40)/20)), color: '#ed8936', note: 'Unfreezing value reintroduces long-horizon credit assignment from limited data → catastrophic forgetting.'}
+};
+
+function showAblation(mode) {
+    document.querySelectorAll('.btn-group')[1].querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    ablationCtx.clearRect(0, 0, 400, 280);
+
+    // Axes
+    ablationCtx.strokeStyle = '#2d3748';
+    ablationCtx.beginPath();
+    ablationCtx.moveTo(40, 10);
+    ablationCtx.lineTo(40, 240);
+    ablationCtx.lineTo(380, 240);
+    ablationCtx.stroke();
+
+    ablationCtx.fillStyle = '#8899a6';
+    ablationCtx.font = '10px sans-serif';
+    ablationCtx.fillText('Success Rate', 42, 20);
+    ablationCtx.fillText('Episodes', 190, 265);
+
+    // Draw SimDist baseline always
+    ablationCtx.beginPath();
+    for (let t = 0; t <= 120; t++) {
+        let x = 40 + (t/120)*340;
+        let y = 240 - ablationData.freeze.curve(t) * 220;
+        t === 0 ? ablationCtx.moveTo(x, y) : ablationCtx.lineTo(x, y);
+    }
+    ablationCtx.strokeStyle = '#48bb78';
+    ablationCtx.lineWidth = mode === 'freeze' ? 3 : 1.5;
+    ablationCtx.setLineDash(mode === 'freeze' ? [] : [4,4]);
+    ablationCtx.stroke();
+    ablationCtx.setLineDash([]);
+
+    // Draw selected
+    if (mode !== 'freeze') {
+        ablationCtx.beginPath();
+        for (let t = 0; t <= 120; t++) {
+            let x = 40 + (t/120)*340;
+            let y = 240 - Math.max(0, ablationData[mode].curve(t)) * 220;
+            t === 0 ? ablationCtx.moveTo(x, y) : ablationCtx.lineTo(x, y);
+        }
+        ablationCtx.strokeStyle = ablationData[mode].color;
+        ablationCtx.lineWidth = 3;
+        ablationCtx.stroke();
+    }
+
+    document.getElementById('ablationNote').textContent = ablationData[mode].note;
+}
+
+// Initialize
+document.getElementById('noiseSlider').addEventListener('input', drawPlanning);
+document.getElementById('samplesSlider').addEventListener('input', drawPlanning);
+document.getElementById('horizonSlider').addEventListener('input', drawPlanning);
+document.getElementById('dataSlider').addEventListener('input', drawAdaptation);
+document.getElementById('gapSlider').addEventListener('input', drawAdaptation);
+
+drawPlanning();
+drawAdaptation();
+showTask('peg');
+showAblation('freeze');
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "id": "mpm-lite",
+  "title": "MPM Lite: Linear Kernels and Integration without Particles",
+  "slug": "mpm-lite",
+  "authors": [
+    "Xiang Feng",
+    "Yunuo Chen",
+    "Chang Yu",
+    "Hao Su",
+    "Demetri Terzopoulos",
+    "Yin Yang",
+    "Joe Masterjohn",
+    "Alejandro Castro",
+    "Chenfanfu Jiang"
+  ],
+  "abstract": "MPM Lite is a new hybrid Lagrangian/Eulerian method that eliminates the need for particle-based quadrature at solve time. Standard MPM suffers from a performance bottleneck where expensive implicit solves are proportional to particle-per-cell (PPC) counts due to particle-based quadrature and wide-stencil kernels. MPM Lite treats particles primarily as carriers of kinematic state and material history. By conceptualizing the background Cartesian grid as a voxel hexahedral mesh, particle states are resampled onto fixed-location quadrature points (cell centers) using compact linear (Q1) kernels. This makes force assembly and time integration proceed without accessing particles, decoupling solver complexity from particle count. A novel stress transfer and rotation-free stretch reconstruction strategy resamples the extensive Kirchhoff stress and derives an optimization-based incremental potential formulation. MPM Lite achieves 1.88x speedup over explicit MPM and up to 15.9x speedup over implicit MPM on practical elastoplastic materials.",
+  "year": 2026,
+  "date": "2026-02-20",
+  "tags": ["material point method", "grid quadrature"],
+  "githubLinks": [],
+  "codeLinks": ["https://mpmlite.github.io"]
+}

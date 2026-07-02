@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPC 交互式浏览器</title>
+<style>
+  :root{
+    --bg:#0e1117; --panel:#161b22; --panel2:#1c2330; --border:#2b3341;
+    --fg:#e6edf3; --muted:#9aa7b4; --accent:#5ea1ff; --accent2:#ffb454;
+    --good:#3fb950; --bad:#f85149; --purple:#bc8cff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6}
+  header{padding:26px 22px 18px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#141b28,#0e1117)}
+  h1{margin:0 0 6px;font-size:22px}
+  .sub{color:var(--muted);font-size:13px}
+  .tags span{display:inline-block;background:#1f2a3a;color:var(--accent);
+    border:1px solid #2b3b52;border-radius:12px;padding:2px 10px;font-size:12px;margin:8px 6px 0 0}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 22px 60px}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+  .tab{background:var(--panel);border:1px solid var(--border);color:var(--muted);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;transition:.15s}
+  .tab:hover{color:var(--fg);border-color:var(--accent)}
+  .tab.active{background:var(--accent);color:#04122b;border-color:var(--accent);font-weight:600}
+  .view{display:none;animation:fade .25s}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:18px;margin:14px 0}
+  .card h3{margin:0 0 10px;font-size:16px;color:var(--accent2)}
+  .card p{color:var(--muted);font-size:14px;margin:6px 0}
+  label.ctl{display:block;margin:14px 0 6px;font-size:13px;color:var(--fg)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .val{color:var(--accent);font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{border:1px solid var(--border);padding:7px 9px;text-align:center}
+  th{background:var(--panel2);color:var(--muted)}
+  tr.hl td{background:#12351f;color:#c6f6d5}
+  .pipe{display:flex;flex-direction:column;gap:10px}
+  .stage{border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;
+    background:var(--panel2);transition:.15s}
+  .stage:hover{border-color:var(--accent)}
+  .stage.open{border-color:var(--accent);background:#182234}
+  .stage h4{margin:0;font-size:15px;color:var(--fg);display:flex;justify-content:space-between}
+  .stage .body{max-height:0;overflow:hidden;transition:max-height .3s;color:var(--muted);font-size:13px}
+  .stage.open .body{max-height:400px;margin-top:10px}
+  .arrow{color:var(--accent)}
+  canvas{background:#0a0e14;border:1px solid var(--border);border-radius:8px;width:100%;display:block}
+  .metric{display:inline-block;background:var(--panel2);border:1px solid var(--border);
+    border-radius:8px;padding:10px 14px;margin:6px 8px 6px 0;min-width:120px;text-align:center}
+  .metric .n{font-size:20px;font-weight:700;color:var(--good)}
+  .metric .l{font-size:11px;color:var(--muted)}
+  code{background:#0a0e14;border:1px solid var(--border);border-radius:4px;padding:1px 5px;
+    font-size:12px;color:var(--accent2)}
+  .formula{background:#0a0e14;border:1px solid var(--border);border-radius:8px;padding:12px;
+    font-family:ui-monospace,monospace;font-size:14px;color:var(--purple);margin:10px 0;overflow-x:auto}
+  .note{font-size:12px;color:var(--muted);margin-top:6px}
+  .bar{height:14px;background:var(--accent);border-radius:3px;transition:width .25s}
+  .barbg{background:#0a0e14;border-radius:3px;overflow:hidden;border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <h1>GPC：面向可迁移运动控制的大规模生成式预训练</h1>
+  <div class="sub">Yi Shi · Yifeng Jiang · Chen Tessler · Xue Bin Peng — SIGGRAPH '26 · arXiv:2606.29148</div>
+  <div class="tags">
+    <span>physics-based animation</span><span>motion tokenization</span>
+    <span>FSQ</span><span>autoregressive control</span><span>PEFT</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div style="margin-top:8px">
+    <span class="metric"><div class="n">99.98%</div><div class="l">跟踪成功率</div></span>
+    <span class="metric"><div class="n">9<sup>40</sup></div><div class="l">隐式码本</div></span>
+    <span class="metric"><div class="n">600+ h</div><div class="l">训练运动数据</div></span>
+    <span class="metric"><div class="n">&lt;1%</div><div class="l">PEFT 新增参数</div></span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-v="pipe">① 三阶段流水线</div>
+    <div class="tab" data-v="fsq">② FSQ 量化器</div>
+    <div class="tab" data-v="group">③ Token 分组</div>
+    <div class="tab" data-v="sample">④ 自回归采样</div>
+    <div class="tab" data-v="results">⑤ 实验结果</div>
+  </div>
+
+  <!-- ① Pipeline -->
+  <div class="view active" id="pipe">
+    <div class="card">
+      <h3>点击展开每个阶段</h3>
+      <p>GPC 把 LLM 的「预训练 tokenizer → 生成式建模 → PEFT 迁移」三段式搬到物理角色控制上。</p>
+      <div class="pipe" id="pipeStages"></div>
+    </div>
+  </div>
+
+  <!-- ② FSQ -->
+  <div class="view" id="fsq">
+    <div class="card">
+      <h3>FSQ 量化：ẑ = ⌊ (L/2)·tanh(z) ⌉</h3>
+      <p>拖动滑块，观察连续潜值如何被量化到 L 个固定格点。FSQ 无需显式码本，隐式码本大小 = L<sup>d</sup>。</p>
+      <div class="grid2">
+        <div>
+          <label class="ctl">量化级数 L = <span class="val" id="Lval">9</span>（论文用 9）</label>
+          <input type="range" id="L" min="2" max="16" value="9">
+          <label class="ctl">潜维度 d = <span class="val" id="Dval">40</span>（论文用 40）</label>
+          <input type="range" id="D" min="4" max="64" value="40">
+          <label class="ctl">连续输入 z = <span class="val" id="Zval">1.30</span></label>
+          <input type="range" id="Z" min="-300" max="300" value="130">
+          <div class="formula" id="fsqCalc"></div>
+          <div class="note">隐式码本 = L<sup>d</sup> = <span id="codebook" class="val"></span>，零存储、零坍缩。</div>
+        </div>
+        <div>
+          <canvas id="fsqCanvas" height="260"></canvas>
+          <div class="note">横轴：连续 (L/2)·tanh(z)；圆点：量化后落到的格点。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ Grouping -->
+  <div class="view" id="group">
+    <div class="card">
+      <h3>Token 分组：平衡词表大小与序列长度（复现 Table 3）</h3>
+      <p>每 G 个 L 进制 token 打包成一个 L<sup>G</sup> 词表的大 token，序列长度降为 d/G。类比 NLP 的 subword(BPE)。</p>
+      <label class="ctl">分组因子 G = <span class="val" id="Gval">5</span></label>
+      <input type="range" id="G" min="1" max="8" value="5">
+      <div class="grid2">
+        <div class="formula" id="groupCalc"></div>
+        <div>
+          <div class="note">词表大小（对数尺度）</div>
+          <div class="barbg"><div class="bar" id="vocabBar"></div></div>
+          <div class="note" style="margin-top:10px">序列长度</div>
+          <div class="barbg"><div class="bar" id="seqBar" style="background:var(--accent2)"></div></div>
+        </div>
+      </div>
+      <table id="groupTable"></table>
+    </div>
+  </div>
+
+  <!-- ④ Sampling -->
+  <div class="view" id="sample">
+    <div class="card">
+      <h3>自回归 + nucleus(top-p) 采样：多样性 vs 确定性</h3>
+      <p>调节 top-p：越大越多样（GPC 的涌现行为来源），越小越确定（趋近 CVAE 的坍缩）。</p>
+      <label class="ctl">top-p = <span class="val" id="Pval">0.90</span></label>
+      <input type="range" id="P" min="1" max="100" value="90">
+      <div class="grid2">
+        <div>
+          <canvas id="sampCanvas" height="220"></canvas>
+          <div class="note">下一个技能 token 的概率分布；高亮 = top-p 采样保留的候选集。</div>
+        </div>
+        <div>
+          <div class="note">保留候选数：<span class="val" id="keptN"></span> / 24</div>
+          <div class="note" style="margin-top:8px">10 次独立采样得到的技能序列（越多样表示行为越丰富）：</div>
+          <div class="formula" id="sampOut" style="font-size:12px"></div>
+          <div class="note">独立行为数：<span class="val" id="diversity"></span> 种</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ Results -->
+  <div class="view" id="results">
+    <div class="card">
+      <h3>Table 1 · 技能量化对比（成功率↑ / MPJPE↓ mm）</h3>
+      <table id="t1"></table>
+      <div class="note">MLP 无量化瓶颈作上界；量化方法中 FSQ 全面优于 VQ-VAE，且无需码本启发式。</div>
+    </div>
+    <div class="card">
+      <h3>Table 2 · 端到端 RL 的重要性</h3>
+      <table id="t2"></table>
+      <div class="note">先监督训 kinematic 编码器再冻结(FSQ-K)显著掉点 —— 可执行性必须进入表征目标。</div>
+    </div>
+    <div class="card">
+      <h3>Table 4 · SFT 的取舍</h3>
+      <table id="t4"></table>
+      <div class="note">SFT 偏向特定风格(蹲走)，多样性/熵下降但任务性能不损。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Tabs ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.v).classList.add('active');
+  };
+});
+
+// ---------- ① Pipeline ----------
+const stages=[
+  {t:'Stage 1 · Skill Quantization (§5)',d:'FSQ 编码器把参考动作 ŝ 映到 d 个 L 进制离散 token；解码器把码 + 当前状态 s 解成 PD 目标关节旋转，物理引擎执行。整套用 PPO + 跟踪奖励<b>端到端 RL</b>训练，STE 让梯度穿过量化。产物：一套物理可执行的"运动词表" 9^40。'},
+  {t:'Stage 2 · Generative Controller (§6)',d:'冻结 FSQ，把技能 token 每 G 个分组，用 <b>GPT 式因果 Transformer</b> 自回归建模 p(z̃|s)（teacher forcing + 交叉熵）。推理时 nucleus 采样 token，冻结解码器解成动作。<b>涌现</b>扰动响应、摔倒恢复等行为。'},
+  {t:'Stage 3 · Task Adaptation (§7)',d:'冻结生成控制器，插入 <b>CoLA</b> 层（DoRA 低秩 + FiLM 任务条件调制，新增 &lt;1% 参数）。可选 SFT（示例动作偏置技能）→ RLFT（PPO 优化任务奖励），探索时用无条件生成模型引导采样以保住自然行为。'}
+];
+const ps=document.getElementById('pipeStages');
+stages.forEach((s,i)=>{
+  const el=document.createElement('div');el.className='stage';
+  el.innerHTML=`<h4>${s.t}<span class="arrow">▼</span></h4><div class="body">${s.d}</div>`;
+  el.onclick=()=>el.classList.toggle('open');
+  ps.appendChild(el);
+  if(i<stages.length-1){const a=document.createElement('div');
+    a.style.textAlign='center';a.style.color='var(--accent)';a.textContent='↓ 冻结上一阶段';ps.appendChild(a);}
+});
+ps.firstChild.classList.add('open');
+
+// ---------- ② FSQ ----------
+const L=document.getElementById('L'),D=document.getElementById('D'),Z=document.getElementById('Z');
+function fmtBig(n){ if(n<1e6) return n.toLocaleString();
+  const e=Math.floor(Math.log10(n)); return (n/Math.pow(10,e)).toFixed(2)+'×10^'+e; }
+function drawFSQ(){
+  const Lv=+L.value, Dv=+D.value, zv=+Z.value/100;
+  document.getElementById('Lval').textContent=Lv;
+  document.getElementById('Dval').textContent=Dv;
+  document.getElementById('Zval').textContent=zv.toFixed(2);
+  const scaled=(Lv/2)*Math.tanh(zv);
+  const q=Math.round(scaled);
+  document.getElementById('fsqCalc').innerHTML=
+    `z = ${zv.toFixed(2)}<br>(L/2)·tanh(z) = (${Lv}/2)·tanh(${zv.toFixed(2)}) = ${scaled.toFixed(3)}<br>`+
+    `ẑ = ⌊${scaled.toFixed(3)}⌉ = <span style="color:var(--good)">${q}</span>  →  token id = ${q+Math.floor(Lv/2)}`;
+  document.getElementById('codebook').textContent=fmtBig(Math.pow(Lv,Dv));
+  // canvas
+  const c=document.getElementById('fsqCanvas'),x=c.getContext('2d');
+  const W=c.width=c.clientWidth,H=c.height;x.clearRect(0,0,W,H);
+  const half=Math.floor(Lv/2), lo=-half-0.7, hi=half+0.7;
+  const X=v=>40+(v-lo)/(hi-lo)*(W-70);
+  // grid points
+  for(let g=-half;g<=half;g++){
+    x.fillStyle='#2b3341';x.beginPath();x.arc(X(g),H/2,5,0,7);x.fill();
+    x.fillStyle='#6b7684';x.font='11px monospace';x.fillText(g,X(g)-4,H/2+24);
+  }
+  // continuous value marker
+  x.fillStyle='#5ea1ff';x.beginPath();x.arc(X(scaled),H/2-40,7,0,7);x.fill();
+  x.fillStyle='#5ea1ff';x.font='12px sans-serif';x.fillText('连续 '+scaled.toFixed(2),X(scaled)-30,H/2-52);
+  // quantized target
+  x.fillStyle='#3fb950';x.beginPath();x.arc(X(q),H/2,9,0,7);x.fill();
+  x.strokeStyle='#3fb950';x.setLineDash([4,4]);x.beginPath();
+  x.moveTo(X(scaled),H/2-33);x.lineTo(X(q),H/2-9);x.stroke();x.setLineDash([]);
+  x.fillStyle='#3fb950';x.fillText('量化 →'+q,X(q)-14,H/2-16);
+}
+[L,D,Z].forEach(e=>e.oninput=drawFSQ);
+
+// ---------- ③ Grouping ----------
+const rows=[
+  {G:1,vocab:9,tok:40,apd:0.27,ade:0.24,acc:2.88},
+  {G:2,vocab:81,tok:20,apd:0.26,ade:0.27,acc:3.04},
+  {G:4,vocab:6561,tok:10,apd:0.29,ade:0.29,acc:3.21},
+  {G:5,vocab:59049,tok:8,apd:0.34,ade:0.30,acc:3.67},
+  {G:8,vocab:43046721,tok:5,apd:null,ade:null,acc:null},
+];
+function drawGroup(){
+  const Gv=+document.getElementById('G').value;
+  document.getElementById('Gval').textContent=Gv;
+  const vocab=Math.pow(9,Gv), tok=Math.ceil(40/Gv);
+  document.getElementById('groupCalc').innerHTML=
+    `G = ${Gv}<br>词表 N_vocab = L^G = 9^${Gv} = <span style="color:var(--good)">${vocab.toLocaleString()}</span><br>`+
+    `序列长度 N_token = d/G = 40/${Gv} = <span style="color:var(--accent2)">${tok}</span>`+
+    (vocab>1e7?'<br><span style="color:var(--bad)">⚠ 词表超现代 LLM，内存不可行</span>':'')+
+    (Gv===5?'<br><span style="color:var(--good)">★ 甜点：APD 最高、定性质量最佳</span>':'');
+  document.getElementById('vocabBar').style.width=(Math.log10(vocab)/Math.log10(43046721)*100)+'%';
+  document.getElementById('seqBar').style.width=(tok/40*100)+'%';
+  const tb=document.getElementById('groupTable');
+  tb.innerHTML='<tr><th>G</th><th>词表 L^G</th><th>序列长</th><th>APD↑</th><th>ADE↓</th><th>Accel↓</th></tr>'+
+    rows.map(r=>`<tr class="${r.G===Gv?'hl':''}"><td>${r.G}</td><td>${r.vocab.toLocaleString()}</td>`+
+      `<td>${r.tok}</td><td>${r.apd??'—'}</td><td>${r.ade??'—'}</td><td>${r.acc??'—'}</td></tr>`).join('');
+}
+document.getElementById('G').oninput=drawGroup;
+
+// ---------- ④ Sampling ----------
+let baseDist=null;
+function initDist(){
+  baseDist=[];let s=0;
+  for(let i=0;i<24;i++){const v=Math.exp(-Math.pow((i-6),2)/18)+0.15*Math.exp(-Math.pow((i-16),2)/8)+0.02;
+    baseDist.push(v);s+=v;}
+  baseDist=baseDist.map(v=>v/s);
+}
+initDist();
+function drawSamp(){
+  const p=+document.getElementById('P').value/100;
+  document.getElementById('Pval').textContent=p.toFixed(2);
+  // nucleus set
+  const idx=baseDist.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]);
+  let cum=0,keep=new Set();
+  for(const[v,i]of idx){keep.add(i);cum+=v;if(cum>=p)break;}
+  document.getElementById('keptN').textContent=keep.size;
+  const c=document.getElementById('sampCanvas'),x=c.getContext('2d');
+  const W=c.width=c.clientWidth,H=c.height;x.clearRect(0,0,W,H);
+  const bw=W/24,mx=Math.max(...baseDist);
+  baseDist.forEach((v,i)=>{
+    const h=v/mx*(H-30);
+    x.fillStyle=keep.has(i)?'#3fb950':'#2b3341';
+    x.fillRect(i*bw+2,H-h-16,bw-4,h);
+  });
+  // sample 10 sequences of length 8 from nucleus set
+  const kept=[...keep];const renorm=kept.map(i=>baseDist[i]);const rs=renorm.reduce((a,b)=>a+b,0);
+  const seqs=[];const seen=new Set();
+  // deterministic pseudo-random for reproducibility in iframe (no Math.random dependence on time)
+  let seed=Math.floor(p*1000)+7;
+  const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
+  for(let s=0;s<10;s++){let seq=[];for(let j=0;j<8;j++){
+    let r=rnd()*rs,acc=0,pick=kept[0];
+    for(let k=0;k<kept.length;k++){acc+=renorm[k];if(r<=acc){pick=kept[k];break;}}
+    seq.push(pick);}seqs.push(seq);seen.add(seq.join(','));}
+  document.getElementById('sampOut').innerHTML=seqs.map(s=>s.join(' ')).join('<br>');
+  document.getElementById('diversity').textContent=seen.size;
+}
+document.getElementById('P').oninput=drawSamp;
+
+// ---------- ⑤ Results ----------
+document.getElementById('t1').innerHTML=
+  '<tr><th>方法</th><th>Bones Succ%↑</th><th>Bones MPJPE↓</th><th>AMASS Succ%↑</th><th>AMASS MPJPE↓</th></tr>'+
+  '<tr><td>MLP (无量化)</td><td>99.98</td><td>25.56</td><td>99.59</td><td>30.26</td></tr>'+
+  '<tr><td>VQ-VAE</td><td>99.94</td><td>37.92</td><td>99.30</td><td>59.28</td></tr>'+
+  '<tr class="hl"><td>FSQ (本文)</td><td>99.98</td><td>34.90</td><td>99.51</td><td>44.43</td></tr>';
+document.getElementById('t2').innerHTML=
+  '<tr><th>方法</th><th>Succ%↑</th><th>MPJPE↓</th><th>码本利用率%↑</th></tr>'+
+  '<tr><td>FSQ-K (监督预训后冻结)</td><td>99.03</td><td>78.26</td><td>76.34</td></tr>'+
+  '<tr class="hl"><td>FSQ (端到端 RL)</td><td>99.98</td><td>34.90</td><td>82.15</td></tr>';
+document.getElementById('t4').innerHTML=
+  '<tr><th>方法</th><th>Return</th><th>扰动 Return</th><th>Entropy</th><th>APD</th><th>ADE</th></tr>'+
+  '<tr><td>SFT</td><td>143.36</td><td>125.44</td><td>2.57</td><td>0.24</td><td>0.15</td></tr>'+
+  '<tr><td>w/o SFT (纯 RL)</td><td>230.42</td><td>176.35</td><td>5.08</td><td>0.26</td><td>0.27</td></tr>';
+
+// init all
+drawFSQ();drawGroup();drawSamp();
+window.addEventListener('resize',()=>{drawFSQ();drawSamp();});
+</script>
+</body>
+</html>

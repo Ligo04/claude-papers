@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MagicSim 交互式探索器 · One Runtime, One MDP, Three Drivers</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#30363d;
+    --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --accent2:#bc8cff;
+    --green:#3fb950; --yellow:#d29922; --red:#f85149; --cyan:#39c5cf;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;padding:24px;max-width:1180px;margin:0 auto}
+  h1{font-size:26px;margin-bottom:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:6px}
+  .meta{color:var(--muted);font-size:12px;margin-bottom:20px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:10px}
+  .tab{padding:8px 14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:.15s;user-select:none}
+  .tab:hover{border-color:var(--accent);color:var(--txt)}
+  .tab.active{background:var(--accent);color:#04121f;border-color:var(--accent);font-weight:600}
+  .view{display:none;animation:fade .25s}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:17px;margin-bottom:10px;color:var(--accent)}
+  .card h3{font-size:14px;margin:12px 0 6px;color:var(--accent2)}
+  p,li{font-size:13.5px;color:#c9d1d9}
+  .muted{color:var(--muted)}
+  .hint{font-size:12.5px;color:var(--muted);background:var(--panel2);border-left:3px solid var(--accent);padding:8px 12px;border-radius:0 6px 6px 0;margin:10px 0}
+  button.ctl{background:var(--panel2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:13px}
+  button.ctl:hover{border-color:var(--accent)}
+  button.ctl.primary{background:var(--accent);color:#04121f;font-weight:600;border-color:var(--accent)}
+  label.sl{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 4px}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .col{flex:1;min-width:240px}
+  /* topology */
+  .topo{display:flex;flex-direction:column;gap:10px}
+  .layer{border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:var(--panel2)}
+  .layer .lt{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .layer .lc{font-size:13.5px;margin-top:3px}
+  .mdp-band{border:2px dashed var(--accent);background:rgba(88,166,255,.08)}
+  .drivers{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .driver{flex:1;min-width:180px;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--panel2);cursor:pointer;transition:.15s}
+  .driver:hover{border-color:var(--accent2);transform:translateY(-2px)}
+  .driver.sel{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(188,140,255,.25)}
+  .driver .dn{font-weight:600;font-size:14px}
+  .badge{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle}
+  .b-cur{background:rgba(63,185,80,.18);color:var(--green);border:1px solid var(--green)}
+  .b-plan{background:rgba(210,153,34,.18);color:var(--yellow);border:1px solid var(--yellow)}
+  .arrow{text-align:center;color:var(--muted);font-size:18px;line-height:1}
+  /* async sim */
+  #simwrap{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto}
+  .envrow{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .envlabel{width:54px;font-size:12px;color:var(--muted);flex-shrink:0}
+  .cells{display:flex;gap:3px}
+  .cell{width:30px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#04121f;font-weight:700;flex-shrink:0;transition:.1s}
+  .ph-SAMPLE{background:#6e7681;color:#fff}
+  .ph-SUBMIT{background:var(--cyan)}
+  .ph-POLL{background:var(--yellow)}
+  .ph-EXEC{background:var(--green)}
+  .ph-DONE{background:#21262d;color:var(--muted);border:1px solid var(--border)}
+  .ph-WAIT{background:#3d2c00;color:var(--yellow);border:1px dashed var(--yellow)}
+  .tickbar{display:flex;gap:3px;margin-left:62px;margin-bottom:4px}
+  .tn{width:30px;text-align:center;font-size:9px;color:var(--muted)}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;margin-top:10px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:4px}
+  .sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .stat{display:inline-block;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin:4px 6px 4px 0;font-size:12.5px}
+  .stat b{color:var(--accent)}
+  /* table */
+  table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}
+  th,td{border:1px solid var(--border);padding:5px 6px;text-align:center}
+  th{background:var(--panel2);color:var(--muted);font-weight:600;position:sticky;top:0}
+  td.name{text-align:left;white-space:nowrap;color:var(--txt)}
+  .yes{color:var(--green);font-weight:700}
+  .part{color:var(--yellow);font-weight:700}
+  .no{color:var(--red)}
+  tr.ours td{background:rgba(88,166,255,.10)}
+  tr.ours td.name{font-weight:700;color:var(--accent)}
+  .tblwrap{overflow-x:auto;max-height:440px;overflow-y:auto}
+  /* families */
+  .fam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+  .fam{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--panel2);font-size:12px}
+  .fam b{font-size:13px;color:var(--accent2)}
+  .fam .m{color:var(--muted);font-size:11px}
+  .grp{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 2px;grid-column:1/-1}
+  .kpi{font-size:34px;font-weight:800;color:var(--accent)}
+  .pipe{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;margin:8px 0}
+  .pchip{background:var(--panel2);border:1px solid var(--border);border-radius:18px;padding:5px 12px}
+  .pchip.on{border-color:var(--green);background:rgba(63,185,80,.12);color:var(--green)}
+</style>
+</head>
+<body>
+  <h1>MagicSim 交互式探索器</h1>
+  <div class="sub">面向可执行具身交互的统一基础设施 · <b>One Runtime, One MDP, Three Drivers</b></div>
+  <div class="meta">arXiv:2606.17511v1 [cs.RO] · 2026-06-16 · Northwestern / Peking / UC Berkeley / ShanghaiTech &nbsp;|&nbsp; 数据全部取自论文 Table 1 / Table 2-3 / Table 6 / §3</div>
+
+  <div class="tabs">
+    <div class="tab active" data-v="topo">① 运行时拓扑 &amp; 三驱动器</div>
+    <div class="tab" data-v="async">② Agent 级异步时序</div>
+    <div class="tab" data-v="cmp">③ 能力对比 (Table 1)</div>
+    <div class="tab" data-v="fam">④ 多物理仿真族 K=15</div>
+  </div>
+
+  <!-- ===================== VIEW 1: TOPOLOGY ===================== -->
+  <div class="view active" id="v-topo">
+    <div class="card">
+      <h2>一个运行时 · 一个 MDP · 三个驱动器</h2>
+      <p class="muted">点击下方任一驱动器,看它如何 step 同一个任务 MDP(对应论文 Figure 2 / Table 3)。三个驱动器共享 MDP 边界<b> 之下</b>的同一世界、机器人、传感器、规划器与确定性。</p>
+      <div class="topo" style="margin-top:14px">
+        <div class="layer"><div class="lt">Env-Core · 一个批处理同步运行时</div>
+          <div class="lc">IsaacRLEnv host → BaseEnv(Terrain/Layout/Scene/Seeded&nbsp;DR) → SyncBaseEnv(Camera/Capture/原生标注器) → <b>SyncRobotEnv</b>(PlannerManager→RobotManager→sim_step)</div></div>
+        <div class="arrow">▼ wraps SyncRobotEnv as self.scene</div>
+        <div class="layer mdp-band"><div class="lt" style="color:var(--accent)">MDP 边界 · TaskBaseEnv(Gym 兼容)</div>
+          <div class="lc">step(action, env_ids) → <b>obs · reward · term/trunc · info/success · pending&nbsp;envs</b></div></div>
+        <div class="arrow">▼ 同一个 MDP 被三种方式 step ▼</div>
+        <div class="drivers" id="drivers">
+          <div class="driver sel" data-d="0"><div class="dn">Driver 1 · RL 训练<span class="badge b-cur">current</span></div>
+            <div class="muted" style="font-size:12px;margin-top:5px">policy 直接 step TaskBaseEnv;动作经 RobotManager 动作空间;返回批量 obs/reward/term/success。</div></div>
+          <div class="driver" data-d="1"><div class="dn">Driver 2 · AutoCollect<span class="badge b-cur">current</span></div>
+            <div class="muted" style="font-size:12px;margin-top:5px">AutoCollectEnv 经 AsyncRobotEnv 包裹同一任务;路径 Command→Skill→Planner→Robot→Record;per-env 状态机驱动脚本演示。</div></div>
+          <div class="driver" data-d="2"><div class="dn">Driver 3 · Inference/Replay<span class="badge b-plan">planned</span></div>
+            <div class="muted" style="font-size:12px;margin-top:5px">InferenceRunner 用 policy 或回放动作流 step 同一 TaskBaseEnv;走 RobotManager 动作空间,跳过 Collect 层的 AtomicSkill/GlobalPlanner。</div></div>
+        </div>
+        <div class="hint" id="driverHint"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Command → Skill → Planner → Robot → Record 流水线</h2>
+      <p class="muted">这是 AutoCollect 驱动器把高层指令<b>落地为真实机器人动作</b>(而非"魔法动作")的路径。点击播放,看一条指令逐级 grounded。</p>
+      <div class="pipe" id="pipe">
+        <span class="pchip" data-i="0">Command</span><span>→</span>
+        <span class="pchip" data-i="1">Skill</span><span>→</span>
+        <span class="pchip" data-i="2">Planner</span><span>→</span>
+        <span class="pchip" data-i="3">Robot</span><span>→</span>
+        <span class="pchip" data-i="4">Record</span>
+      </div>
+      <button class="ctl primary" id="pipeBtn">▶ 播放流水线</button>
+      <div class="hint" id="pipeHint">点击播放:一条高层指令如何被逐级 grounded 为可记录的轨迹。</div>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 2: ASYNC ===================== -->
+  <div class="view" id="v-async">
+    <div class="card">
+      <h2>物理时间同步,语义时间异步</h2>
+      <p class="muted">所有子环境跨越<b>同一个</b> batched sim_step() 屏障(物理时间同步),但各自的语义阶段(采样指令→提交规划→轮询→执行)<b>独立推进</b>(语义时间异步)。规划用 submit-and-poll 的 future:慢规划不冻结整个 batch。</p>
+      <div class="row" style="margin-top:8px">
+        <div class="col">
+          <label class="sl">环境数(子环境) <b id="nEnvV">5</b></label>
+          <input type="range" id="nEnv" min="3" max="8" value="5">
+        </div>
+        <div class="col">
+          <label class="sl">规划最大延迟(tick) <b id="latV">4</b> <span class="muted">— 越大规划越慢</span></label>
+          <input type="range" id="lat" min="1" max="6" value="4">
+        </div>
+        <div class="col">
+          <label class="sl">微批窗口(每 tick 起求解的请求数) <b id="mbV">2</b></label>
+          <input type="range" id="mb" min="1" max="6" value="2">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="ctl primary" id="runAsync">▶ 运行批处理 rollout</button>
+        <button class="ctl" id="stepAsync">⏭ 单步</button>
+        <button class="ctl" id="resetAsync">↺ 重置</button>
+      </div>
+      <div style="margin-top:14px" id="simwrap"></div>
+      <div class="legend">
+        <span><i class="sw ph-SAMPLE"></i>SAMPLE 采样指令</span>
+        <span><i class="sw ph-SUBMIT"></i>SUBMIT 提交规划</span>
+        <span><i class="sw ph-WAIT"></i>WAIT 轮询/保持姿态</span>
+        <span><i class="sw ph-EXEC"></i>EXEC 执行规划动作</span>
+        <span><i class="sw ph-DONE"></i>DONE 成功落盘</span>
+      </div>
+      <div style="margin-top:12px" id="asyncStats"></div>
+      <div class="hint">观察:把<b>延迟</b>调大,黄色 WAIT 格变多 —— 但其它环境(行)仍在推进,主循环从不被单个慢规划阻塞。把<b>微批窗口</b>调大,同一 tick 起求解的请求更多(GPU 利用率↑),但窗口过大也会拉长等待。这正是 §6.7 的吞吐 vs. 实时性权衡。</div>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 3: COMPARISON ===================== -->
+  <div class="view" id="v-cmp">
+    <div class="card">
+      <h2>能力对比 (论文 Table 1)</h2>
+      <p class="muted">21 个能力维度上,MagicSim 对绝大多数标 ✓(全支持),仅 Agent/VLM API 为 ◐(部分)。<b class="yes">✓</b>=全支持 &nbsp;<b class="part">◐</b>=部分/有限 &nbsp;<span class="no">✗</span>=不支持。点击列头按该能力排序(✓优先)。</p>
+      <div class="tblwrap"><table id="cmpTable"></table></div>
+      <div class="hint">数据依据各系统官方文档/论文(2026 年 6 月)。MagicSim 的差异化集中在:异构物理(流体/可变形/效果)、avatar、原生标注(末端 waypoint / 3D 框 / affordance)、planner-in-the-loop、异步规划、成功门控数据生成。</div>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 4: FAMILIES ===================== -->
+  <div class="view" id="v-fam">
+    <div class="card">
+      <h2>统一多物理引擎:<span class="kpi" style="font-size:22px">K = 15</span> 个仿真族(Table 6)</h2>
+      <p class="muted">每个实体经参数化构造:<code style="color:var(--cyan)">x_e = (a_e, f(e), T_e, s_e, θ_vis, θ_phys, θ_solver, h_e)</code>。<code>K=|F|</code> 刻意写成<b>变量</b> —— 新族可加入而不改架构。鼠标悬停看仿真方式。</p>
+      <div class="fam-grid" id="famGrid"></div>
+    </div>
+    <div class="card">
+      <h2>耦合多物理(Coupled Multi-Physics)</h2>
+      <p class="muted">两层含义:<b>① co-execution</b> — 所有族可共存于同一 stage / 同一 episode;<b>② physical coupling</b> — 不同求解器族跨边界<b>真实相互作用</b>。论文给出 5 类代表性跨族耦合(如 Rigid×Deformable、Rigid×Fluid)。这是区别于"一堆方法专用仿真器"的关键。</p>
+    </div>
+  </div>
+
+<script>
+// ---------- tab switching ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('v-'+t.dataset.v).classList.add('active');
+  };
+});
+
+// ---------- driver selector ----------
+const driverHints=[
+ "<b>RL 训练(current):</b> 外部 RL 循环直接 step TaskBaseEnv。动作由 task + RobotManager 动作空间解释,直接拿批量 obs/reward/termination/success —— 这是最简单、对称性最低的路径。",
+ "<b>AutoCollect(current):</b> 在同一任务<b>之上叠 wrapper</b>。AsyncRobotEnv 加 AtomicSkill + GlobalPlanner,AutoCollectEnv 加指令采样与录制。指令经 Command→Skill→Planner→Robot→Record 被 grounded,成功 episode 才保存为多模态轨迹。",
+ "<b>Inference/Replay(planned):</b> 外部 driver 用 policy 或回放动作流 step 同一 MDP,走 RobotManager 动作空间,<b>跳过</b> Collect 层的 AtomicSkill / GlobalPlanner 层级。也是 Agent/VLM 闭环的接入点。"
+];
+function selDriver(i){
+  document.querySelectorAll('.driver').forEach(d=>d.classList.toggle('sel',+d.dataset.d===i));
+  document.getElementById('driverHint').innerHTML=driverHints[i];
+}
+document.querySelectorAll('.driver').forEach(d=>d.onclick=()=>selDriver(+d.dataset.d));
+selDriver(0);
+
+// ---------- pipeline animation ----------
+const pipeNames=["Command:采样/推进高层指令","Skill:AtomicSkill 状态机 submit/pull","Planner:cuRobo IK/MotionGen 异步求解","Robot:RobotManager 执行 grounded 动作","Record:成功门控 → 保存多模态轨迹"];
+document.getElementById('pipeBtn').onclick=()=>{
+  const chips=[...document.querySelectorAll('#pipe .pchip')];
+  chips.forEach(c=>c.classList.remove('on'));
+  let i=0;
+  const t=setInterval(()=>{
+    chips.forEach(c=>c.classList.remove('on'));
+    chips[i].classList.add('on');
+    document.getElementById('pipeHint').innerHTML="<b>"+(i+1)+"/5 — </b>"+pipeNames[i];
+    i++;
+    if(i>=chips.length){clearInterval(t);setTimeout(()=>{chips.forEach(c=>c.classList.add('on'));document.getElementById('pipeHint').innerHTML="<b>✓ 完成:</b> 高层指令被逐级 grounded —— 没有'魔法动作',运行时只记录由真实机器人动作产生的数据。";},700);}
+  },560);
+};
+
+// ---------- async timeline simulation ----------
+let envs=[], tick=0, solveCount=0, savedCount=0, timer=null, MAXT=24;
+function initAsync(){
+  const n=+document.getElementById('nEnv').value;
+  envs=[]; tick=0; solveCount=0; savedCount=0;
+  for(let i=0;i<n;i++){
+    envs.push({id:i, phase:'SAMPLE', wait:0, future:0, progress:0, hist:[], done:false,
+               goal:2+ (i*7%5)});  // 伪随机但确定性目标
+  }
+  render();
+  document.getElementById('asyncStats').innerHTML='';
+}
+function stepAsync(){
+  if(envs.length===0) initAsync();
+  const latMax=+document.getElementById('lat').value;
+  const mb=+document.getElementById('mb').value;
+  // deterministic pseudo-latency per submit
+  let submitsThisTick=[];
+  envs.forEach(e=>{
+    if(e.done){e.hist.push('DONE');return;}
+    if(e.phase==='SAMPLE'){ e.phase='SUBMIT'; e.hist.push('SAMPLE'); }
+    else if(e.phase==='SUBMIT'){
+      // submit -> get future with pseudo latency
+      e.future = 1 + ((e.id*3 + tick*2 + e.progress) % latMax);
+      submitsThisTick.push(e);
+      e.phase='POLL'; e.hist.push('SUBMIT');
+    }
+    else if(e.phase==='POLL'){
+      if(e.future>0){ e.future--; e.hist.push('WAIT'); }    // 保持姿态/安全动作
+      if(e.future<=0){
+        // consume -> execute
+        e.progress++;
+        e.hist[e.hist.length-1]='EXEC';
+        if(e.progress>=2){ e.done=true; e.phase='DONE'; savedCount++; }
+        else e.phase='SAMPLE';
+      }
+    }
+  });
+  // microbatch solve accounting: submits aggregated into ceil(/mb) solves
+  if(submitsThisTick.length>0) solveCount += Math.ceil(submitsThisTick.length/mb);
+  tick++;
+  render();
+  const active=envs.filter(e=>!e.done).length;
+  document.getElementById('asyncStats').innerHTML=
+    `<span class="stat">物理 tick:<b>${tick}</b></span>`+
+    `<span class="stat">微批求解次数:<b>${solveCount}</b></span>`+
+    `<span class="stat">已成功落盘:<b>${savedCount}/${envs.length}</b></span>`+
+    `<span class="stat">仍在推进:<b>${active}</b></span>`;
+  if(active===0 && timer){clearInterval(timer);timer=null;}
+}
+function render(){
+  const wrap=document.getElementById('simwrap');
+  // tick header
+  let maxLen=Math.max(1,...envs.map(e=>e.hist.length));
+  let html='<div class="tickbar">';
+  for(let t=0;t<maxLen;t++) html+=`<div class="tn">t${t}</div>`;
+  html+='</div>';
+  envs.forEach(e=>{
+    html+=`<div class="envrow"><div class="envlabel">Env ${e.id}</div><div class="cells">`;
+    e.hist.forEach(p=>{
+      const cls = p==='WAIT'?'ph-WAIT':p==='EXEC'?'ph-EXEC':p==='DONE'?'ph-DONE':'ph-'+p;
+      const lbl = p==='SAMPLE'?'S':p==='SUBMIT'?'Sub':p==='WAIT'?'…':p==='EXEC'?'EX':p==='DONE'?'✓':p;
+      html+=`<div class="cell ${cls}">${lbl}</div>`;
+    });
+    // current phase cell
+    if(!e.done){
+      const cp=e.phase;
+      const cls=cp==='POLL'?'ph-WAIT':'ph-'+cp;
+      html+=`<div class="cell ${cls}" style="opacity:.5">${cp==='SAMPLE'?'S':cp==='SUBMIT'?'Sub':cp==='POLL'?'…':cp}</div>`;
+    }
+    html+='</div></div>';
+  });
+  wrap.innerHTML=html;
+}
+document.getElementById('nEnv').oninput=e=>{document.getElementById('nEnvV').textContent=e.target.value;initAsync();};
+document.getElementById('lat').oninput=e=>{document.getElementById('latV').textContent=e.target.value;};
+document.getElementById('mb').oninput=e=>{document.getElementById('mbV').textContent=e.target.value;};
+document.getElementById('stepAsync').onclick=()=>stepAsync();
+document.getElementById('resetAsync').onclick=()=>{if(timer){clearInterval(timer);timer=null;}initAsync();};
+document.getElementById('runAsync').onclick=()=>{
+  if(timer){clearInterval(timer);timer=null;return;}
+  if(envs.every(e=>e.done)||envs.length===0) initAsync();
+  timer=setInterval(()=>{stepAsync(); if(tick>MAXT){clearInterval(timer);timer=null;}},420);
+};
+initAsync();
+
+// ---------- comparison table (Table 1) ----------
+const caps=["Rigid/artic.","Soft/cloth/rope","Fluid/granular","Flow/fire/dust","Avatar/human","Single/dual arm","Dexterous hand","Wheeled mobile","Quadruped","Humanoid","Parallel envs","Seeded DR","Replay/reset_to","Planner skills","Async planning","Benchmark MDP","Success data-gen","Native annot.","Tactile","Lang/task traces","Agent/VLM API"];
+// 1=full(✓) .5=partial(◐) 0=none(✗)
+const sys={
+ "Isaac Lab":      [1,.5,0,0,0,1,1,.5,1,1,1,1,.5,.5,0,1,.5,.5,.5,0,0],
+ "ManiSkill3":     [1,.5,0,0,0,1,1,1,1,1,1,1,1,1,0,1,1,0,0,0,.5],
+ "RoboCasa":       [1,0,0,0,0,1,0,1,.5,.5,.5,1,1,.5,0,1,1,0,0,1,.5],
+ "RoboTwin 2.0":   [1,0,0,0,0,1,0,0,0,0,.5,1,.5,1,0,1,1,1,0,1,.5],
+ "RLBench":        [1,0,0,0,0,.5,0,0,0,0,0,.5,.5,1,0,1,1,.5,0,1,0],
+ "BEHAVIOR-1K":    [1,1,1,1,0,1,0,1,0,.5,.5,.5,1,1,0,1,.5,.5,0,1,.5],
+ "Genesis":        [1,1,1,1,.5,1,0,0,1,0,1,.5,.5,1,0,.5,0,0,.5,0,0],
+ "Habitat 3.0":    [1,0,0,0,1,.5,0,1,.5,.5,1,.5,1,1,0,1,.5,0,0,1,1],
+ "MagicSim (ours)":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,.5],
+};
+function symb(v){return v===1?'<span class="yes">✓</span>':v===.5?'<span class="part">◐</span>':'<span class="no">✗</span>';}
+let sortCol=-1;
+function buildTable(){
+  const names=Object.keys(sys);
+  let order=[...names];
+  if(sortCol>=0){ order.sort((a,b)=>sys[b][sortCol]-sys[a][sortCol]); }
+  // keep ours visually identifiable regardless
+  let h='<thead><tr><th class="name">系统 \\ 能力</th>';
+  caps.forEach((c,i)=>h+=`<th data-c="${i}" style="cursor:pointer" title="点击排序">${c}</th>`);
+  h+='</tr></thead><tbody>';
+  order.forEach(n=>{
+    const ours=n.includes('ours');
+    h+=`<tr class="${ours?'ours':''}"><td class="name">${n}</td>`;
+    sys[n].forEach(v=>h+=`<td>${symb(v)}</td>`);
+    h+='</tr>';
+  });
+  h+='</tbody>';
+  document.getElementById('cmpTable').innerHTML=h;
+  document.querySelectorAll('#cmpTable th[data-c]').forEach(th=>th.onclick=()=>{sortCol=+th.dataset.c;buildTable();});
+}
+buildTable();
+
+// ---------- families (Table 6) ----------
+const fams=[
+ ["刚体与铰接动力学",[
+   ["Rigid","PhysX 刚体动力学 + 碰撞几何"],
+   ["Articulation","PhysX 铰接:抽屉/柜门/家电等"],
+   ["RigidInstancer","大量重复刚体的实例化群体"]]],
+ ["有限元(FEM)",[
+   ["Deformable","FEM 体积软体(四面体网格)"],
+   ["FEMCloth","FEM 表面布料(薄片可变形)"]]],
+ ["粒子 / 位置基系统",[
+   ["Garment","粒子布料:衣物/织物"],
+   ["Fluid","粒子流体,可与容器耦合"],
+   ["Sand","颗粒介质:堆积/铲取/推挤"],
+   ["Rice","细粒颗粒(米粒状小元素)"],
+   ["Inflatable","充气软壳/粒子壳"]]],
+ ["约束链",[["Rope","约束式胶囊/链条:绳索"]]],
+ ["力场",[["Magnet","场作用:对附近物体施非接触力"]]],
+ ["体积 / 发射效果",[
+   ["Fire","体积/发射效果:火焰视觉与语义"],
+   ["Flow","流动效果:烟/蒸汽/尘/风"]]],
+ ["动画驱动",[["Avatar","动画驱动的人形 avatar"]]],
+];
+let fh='';
+fams.forEach(([grp,items])=>{
+  fh+=`<div class="grp">${grp}</div>`;
+  items.forEach(([n,m])=>fh+=`<div class="fam" title="${m}"><b>${n}</b><div class="m">${m}</div></div>`);
+});
+document.getElementById('famGrid').innerHTML=fh;
+</script>
+</body>
+</html>

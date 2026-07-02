@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SILR-Cloth 交互式探索器 · 仿真器在环布料操作</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#30363d;
+    --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --accent2:#bc8cff;
+    --green:#3fb950; --yellow:#d29922; --red:#f85149; --cyan:#39c5cf;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;padding:24px;max-width:1180px;margin:0 auto}
+  h1{font-size:25px;margin-bottom:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:6px}
+  .meta{color:var(--muted);font-size:12px;margin-bottom:20px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:10px}
+  .tab{padding:8px 14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:.15s;user-select:none}
+  .tab:hover{border-color:var(--accent);color:var(--txt)}
+  .tab.active{background:var(--accent);color:#04121f;border-color:var(--accent);font-weight:600}
+  .view{display:none;animation:fade .25s}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:17px;margin-bottom:10px;color:var(--accent)}
+  p,li{font-size:13.5px;color:#c9d1d9}
+  .muted{color:var(--muted)}
+  .hint{font-size:12.5px;color:var(--muted);background:var(--panel2);border-left:3px solid var(--accent);padding:8px 12px;border-radius:0 6px 6px 0;margin:10px 0}
+  button.ctl{background:var(--panel2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:13px}
+  button.ctl:hover{border-color:var(--accent)}
+  button.ctl.primary{background:var(--accent);color:#04121f;font-weight:600;border-color:var(--accent)}
+  label.sl{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 4px}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .col{flex:1;min-width:220px}
+  /* pipeline */
+  .flow{display:flex;flex-direction:column;gap:8px}
+  .stage{border:1px solid var(--border);border-radius:10px;padding:11px 14px;background:var(--panel2);cursor:pointer;transition:.15s}
+  .stage:hover{border-color:var(--accent2);transform:translateX(3px)}
+  .stage.sel{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(188,140,255,.22)}
+  .stage .sn{font-weight:600;font-size:14px}
+  .stage .sd{font-size:12px;color:var(--muted);margin-top:3px}
+  .pill{display:inline-block;font-size:10.5px;padding:1px 8px;border-radius:10px;margin-left:8px;background:rgba(57,197,207,.16);color:var(--cyan);border:1px solid var(--cyan)}
+  .arrow{text-align:center;color:var(--muted);font-size:16px}
+  /* canvas */
+  canvas{background:#0a0e14;border:1px solid var(--border);border-radius:8px;display:block;margin:0 auto}
+  .stat{display:inline-block;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin:4px 6px 4px 0;font-size:12.5px}
+  .stat b{color:var(--accent)}
+  /* table */
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:8px}
+  th,td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+  th{background:var(--panel2);color:var(--muted);font-weight:600}
+  td.name{text-align:left;white-space:nowrap}
+  .best{background:rgba(63,185,80,.16)!important;font-weight:700;color:var(--green)}
+  .ours td.name{color:var(--accent);font-weight:700}
+  .bar{height:14px;border-radius:3px;background:var(--accent);display:inline-block;vertical-align:middle}
+  .legend{font-size:11.5px;color:var(--muted);margin-top:8px}
+  .tblwrap{overflow-x:auto}
+  code{color:var(--cyan);font-size:12px}
+</style>
+</head>
+<body>
+  <h1>SILR-Cloth 交互式探索器</h1>
+  <div class="sub">推理时<b>仿真器在环</b>精修实现鲁棒布料操作 · single RGB → real-to-sim-to-real 闭环</div>
+  <div class="meta">arXiv:2606.24552v1 [cs.RO] · 2026-06-23 · NUS + 上海交通大学 · silr-cloth.github.io &nbsp;|&nbsp; 数据取自论文 Table 1–4</div>
+
+  <div class="tabs">
+    <div class="tab active" data-v="pipe">① 闭环管线 &amp; 三支柱</div>
+    <div class="tab" data-v="mppi">② 先验引导 MPPI 沙盒</div>
+    <div class="tab" data-v="sim">③ 仿真后端对比 (Table 1)</div>
+    <div class="tab" data-v="res">④ 状态估计 &amp; 真机结果 (Table 2–4)</div>
+  </div>
+
+  <!-- ===================== VIEW 1: PIPELINE ===================== -->
+  <div class="view active" id="v-pipe">
+    <div class="card">
+      <h2>real-to-sim-to-real 每步闭环</h2>
+      <p class="muted">每个控制步:单 RGB → 重建仿真兼容状态 → 在 FLASH 里并行 rollout 精修策略动作 → 执行首动作 → 重复。点击各阶段看细节(对应 Fig.1 与式 1–2)。</p>
+      <div class="flow" style="margin-top:12px">
+        <div class="stage sel" data-s="0"><div class="sn">📷 RGB 观测 I_t</div><div class="sd">单张 RGB 图像作为唯一在线输入(无深度/点云)</div></div>
+        <div class="arrow">▼</div>
+        <div class="stage" data-s="1"><div class="sn">🧠 (ii) RGB-native real-to-sim<span class="pill">支柱 ii</span></div><div class="sd">ŝ_t = f_θ(I_t):DINOv2(冻结)+ N 个 canonical tokens → 自注意力 → MLP → 形变 3D 顶点</div></div>
+        <div class="arrow">▼ 同步仿真孪生</div>
+        <div class="stage" data-s="2"><div class="sn">🎲 (iii) 先验引导 MPPI<span class="pill">支柱 iii</span></div><div class="sd">以离线策略名义序列 Ū_t 为锚:采 K 候选 → FLASH 并行 rollout → 代价加权 → 精修 U*_t</div></div>
+        <div class="arrow">▼</div>
+        <div class="stage" data-s="3"><div class="sn">⚙️ (i) FLASH 物理 rollout<span class="pill">支柱 i</span></div><div class="sd">三角网格 + 非光滑 Newton 摩擦接触;GPU 稀疏矩阵运算;τ^(k)=F_{0:H}(ŝ_t,U^(k))</div></div>
+        <div class="arrow">▼</div>
+        <div class="stage" data-s="4"><div class="sn">🤖 执行首动作 a*_t = U*_t[0]</div><div class="sd">滚动时域:执行后收新观测 I_{t+1},重复闭环 → 持续纠正策略误差</div></div>
+      </div>
+      <div class="hint" id="stageHint"></div>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 2: MPPI SANDBOX ===================== -->
+  <div class="view" id="v-mppi">
+    <div class="card">
+      <h2>先验引导 MPPI 沙盒(式 10–13)</h2>
+      <p class="muted">绿点=目标折叠位置,蓝点=当前抓取点,灰线=K 条采样候选 rollout,紫线=代价加权后的精修轨迹 U*。拖动滑块看<b>先验引导</b>(锚定名义轨迹)如何在有限采样预算下高效收敛,以及温度 λ / 探索 Σ 的影响。</p>
+      <div class="row">
+        <div class="col">
+          <label class="sl">候选数 K = <b id="kV">40</b></label>
+          <input type="range" id="kS" min="6" max="120" value="40">
+          <label class="sl">探索尺度 Σ = <b id="sgV">0.6</b></label>
+          <input type="range" id="sgS" min="1" max="30" value="6">
+          <label class="sl">温度 λ = <b id="lmV">1.0</b> <span class="muted">(小→贪心, 大→平均)</span></label>
+          <input type="range" id="lmS" min="1" max="40" value="10">
+          <label class="sl"><input type="checkbox" id="pg" checked> 先验引导(锚定离线策略名义轨迹)</label>
+          <div style="margin-top:12px">
+            <button class="ctl primary" id="stepM">⏭ 精修一步并执行</button>
+            <button class="ctl" id="resetM">↺ 重置</button>
+          </div>
+          <div style="margin-top:12px" id="mStats"></div>
+        </div>
+        <div class="col" style="flex:0 0 360px">
+          <canvas id="cv" width="340" height="300"></canvas>
+        </div>
+      </div>
+      <div class="hint">关掉"先验引导"会从零均值大范围盲采(等价于无锚点)。在 K 较小时,先验引导的精修明显更稳更准 —— 这正是论文强调:布料高维形变 + 非凸几何目标下,无引导采样低效,锚定策略轨迹是关键。</div>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 3: SIM BACKEND ===================== -->
+  <div class="view" id="v-sim">
+    <div class="card">
+      <h2>仿真后端评测 (Table 1) — 为什么选 FLASH</h2>
+      <p class="muted">同一折叠任务 + 同一 MPPI 控制器,不同并行环境数 K。<b>成功率(SR)与最终状态保真比每步速度更决定闭环成功</b>。选择并行数查看:</p>
+      <div style="margin:10px 0">
+        <button class="ctl kbtn primary" data-k="64">K=64</button>
+        <button class="ctl kbtn" data-k="128">K=128</button>
+        <button class="ctl kbtn" data-k="256">K=256</button>
+        <button class="ctl kbtn" data-k="512">K=512</button>
+      </div>
+      <div class="tblwrap"><table id="simTable"></table></div>
+      <div class="legend">↓ 越低越好,↑ 越高越好。Step=每步时间(ms),MPPI=每 rollout 批耗时(s),KP err=关键点对齐误差(cm),MSE(cm²),SR=成功率。Genesis 因无法稳定折叠被排除。</div>
+      <div class="hint" id="simHint"></div>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 4: RESULTS ===================== -->
+  <div class="view" id="v-res">
+    <div class="card">
+      <h2>状态估计对比 (Table 2)</h2>
+      <p class="muted">单 RGB 模块 vs 点云 DPM / 深度 DeFM。三项几何误差 + 单帧延迟,均越低越好。条形为相对可视化。</p>
+      <div class="tblwrap"><table id="r2sTable"></table></div>
+      <div class="hint">Ours 在两资产、三指标全面最低,延迟最快 —— towel 7.4ms vs DPM 318.5ms(约 <b>43×</b>),长袖衫 12.4ms vs 512.9ms(约 <b>41×</b>)。RGB 避开薄织物深度难题且保留纹理。</div>
+    </div>
+    <div class="card">
+      <h2>真机管线消融 (Table 3) — 三组件紧耦合</h2>
+      <p class="muted">每组第一行是全管线,其余各替换一个组件。成功=每对目标角对齐 2cm 内。看任意组件被换掉后成功率如何下降:</p>
+      <div class="tblwrap"><table id="ablTable"></table></div>
+      <div class="hint">全管线单臂 9/10、双臂 8/10。替换状态估计→仿真后端→去掉精修,成功率单调下降(单臂 9→6→5→3),证明状态同步、仿真保真、在线精修相互依赖,缺一不可。</div>
+    </div>
+    <div class="card">
+      <h2>泛化与鲁棒性 (Table 4)</h2>
+      <p class="muted">无额外动力学重训,跨新资产 / 折叠变体 / 中途人为扰动(各 10 次试验):</p>
+      <div id="genBars"></div>
+    </div>
+  </div>
+
+<script>
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('v-'+t.dataset.v).classList.add('active');
+  };
+});
+
+// ---------- pipeline stage hints ----------
+const stageHints=[
+ "<b>RGB 观测:</b> 唯一在线输入是单张 RGB 图。论文论证 RGB 优于深度/点云:薄织物深度难测,几何-only 丢失纹理,且布料感知有持续 sim-to-real gap。",
+ "<b>(ii) RGB-native real-to-sim:</b> 冻结 DINOv2 提 dense patch 特征 V_t;N 个可学习 canonical tokens(每个对应一个网格顶点)与 V_t 拼接过自注意力,取前 N 个输出经 MLP 解码出 3D 形变顶点。纯合成数据训练 + 随机抓取点掩码增广。延迟仅 7–12ms。",
+ "<b>(iii) 先验引导 MPPI:</b> 离线策略给名义序列 Ū_t 作锚点。式10 在其邻域采 K 候选 U^(k)=Ū+ε;式11 各自 FLASH rollout 得代价 S;式12 softmax(-S/λ) 得权重;式13 加权合成 U*。锚定让高维布料动作空间下的有限预算采样高效。",
+ "<b>(i) FLASH 后端:</b> 布料=三角网格,顶点为自由度;非光滑 Newton 迭代解 Signorini–Coulomb 摩擦接触,保留粘滑;local-global 积分器把主计算降为 GPU 稀疏矩阵运算,支持稳定重复 rollout。Table 1 中 SR 95–100%,远超 Isaac/Newton。",
+ "<b>滚动时域执行:</b> 只执行精修序列首动作 a*_t=U*_t[0],收新观测后重新估计+精修。基础策略被在线物理推理持续纠正,从局部执行误差与状态偏差中恢复。"
+];
+function selStage(i){
+  document.querySelectorAll('.stage').forEach(s=>s.classList.toggle('sel',+s.dataset.s===i));
+  document.getElementById('stageHint').innerHTML=stageHints[i];
+}
+document.querySelectorAll('.stage').forEach(s=>s.onclick=()=>selStage(+s.dataset.s));
+selStage(0);
+
+// ---------- MPPI sandbox ----------
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const W=cv.width,H=cv.height;
+const TGT={x:8,y:7}, H_HORIZON=6;
+let gp={x:1,y:1}, lastCands=[], lastRefined=[], rng=12345;
+function rand(){ // deterministic LCG
+  rng=(rng*1103515245+12345)&0x7fffffff; return rng/0x7fffffff;
+}
+function gauss(s){ // Box-Muller
+  let u=Math.max(rand(),1e-9),v=rand();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)*s;
+}
+function w2c(p){ return {x:20+p.x*(W-40)/10, y:H-20-p.y*(H-40)/10}; }
+function basePolicy(s){ // 不完美名义序列:朝目标但偏小+系统偏移
+  const dx=(TGT.x-s.x)/(H_HORIZON+4), dy=(TGT.y-s.y)/(H_HORIZON+4)-0.15;
+  return Array.from({length:H_HORIZON},()=>({dx,dy}));
+}
+function rollout(s,seq){ let p={...s},tr=[{...p}];
+  for(const a of seq){ p={x:Math.min(Math.max(p.x+a.dx,0),10),y:Math.min(Math.max(p.y+a.dy,0),10)}; tr.push({...p}); } return tr; }
+function cost(tr){ const f=tr[tr.length-1]; return 3*Math.hypot(f.x-TGT.x,f.y-TGT.y); }
+function refine(){
+  const K=+document.getElementById('kS').value;
+  const sg=(+document.getElementById('sgS').value)/10;
+  const lm=(+document.getElementById('lmS').value)/10;
+  const pg=document.getElementById('pg').checked;
+  const nominal=basePolicy(gp);
+  const anchor=pg?nominal:Array.from({length:H_HORIZON},()=>({dx:0,dy:0}));
+  let cands=[],costs=[];
+  for(let k=0;k<K;k++){
+    const seq=anchor.map(a=>({dx:a.dx+gauss(sg),dy:a.dy+gauss(sg)}));
+    const tr=rollout(gp,seq); cands.push({seq,tr}); costs.push(cost(tr));
+  }
+  const cmin=Math.min(...costs);
+  const ex=costs.map(c=>Math.exp(-(c-cmin)/lm)); const z=ex.reduce((a,b)=>a+b,0);
+  const w=ex.map(e=>e/z);
+  let refSeq=[];
+  for(let h=0;h<H_HORIZON;h++){
+    let dx=0,dy=0; for(let k=0;k<K;k++){dx+=w[k]*cands[k].seq[h].dx;dy+=w[k]*cands[k].seq[h].dy;}
+    refSeq.push({dx,dy});
+  }
+  lastCands=cands; lastRefined=rollout(gp,refSeq);
+  // execute first action
+  const a0=refSeq[0];
+  gp={x:Math.min(Math.max(gp.x+a0.dx,0),10),y:Math.min(Math.max(gp.y+a0.dy,0),10)};
+  draw();
+  const err=Math.hypot(gp.x-TGT.x,gp.y-TGT.y);
+  document.getElementById('mStats').innerHTML=
+    `<span class="stat">候选 K:<b>${K}</b></span>`+
+    `<span class="stat">最优候选代价:<b>${(cmin/3).toFixed(2)}</b></span>`+
+    `<span class="stat">当前到目标:<b>${err.toFixed(2)}</b></span>`+
+    `<span class="stat">模式:<b>${pg?'先验引导':'无引导盲采'}</b></span>`;
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle='#1c2330'; ctx.lineWidth=1;
+  for(let i=0;i<=10;i++){let c=w2c({x:i,y:0});ctx.beginPath();ctx.moveTo(c.x,20);ctx.lineTo(c.x,H-20);ctx.stroke();
+    let r=w2c({x:0,y:i});ctx.beginPath();ctx.moveTo(20,r.y);ctx.lineTo(W-20,r.y);ctx.stroke();}
+  // candidate rollouts
+  ctx.strokeStyle='rgba(139,148,158,.25)'; ctx.lineWidth=1;
+  lastCands.forEach(c=>{ctx.beginPath();c.tr.forEach((p,i)=>{const q=w2c(p);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.stroke();});
+  // refined
+  if(lastRefined.length){ctx.strokeStyle='#bc8cff';ctx.lineWidth=2.5;ctx.beginPath();lastRefined.forEach((p,i)=>{const q=w2c(p);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.stroke();}
+  // target
+  let t=w2c(TGT); ctx.fillStyle='#3fb950';ctx.beginPath();ctx.arc(t.x,t.y,7,0,7);ctx.fill();
+  ctx.fillStyle='#3fb950';ctx.font='11px sans-serif';ctx.fillText('目标',t.x+9,t.y+4);
+  // grasp point
+  let g=w2c(gp); ctx.fillStyle='#58a6ff';ctx.beginPath();ctx.arc(g.x,g.y,6,0,7);ctx.fill();
+  ctx.fillStyle='#58a6ff';ctx.fillText('抓取点',g.x+8,g.y+4);
+}
+document.getElementById('kS').oninput=e=>document.getElementById('kV').textContent=e.target.value;
+document.getElementById('sgS').oninput=e=>document.getElementById('sgV').textContent=(e.target.value/10).toFixed(1);
+document.getElementById('lmS').oninput=e=>document.getElementById('lmV').textContent=(e.target.value/10).toFixed(1);
+document.getElementById('stepM').onclick=refine;
+document.getElementById('resetM').onclick=()=>{gp={x:1,y:1};lastCands=[];lastRefined=[];rng=12345;draw();document.getElementById('mStats').innerHTML='';};
+draw();
+
+// ---------- Table 1: simulator backend ----------
+const simData={
+ 64:{NEWTON:[1.0,0.85,8.40,56.8,'40%'],'ISAAC SIM':[11.7,0.26,9.78,60.5,'55%'],FLASH:[19.4,0.40,1.61,3.7,'100%']},
+ 128:{NEWTON:[55.1,1.14,10.28,68.9,'40%'],'ISAAC SIM':[22.2,0.50,10.88,67.4,'45%'],FLASH:[36.0,0.75,1.54,3.1,'100%']},
+ 256:{NEWTON:[104.3,2.15,8.85,58.1,'60%'],'ISAAC SIM':[41.1,0.92,7.09,32.4,'55%'],FLASH:[68.9,1.42,1.95,5.5,'95%']},
+ 512:{NEWTON:[232.8,4.80,13.02,92.3,'35%'],'ISAAC SIM':[80.7,1.79,5.84,24.6,'60%'],FLASH:[137.3,2.84,2.08,3.9,'95%']},
+};
+function buildSim(k){
+  const d=simData[k];
+  let h='<thead><tr><th class="name">仿真器</th><th>Step↓(ms)</th><th>MPPI↓(s)</th><th>KP err↓(cm)</th><th>MSE↓(cm²)</th><th>SR↑</th></tr></thead><tbody>';
+  ['NEWTON','ISAAC SIM','FLASH'].forEach(n=>{
+    const r=d[n], ours=n==='FLASH';
+    h+=`<tr class="${ours?'ours':''}"><td class="name">${n}${ours?' ★':''}</td>`+
+       `<td>${r[0].toFixed(1)}</td><td>${r[1].toFixed(2)}</td>`+
+       `<td class="${ours?'best':''}">${r[2].toFixed(2)}</td>`+
+       `<td class="${ours?'best':''}">${r[3].toFixed(1)}</td>`+
+       `<td class="${ours?'best':''}">${r[4]}</td></tr>`;
+  });
+  h+='</tbody>';
+  document.getElementById('simTable').innerHTML=h;
+  const flashSR=d.FLASH[4], isaacStep=d['ISAAC SIM'][0], flashStep=d.FLASH[0];
+  document.getElementById('simHint').innerHTML=`在 K=${k}:FLASH 成功率 <b>${flashSR}</b>,而 Isaac Sim/Newton ≤60%。Isaac Sim 每步 ${isaacStep}ms 比 FLASH ${flashStep}ms 略快(~${(flashStep/isaacStep).toFixed(1)}×),但 FLASH 的 MSE 低约一个数量级 —— 速度优势无法弥补最终状态保真的差距。`;
+}
+document.querySelectorAll('.kbtn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.kbtn').forEach(x=>x.classList.remove('primary'));
+  b.classList.add('primary'); buildSim(+b.dataset.k);
+});
+buildSim(64);
+
+// ---------- Table 2: state estimation ----------
+const r2s=[
+ ['Towel','Ours (RGB)',2.33,1.94,1.98,7.4,1],
+ ['Towel','DPM (点云)',7.17,3.89,4.01,318.5,0],
+ ['Towel','DeFM (深度)',43.36,5.51,6.53,12.6,0],
+ ['长袖衫','Ours (RGB)',24.23,3.65,4.67,12.4,1],
+ ['长袖衫','DPM (点云)',45.74,5.93,8.21,512.9,0],
+ ['长袖衫','DeFM (深度)',43.52,4.05,5.93,18.0,0],
+];
+let rh='<thead><tr><th class="name">资产</th><th class="name">Real-to-Sim</th><th>MSE↓(mm²)</th><th>CD↓(mm)</th><th>EMD↓(mm)</th><th>延迟↓(ms)</th></tr></thead><tbody>';
+r2s.forEach(r=>{rh+=`<tr class="${r[6]?'ours':''}"><td class="name">${r[0]}</td><td class="name">${r[1]}</td>`+
+  `<td class="${r[6]?'best':''}">${r[2]}</td><td class="${r[6]?'best':''}">${r[3]}</td><td class="${r[6]?'best':''}">${r[4]}</td><td class="${r[6]?'best':''}">${r[5]}</td></tr>`;});
+rh+='</tbody>';document.getElementById('r2sTable').innerHTML=rh;
+
+// ---------- Table 3: ablation ----------
+const abl=[
+ ['单臂对角','Ours (RGB)','FLASH','MPPI','9/10',1],
+ ['','DPM','FLASH','MPPI','6/10',0],
+ ['','Ours (RGB)','Isaac Sim','MPPI','5/10',0],
+ ['','Ours (RGB)','FLASH','仅基础策略','3/10',0],
+ ['双臂对称','Ours (RGB)','FLASH','MPPI','8/10',1],
+ ['','DPM','FLASH','MPPI','3/10',0],
+ ['','Ours (RGB)','Isaac Sim','MPPI','4/10',0],
+ ['','Ours (RGB)','FLASH','仅基础策略','1/10',0],
+];
+let ah='<thead><tr><th class="name">任务</th><th class="name">Real-to-Sim</th><th>后端</th><th>控制器</th><th>真机成功率↑</th></tr></thead><tbody>';
+abl.forEach(r=>{ah+=`<tr class="${r[5]?'ours':''}"><td class="name">${r[0]}</td><td class="name">${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td class="${r[5]?'best':''}">${r[4]}</td></tr>`;});
+ah+='</tbody>';document.getElementById('ablTable').innerHTML=ah;
+
+// ---------- Table 4: generalization bars ----------
+const gen=[['长袖衫折叠',8],['短裤折叠',7],['毛巾反对角折叠',8],['折叠中途扰动恢复',8]];
+let gb='';
+gen.forEach(([n,v])=>{gb+=`<div style="margin:8px 0;font-size:13px"><span style="display:inline-block;width:150px;color:#c9d1d9">${n}</span>`+
+  `<span class="bar" style="width:${v*28}px"></span> <b style="color:var(--green)">${v}/10</b></div>`;});
+document.getElementById('genBars').innerHTML=gb;
+</script>
+</body>
+</html>

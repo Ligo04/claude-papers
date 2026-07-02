@@ -1,0 +1,40 @@
+{
+  "title": "MagicSim: A Unified Infrastructure for Executable Embodied Interaction",
+  "subtitle": "One Runtime, One MDP, Three Drivers",
+  "authors": [
+    "Haoran Lu",
+    "Songling Liu",
+    "Yue Chen",
+    "Guo Ye",
+    "Mutian Shen",
+    "Shuyang Yu",
+    "Yu Xiao",
+    "Jihai Zhao",
+    "Shang Wu",
+    "Jianshu Zhang",
+    "Xiangtian Gui",
+    "Chuye Hong",
+    "Yuran Wang",
+    "Maojiang Su",
+    "Jiayi Wang",
+    "Ruihai Wu",
+    "Zhaoran Wang",
+    "Han Liu"
+  ],
+  "affiliations": [
+    "Northwestern University",
+    "Peking University",
+    "UC Berkeley",
+    "ShanghaiTech University"
+  ],
+  "arxiv": "2606.17511v1",
+  "year": 2026,
+  "date": "2026-06-16",
+  "abstract": "Robot learning and embodied agents now require simulation to serve as a shared execution substrate linking control, skills, and planning. MagicSim is an embodied interaction infrastructure built around one deterministic batched runtime and a shared MDP, exposed through three drivers (benchmark/RL, scripted AutoCollect, agent/VLM interaction). YAML-first specifications construct diverse executable worlds; a Command->Skill->Planner->Robot->Record pipeline grounds high-level commands into robot actions; successful rollouts become structured multimodal trajectories.",
+  "tags": [
+    "embodied simulation",
+    "planner-in-the-loop"
+  ],
+  "githubLinks": [],
+  "codeLinks": []
+}

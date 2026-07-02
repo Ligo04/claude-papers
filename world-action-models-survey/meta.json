@@ -1,0 +1,27 @@
+{
+  "title": "World Action Models: A Survey (Dream Less, Act More)",
+  "slug": "world-action-models-survey",
+  "authors": [
+    "Qiuhong Shen",
+    "Shihua Zhang",
+    "Yue Liao",
+    "Qi Li",
+    "Zhenxiong Tan",
+    "Shizun Wang",
+    "Shuicheng Yan",
+    "Xinchao Wang"
+  ],
+  "affiliation": "National University of Singapore",
+  "year": 2026,
+  "date": "2026-06-18",
+  "arxiv": "2606.20781",
+  "arxivUrl": "https://arxiv.org/abs/2606.20781",
+  "homepage": "https://world-action-models.github.io/",
+  "abstract": "世界动作模型（WAMs）是一类具身的预测-动作模型，它把对未来的预测保留下来供动作使用。近期 WAM 复用大型视频生成模型，另一条并行路线则依赖语言或视觉-语言骨干而无视频生成核。本综述厘清了世界模型、视频生成模型、视频世界模型、视觉-语言-动作（VLA）策略与 WAM 之间的边界，随后用两个互补视角组织现有工作：(1) 一套设计哲学分类法（Render-and-Decode、Latent-Only、Video-Generation-Free），依据每个方法必须生成什么；(2) 一套表达为四元组的四轴组件解剖（预测基底、动作耦合、架构骨干、部署机制）。它统一讨论了可交互性、因果性、持久性、物理合理性与泛化性，随后梳理数据、评测与开放挑战。贯穿全文的教训：WAM 不是带动作头的视频生成器，而是用表示丰富性去权衡计算、内存、延迟和动作标签成本的预测-动作方法。领域正走向生成更少的未来，却保留控制所需的部分。",
+  "tags": ["embodied control", "world action models"],
+  "githubLinks": [],
+  "codeLinks": ["https://world-action-models.github.io/"],
+  "difficulty": "Advanced",
+  "nature": "Survey",
+  "studyTimeHours": 5
+}

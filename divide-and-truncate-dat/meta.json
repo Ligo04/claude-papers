@@ -1,0 +1,14 @@
+{
+  "id": "divide-and-truncate-dat",
+  "title": "Divide and Truncate: A Penetration and Inversion Free Framework for Coupled Multi-physics Systems",
+  "slug": "divide-and-truncate-dat",
+  "authors": ["Anka H. Chen", "Jerry Hsu", "Youssef Ayman", "Miles Macklin"],
+  "abstract": "We present Divide and Truncate (DAT), a unified framework for coupling multi-physics systems through penetration-free collision handling, including rigid bodies, volumetric soft bodies, thin shells, rods, and animated objects. By partitioning the ambient space into exclusive regions and truncating displacements to remain within them, DAT guarantees penetration-free contact resolution. Our Planar-DAT variant further refines this by restricting only motion toward nearby surfaces, leaving tangential movement unconstrained, which addresses the artificial damping and deadlock problems of previous works.",
+  "year": 2026,
+  "date": "2026-04-16",
+  "tags": ["collision-handling", "multi-physics-simulation"],
+  "githubLinks": [],
+  "codeLinks": [],
+  "pageCount": 14,
+  "affiliations": ["NVIDIA", "ZeroMatter", "The American University in Cairo"]
+}

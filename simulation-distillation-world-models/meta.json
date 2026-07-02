@@ -1,0 +1,22 @@
+{
+  "id": "simulation-distillation-world-models",
+  "title": "Simulation Distillation: Pretraining World Models in Simulation for Rapid Real-World Adaptation",
+  "slug": "simulation-distillation-world-models",
+  "authors": [
+    "Jacob Levy",
+    "Tyler Westenbroek",
+    "Kevin Huang",
+    "Fernando Palafox",
+    "Patrick Yin",
+    "Shayegan Omidshafiei",
+    "Dong-Ki Kim",
+    "Abhishek Gupta",
+    "David Fridovich-Keil"
+  ],
+  "abstract": "Robot learning requires adaptation methods that improve reliably from limited, mixed-quality interaction data. This is especially challenging in long-horizon, contact-rich tasks, where end-to-end policy finetuning remains inefficient and brittle. World models offer a compelling alternative: by predicting the outcomes of candidate action sequences, they enable online planning through counterfactual reasoning. However, training action-conditioned robotic world models directly in the real world requires diverse data at impractical scale. We introduce Simulation Distillation (SimDist), a framework that uses physics simulators as a scalable source of action-conditioned robot experience. During pretraining, SimDist distills structural priors from the simulator into a world model that enables planning from raw real-world observations. During real-world adaptation, SimDist transfers the encoder, reward model, and value function learned in simulation, and updates only the latent dynamics model using real-world prediction losses. This reduces adaptation to supervised system identification while preserving dense, long-horizon planning signals for online improvement.",
+  "year": 2025,
+  "date": "2025-03-20",
+  "tags": ["sim-to-real transfer", "world models"],
+  "githubLinks": ["https://sim-dist.github.io"],
+  "codeLinks": ["https://sim-dist.github.io"]
+}

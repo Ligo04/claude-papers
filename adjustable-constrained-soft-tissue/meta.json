@@ -1,0 +1,20 @@
+{
+  "title": "Adjustable Constrained Soft-Tissue Dynamics",
+  "authors": ["Bohan Wang", "Mianlun Zheng", "Jernej Barbič"],
+  "venue": "Pacific Graphics 2020 / Computer Graphics Forum, Vol. 39 (2020), No. 7",
+  "year": 2020,
+  "affiliation": "University of Southern California",
+  "abstract": "Constraint-based soft-tissue simulation suffers from an inherent coupling between vibration frequency and inertial amplitude — adjusting material properties cannot change them independently. The paper transforms the equations of motion into per-vertex non-inertial reference frames, scales the resulting fictitious (inertial) forces by a factor ε, then transforms back to the world frame. This yields a minimally modified equation of motion that lets animators independently control four salient visual characteristics of soft-tissue dynamics: vibration frequency, gravity sag, inertial amplitude, and damping decay time. Demonstrated on FEM characters with LBS+PSD geometric proxies.",
+  "tags": ["soft-tissue dynamics", "non-inertial frame scaling"],
+  "githubLinks": [],
+  "codeLinks": [],
+  "difficulty": "Advanced",
+  "nature": "Theoretical + system-design (continuum mechanics for animation)",
+  "keyEquation": "M ü + D u̇ + f_int(u) = M g + (1−ε) M ( p̈ + (R̈ Rᵀ + 2 Ṙ Ṙᵀ)(u−p) + 2 Ṙ Rᵀ (u̇ − ṗ) ),  s.t. C u = S x(t)",
+  "controlKnobs": {
+    "chi": "frequency scale  χ = sqrt(γ/δ)",
+    "mu": "gravity scale, sets sag via μ = χ² · ζ̄/ζ",
+    "ck": "stiffness damping scale, c_k = (1/χ²) · t̄_D / t_D",
+    "epsilon": "inertial-force scale; ε=1 unchanged, ε=0 cancels constraint-driven dynamics"
+  }
+}

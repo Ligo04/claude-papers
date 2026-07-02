@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGIPC 交互式论文探索器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.6}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.6em;margin:20px 0 5px;color:#f1f5f9}
+.subtitle{text-align:center;color:#94a3b8;margin-bottom:30px;font-size:0.9em}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.card{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155}
+.card h2{font-size:1.1em;color:#38bdf8;margin-bottom:15px;display:flex;align-items:center;gap:8px}
+.card h2 span{font-size:1.3em}
+.slider-group{margin:10px 0}
+.slider-group label{display:flex;justify-content:space-between;font-size:0.85em;color:#94a3b8;margin-bottom:4px}
+.slider-group input[type=range]{width:100%;accent-color:#38bdf8;cursor:pointer}
+.val{color:#38bdf8;font-weight:600;font-variant-numeric:tabular-nums}
+canvas{width:100%;border-radius:8px;background:#0f172a;display:block}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}
+.stat{background:#0f172a;border-radius:8px;padding:12px;text-align:center}
+.stat .num{font-size:1.8em;font-weight:700;color:#38bdf8}
+.stat .lbl{font-size:0.75em;color:#64748b;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:0.85em;margin-top:10px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #334155}
+th{color:#94a3b8;font-weight:500}
+td{color:#e2e8f0}
+.bar-container{width:100%;height:14px;background:#0f172a;border-radius:7px;overflow:hidden}
+.bar{height:100%;border-radius:7px;transition:width 0.3s}
+.bar.green{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.bar.blue{background:linear-gradient(90deg,#3b82f6,#2563eb)}
+.bar.orange{background:linear-gradient(90deg,#f97316,#ea580c)}
+.pipeline{display:flex;align-items:center;gap:0;margin:15px 0;flex-wrap:wrap}
+.pipe-step{background:#0f172a;border:2px solid #334155;border-radius:8px;padding:8px 12px;font-size:0.8em;text-align:center;min-width:100px;transition:all 0.3s}
+.pipe-step.active{border-color:#38bdf8;background:#1e3a5f;color:#38bdf8}
+.pipe-step.coarsened{border-color:#22c55e;background:#14532d;color:#22c55e}
+.pipe-arrow{color:#475569;font-size:1.2em;margin:0 2px}
+.legend{display:flex;gap:15px;margin:10px 0;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:0.8em;color:#94a3b8}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.full-width{grid-column:1/-1}
+.btn-group{display:flex;gap:8px;margin:10px 0}
+.btn{padding:6px 16px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#e2e8f0;cursor:pointer;font-size:0.85em;transition:all 0.2s}
+.btn:hover{background:#334155}
+.btn.active{background:#38bdf8;color:#0f172a;border-color:#38bdf8}
+.tooltip{position:relative;display:inline-block;cursor:help;border-bottom:1px dashed #64748b}
+@media(max-width:768px){.grid{grid-template-columns:1fr}.pipeline{justify-content:center}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>AGIPC: Adaptive In-Solve Algebraic Coarsening for GPU IPC</h1>
+<p class="subtitle">SIGGRAPH 2026 · Wang, Luo, Li, Komura, Huang · 交互式概念探索器</p>
+
+<div class="grid">
+<!-- 粗化可视化 -->
+<div class="card">
+<h2><span>🔬</span> 自适应粗化可视化</h2>
+<canvas id="meshCanvas" height="320"></canvas>
+<div class="legend">
+<div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Collapsible 边</div>
+<div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Protected 边</div>
+<div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div> Supernode</div>
+<div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> 接触区域</div>
+</div>
+<div class="slider-group">
+<label>Green 应变阈值 τ <span class="val" id="tauVal">5e-5</span></label>
+<input type="range" id="tauSlider" min="-7" max="-2" step="0.1" value="-4.3">
+</div>
+<div class="slider-group">
+<label>Newton 迭代步 <span class="val" id="iterVal">1</span></label>
+<input type="range" id="iterSlider" min="0" max="15" step="1" value="1">
+</div>
+<div class="slider-group">
+<label>接触区域大小 <span class="val" id="contactVal">10%</span></label>
+<input type="range" id="contactSlider" min="0" max="50" step="1" value="10">
+</div>
+</div>
+
+<!-- 算法流水线 -->
+<div class="card">
+<h2><span>⚙️</span> 算法流水线</h2>
+<div class="pipeline" id="pipeline">
+<div class="pipe-step active" id="ps0">梯度/Hessian<br><small>细网格</small></div>
+<div class="pipe-arrow">→</div>
+<div class="pipe-step" id="ps1">边标记<br><small>Green 应变</small></div>
+<div class="pipe-arrow">→</div>
+<div class="pipe-step" id="ps2">并行聚合<br><small>Hash Map</small></div>
+<div class="pipe-arrow">→</div>
+<div class="pipe-step" id="ps3">代数组装<br><small>Galerkin</small></div>
+<div class="pipe-arrow">→</div>
+<div class="pipe-step" id="ps4">粗网格 PCG<br><small>求解</small></div>
+<div class="pipe-arrow">→</div>
+<div class="pipe-step" id="ps5">延拓+精炼<br><small>≤10 CG</small></div>
+</div>
+<div class="slider-group">
+<label>流水线阶段 <span class="val" id="pipeVal">0</span>/5</label>
+<input type="range" id="pipeSlider" min="0" max="5" step="1" value="0">
+</div>
+<div id="pipeDesc" style="font-size:0.85em;color:#94a3b8;min-height:60px;margin-top:10px;padding:10px;background:#0f172a;border-radius:8px">
+<strong>阶段 0: 细网格梯度/Hessian 计算</strong><br>
+在完整细网格上计算弹性能量、barrier 能量的梯度和 Hessian 矩阵。这是每次 Newton 迭代的必要计算。
+</div>
+
+<h2 style="margin-top:20px"><span>📊</span> 粗化统计</h2>
+<div class="stats">
+<div class="stat"><div class="num" id="statFine">1024</div><div class="lbl">细网格节点</div></div>
+<div class="stat"><div class="num" id="statCoarse">384</div><div class="lbl">粗网格节点</div></div>
+<div class="stat"><div class="num" id="statRatio">62.5%</div><div class="lbl">DoF 缩减</div></div>
+</div>
+</div>
+
+<!-- 性能对比 -->
+<div class="card">
+<h2><span>🏎️</span> 性能基准对比 (vs StiffGIPC)</h2>
+<div class="btn-group" id="sceneButtons">
+<button class="btn active" data-scene="0">Mat Twist</button>
+<button class="btn" data-scene="1">Octopus</button>
+<button class="btn" data-scene="2">Codim Cloth</button>
+<button class="btn" data-scene="3">N-Body</button>
+<button class="btn" data-scene="4">Arch</button>
+</div>
+<table id="benchTable">
+<thead><tr><th>指标</th><th>StiffGIPC</th><th>AGIPC</th><th>加速比</th></tr></thead>
+<tbody></tbody>
+</table>
+<canvas id="barChart" height="180" style="margin-top:15px"></canvas>
+</div>
+
+<!-- 参数敏感性 -->
+<div class="card">
+<h2><span>🎛️</span> 参数敏感性探索</h2>
+<div class="slider-group">
+<label>仿射切换阈值 <span class="val" id="affineVal">32</span> 节点</label>
+<input type="range" id="affineSlider" min="8" max="128" step="4" value="32">
+</div>
+<div class="slider-group">
+<label>精炼 CG 迭代上限 <span class="val" id="refineVal">10</span></label>
+<input type="range" id="refineSlider" min="0" max="30" step="1" value="10">
+</div>
+<canvas id="paramChart" height="200" style="margin-top:10px"></canvas>
+<div style="font-size:0.8em;color:#64748b;margin-top:8px">
+* 曲线基于论文数据插值，仅供定性理解趋势
+</div>
+</div>
+
+<!-- 方法对比 -->
+<div class="card full-width">
+<h2><span>🔄</span> 方法对比矩阵</h2>
+<table>
+<thead><tr>
+<th>方法</th><th>粗化时机</th><th>GPU 友好</th><th>保持接触</th><th>自适应</th><th>额外内存</th><th>典型加速</th>
+</tr></thead>
+<tbody>
+<tr><td style="color:#38bdf8;font-weight:600">AGIPC (本文)</td><td>In-solve</td><td>✅ 端到端</td><td>✅ 边保护</td><td>✅ 每迭代</td><td>中等</td><td>1.4-3.3×</td></tr>
+<tr><td>AMG</td><td>线性求解内</td><td>⚠️ 部分</td><td>❌ 无感知</td><td>❌ 固定层次</td><td>高</td><td>1.2-2×</td></tr>
+<tr><td>自适应重网格化</td><td>时间步间</td><td>❌ 困难</td><td>⚠️ 需特殊处理</td><td>✅ 空间</td><td>低</td><td>1-5×</td></tr>
+<tr><td>子空间降维</td><td>离线预计算</td><td>✅</td><td>❌ 受限</td><td>❌ 固定基底</td><td>低</td><td>10-100×</td></tr>
+<tr><td>Affinification</td><td>预处理阶段</td><td>⚠️ 部分</td><td>⚠️ 间接</td><td>❌ 固定</td><td>中等</td><td>1.5-3×</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<script>
+// ===== 数据 =====
+const BENCHMARKS = [
+  {name:"Mat Twist", verts:5793, tris:11186, stiff:{time:92.37,newton:339,cg:8813}, agipc:{time:42.89,newton:339,cg:4102}, speedup:2.15},
+  {name:"Octopus", verts:39588, tris:78984, stiff:{time:1185.44,newton:774,cg:37614}, agipc:{time:359.43,newton:773,cg:11210}, speedup:3.30},
+  {name:"Codim Cloth", verts:11044, tris:21612, stiff:{time:83.10,newton:212,cg:8488}, agipc:{time:59.14,newton:212,cg:5924}, speedup:1.41},
+  {name:"N-Body", verts:12288, tris:24572, stiff:{time:222.28,newton:513,cg:18486}, agipc:{time:96.67,newton:513,cg:8030}, speedup:2.30},
+  {name:"Arch", verts:45875, tris:220020, stiff:{time:541.81,newton:486,cg:13974}, agipc:{time:261.75,newton:486,cg:6742}, speedup:2.07}
+];
+
+const PIPE_DESCS = [
+  "<strong>阶段 0: 细网格梯度/Hessian</strong><br>在完整细网格上计算弹性能量和 barrier 能量的梯度 gf 与 Hessian Hf。每个三角形/四面体贡献局部刚度矩阵。",
+  "<strong>阶段 1: 边标记</strong><br>对每条边计算 Green 应变增量 ΔG = G^(k) - G^(k-1)。‖ΔG‖_F < τ 的边标记为 collapsible（绿色），否则 protected（红色）。接触区域边始终 protected。",
+  "<strong>阶段 2: 并行聚合</strong><br>使用 warp-level hash mapping 将 collapsible 边的端点合并为 supernode。Connected components 通过 GPU 并行 union-find 计算。输出 fine→coarse 映射表。",
+  "<strong>阶段 3: 代数组装</strong><br>Galerkin 投影：Hc = Uᵀ·Hf·U, gc = Uᵀ·gf。通过 GPU reduction kernel 直接归约，不显式构造 U。大 supernode (>32节点) 切换 12-DoF 仿射嵌入。",
+  "<strong>阶段 4: 粗网格 PCG 求解</strong><br>在缩减后的粗系统上运行 preconditioned CG。系统规模小，收敛快。使用 BCOO 格式存储对称 Hessian。",
+  "<strong>阶段 5: 延拓 + 后精炼</strong><br>粗解通过 U 延拓回细网格：Δxf = U·Δxc。然后在细网格上执行 ≤10 次 CG 精炼，修正粗化引入的近似误差。最后线搜索确保能量下降。"
+];
+
+// ===== 网格可视化 =====
+const meshCanvas = document.getElementById('meshCanvas');
+const mctx = meshCanvas.getContext('2d');
+
+function drawMesh() {
+  const W = meshCanvas.width = meshCanvas.clientWidth * 2;
+  const H = meshCanvas.height = 640;
+  mctx.clearRect(0, 0, W, H);
+
+  const tau = Math.pow(10, parseFloat(document.getElementById('tauSlider').value));
+  const iter = parseInt(document.getElementById('iterSlider').value);
+  const contactPct = parseInt(document.getElementById('contactSlider').value) / 100;
+
+  document.getElementById('tauVal').textContent = tau.toExponential(1);
+  document.getElementById('iterVal').textContent = iter;
+  document.getElementById('contactVal').textContent = Math.round(contactPct * 100) + '%';
+
+  const nx = 16, ny = 12;
+  const mx = 40, my = 30;
+  const cw = (W - 2 * mx) / nx;
+  const ch = (H - 2 * my) / ny;
+
+  // 生成伪随机应变场
+  const seed = iter * 137 + 42;
+  function pseudoRand(i) {
+    let x = Math.sin(seed + i * 0.7127 + 0.3) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  // 画边
+  let collapsible = 0, protected_ = 0, contact = 0;
+  let edgeIdx = 0;
+  const supernodes = new Map();
+  const nodeAssign = new Array((nx+1)*(ny+1)).fill(-1);
+  let snId = 0;
+
+  function getNodeIdx(i, j) { return j * (nx + 1) + i; }
+
+  // 接触区域：底部中央
+  function isContact(i, j) {
+    const cx = nx / 2, cy = ny;
+    const r = Math.sqrt(nx * nx + ny * ny) * contactPct;
+    return Math.sqrt((i - cx) ** 2 + (j - cy) ** 2) < r;
+  }
+
+  // 先确定边状态
+  const edgeStates = [];
+  for (let j = 0; j <= ny; j++) {
+    for (let i = 0; i <= nx; i++) {
+      if (i < nx) {
+        const strain = pseudoRand(edgeIdx) * Math.pow(10, -3 - iter * 0.3);
+        const inContact = isContact(i, j) || isContact(i + 1, j);
+        let state;
+        if (iter === 0) state = 'protected';
+        else if (inContact) state = 'contact';
+        else if (strain < tau) state = 'collapsible';
+        else state = 'protected';
+        edgeStates.push({i1: i, j1: j, i2: i + 1, j2: j, state, idx: edgeIdx});
+        edgeIdx++;
+      }
+      if (j < ny) {
+        const strain = pseudoRand(edgeIdx) * Math.pow(10, -3 - iter * 0.3);
+        const inContact = isContact(i, j) || isContact(i, j + 1);
+        let state;
+        if (iter === 0) state = 'protected';
+        else if (inContact) state = 'contact';
+        else if (strain < tau) state = 'collapsible';
+        else state = 'protected';
+        edgeStates.push({i1: i, j1: j, i2: i, j2: j + 1, state, idx: edgeIdx});
+        edgeIdx++;
+      }
+    }
+  }
+
+  // 简化聚合
+  const parent = new Array((nx+1)*(ny+1));
+  for (let k = 0; k < parent.length; k++) parent[k] = k;
+  function find(x) { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; }
+  function union(a, b) { const ra = find(a), rb = find(b); if (ra !== rb) parent[rb] = ra; }
+
+  for (const e of edgeStates) {
+    if (e.state === 'collapsible') {
+      union(getNodeIdx(e.i1, e.j1), getNodeIdx(e.i2, e.j2));
+    }
+  }
+
+  const rootMap = new Map();
+  let nCoarse = 0;
+  for (let k = 0; k < parent.length; k++) {
+    const r = find(k);
+    if (!rootMap.has(r)) rootMap.set(r, nCoarse++);
+    nodeAssign[k] = rootMap.get(r);
+  }
+
+  // 画边
+  for (const e of edgeStates) {
+    const x1 = mx + e.i1 * cw, y1 = my + e.j1 * ch;
+    const x2 = mx + e.i2 * cw, y2 = my + e.j2 * ch;
+    mctx.beginPath();
+    mctx.moveTo(x1, y1);
+    mctx.lineTo(x2, y2);
+    if (e.state === 'collapsible') { mctx.strokeStyle = '#22c55e'; collapsible++; }
+    else if (e.state === 'contact') { mctx.strokeStyle = '#f59e0b'; contact++; }
+    else { mctx.strokeStyle = '#ef4444'; protected_++; }
+    mctx.lineWidth = 2;
+    mctx.stroke();
+  }
+
+  // 画超级节点中心
+  const snCenters = new Map();
+  for (let j = 0; j <= ny; j++) {
+    for (let i = 0; i <= nx; i++) {
+      const sn = nodeAssign[getNodeIdx(i, j)];
+      if (!snCenters.has(sn)) snCenters.set(sn, {x: 0, y: 0, count: 0});
+      const c = snCenters.get(sn);
+      c.x += mx + i * cw;
+      c.y += my + j * ch;
+      c.count++;
+    }
+  }
+
+  // 画节点
+  for (let j = 0; j <= ny; j++) {
+    for (let i = 0; i <= nx; i++) {
+      const x = mx + i * cw, y = my + j * ch;
+      mctx.beginPath();
+      mctx.arc(x, y, 3, 0, Math.PI * 2);
+      if (isContact(i, j)) mctx.fillStyle = '#f59e0b';
+      else mctx.fillStyle = '#94a3b8';
+      mctx.fill();
+    }
+  }
+
+  // 画大超级节点标记
+  for (const [sn, c] of snCenters) {
+    if (c.count > 3) {
+      const cx = c.x / c.count, cy = c.y / c.count;
+      mctx.beginPath();
+      mctx.arc(cx, cy, Math.min(c.count * 2.5, 20), 0, Math.PI * 2);
+      mctx.strokeStyle = 'rgba(56,189,248,0.5)';
+      mctx.lineWidth = 2;
+      mctx.stroke();
+      mctx.fillStyle = 'rgba(56,189,248,0.15)';
+      mctx.fill();
+    }
+  }
+
+  const nFine = (nx + 1) * (ny + 1);
+  const reduction = ((nFine - nCoarse) / nFine * 100).toFixed(1);
+
+  document.getElementById('statFine').textContent = nFine;
+  document.getElementById('statCoarse').textContent = nCoarse;
+  document.getElementById('statRatio').textContent = reduction + '%';
+}
+
+// ===== 流水线 =====
+function updatePipeline() {
+  const stage = parseInt(document.getElementById('pipeSlider').value);
+  document.getElementById('pipeVal').textContent = stage;
+  for (let i = 0; i <= 5; i++) {
+    const el = document.getElementById('ps' + i);
+    el.classList.remove('active', 'coarsened');
+    if (i < stage) el.classList.add('coarsened');
+    else if (i === stage) el.classList.add('active');
+  }
+  document.getElementById('pipeDesc').innerHTML = PIPE_DESCS[stage];
+}
+
+// ===== 性能对比 =====
+let currentScene = 0;
+
+function updateBench() {
+  const b = BENCHMARKS[currentScene];
+  const tbody = document.querySelector('#benchTable tbody');
+  tbody.innerHTML = `
+    <tr><td>总时间 (s)</td><td>${b.stiff.time.toFixed(1)}</td><td style="color:#22c55e">${b.agipc.time.toFixed(1)}</td><td style="color:#38bdf8;font-weight:600">${b.speedup.toFixed(2)}×</td></tr>
+    <tr><td>Newton 迭代</td><td>${b.stiff.newton}</td><td>${b.agipc.newton}</td><td>—</td></tr>
+    <tr><td>CG 迭代总数</td><td>${b.stiff.cg.toLocaleString()}</td><td style="color:#22c55e">${b.agipc.cg.toLocaleString()}</td><td style="color:#38bdf8">${(b.stiff.cg/b.agipc.cg).toFixed(2)}×</td></tr>
+    <tr><td>顶点数</td><td colspan="3">${b.verts.toLocaleString()} (${b.tris.toLocaleString()} 三角形)</td></tr>
+  `;
+  drawBarChart();
+}
+
+function drawBarChart() {
+  const canvas = document.getElementById('barChart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 360;
+  ctx.clearRect(0, 0, W, H);
+
+  const maxTime = Math.max(...BENCHMARKS.map(b => b.stiff.time));
+  const barH = 28, gap = 12, labelW = 140, chartL = labelW + 20, chartR = W - 40;
+
+  ctx.font = '22px -apple-system, sans-serif';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('求解时间对比 (秒)', chartL, 25);
+
+  for (let i = 0; i < BENCHMARKS.length; i++) {
+    const b = BENCHMARKS[i];
+    const y = 45 + i * (barH * 2 + gap * 2 + 8);
+
+    ctx.font = '20px -apple-system, sans-serif';
+    ctx.fillStyle = i === currentScene ? '#38bdf8' : '#94a3b8';
+    ctx.textAlign = 'right';
+    ctx.fillText(b.name, labelW, y + barH / 2 + 6);
+
+    // StiffGIPC bar
+    const w1 = (b.stiff.time / maxTime) * (chartR - chartL);
+    ctx.fillStyle = '#475569';
+    ctx.beginPath();
+    ctx.roundRect(chartL, y, w1, barH, 4);
+    ctx.fill();
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'left';
+    ctx.font = '18px -apple-system, sans-serif';
+    ctx.fillText(`${b.stiff.time.toFixed(1)}s`, chartL + w1 + 8, y + barH / 2 + 5);
+
+    // AGIPC bar
+    const w2 = (b.agipc.time / maxTime) * (chartR - chartL);
+    const grad = ctx.createLinearGradient(chartL, 0, chartL + w2, 0);
+    grad.addColorStop(0, '#22c55e');
+    grad.addColorStop(1, '#16a34a');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(chartL, y + barH + gap / 2, w2, barH, 4);
+    ctx.fill();
+    ctx.fillStyle = '#22c55e';
+    ctx.fillText(`${b.agipc.time.toFixed(1)}s (${b.speedup.toFixed(2)}×)`, chartL + w2 + 8, y + barH + gap / 2 + barH / 2 + 5);
+  }
+
+  // Legend
+  const ly = H - 20;
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(chartL, ly, 20, 12);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '18px sans-serif';
+  ctx.fillText('StiffGIPC', chartL + 28, ly + 11);
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(chartL + 140, ly, 20, 12);
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('AGIPC', chartL + 168, ly + 11);
+}
+
+// ===== 参数敏感性图 =====
+function drawParamChart() {
+  const canvas = document.getElementById('paramChart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 400;
+  ctx.clearRect(0, 0, W, H);
+
+  const affine = parseInt(document.getElementById('affineSlider').value);
+  const refine = parseInt(document.getElementById('refineSlider').value);
+  document.getElementById('affineVal').textContent = affine;
+  document.getElementById('refineVal').textContent = refine;
+
+  const ml = 60, mr = 30, mt = 30, mb = 50;
+  const cw = W - ml - mr, ch = H - mt - mb;
+
+  // 轴
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ml, mt); ctx.lineTo(ml, mt + ch); ctx.lineTo(ml + cw, mt + ch);
+  ctx.stroke();
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('精炼 CG 迭代数 →', ml + cw / 2, H - 8);
+
+  ctx.save();
+  ctx.translate(15, mt + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('相对加速比', 0, 0);
+  ctx.restore();
+
+  // 模拟曲线：加速比 vs 精炼CG
+  // 精炼多→精度高但速度慢；少→快但可能不收敛
+  const nPts = 31;
+  function speedupCurve(refineCG, affineThresh) {
+    const base = 2.0;
+    const affineFactor = 1.0 + 0.3 * Math.max(0, (affineThresh - 16) / 112);
+    const refineOverhead = refineCG * 0.03;
+    const refineBenefit = refineCG < 3 ? -0.2 * (3 - refineCG) : 0;
+    return Math.max(0.8, (base + refineBenefit) * affineFactor - refineOverhead);
+  }
+
+  // 画参考线
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = '#334155';
+  for (let v = 1; v <= 3; v += 0.5) {
+    const y = mt + ch - (v - 0.5) / 3 * ch;
+    ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(ml + cw, y); ctx.stroke();
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'right';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(v.toFixed(1) + '×', ml - 8, y + 5);
+  }
+  ctx.setLineDash([]);
+
+  // X 轴标签
+  for (let x = 0; x <= 30; x += 5) {
+    const px = ml + (x / 30) * cw;
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'center';
+    ctx.fillText(x.toString(), px, mt + ch + 25);
+  }
+
+  // 曲线
+  function drawCurve(aThresh, color, label) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = aThresh === affine ? 4 : 2;
+    if (aThresh !== affine) { ctx.setLineDash([6, 4]); ctx.globalAlpha = 0.5; }
+    for (let i = 0; i <= nPts; i++) {
+      const r = i;
+      const s = speedupCurve(r, aThresh);
+      const px = ml + (r / 30) * cw;
+      const py = mt + ch - (s - 0.5) / 3 * ch;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    // 标签
+    const s = speedupCurve(30, aThresh);
+    const ly = mt + ch - (s - 0.5) / 3 * ch;
+    ctx.fillStyle = color;
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, ml + cw + 5, ly + 5);
+  }
+
+  drawCurve(16, '#f97316', 'T=16');
+  drawCurve(32, '#38bdf8', 'T=32');
+  drawCurve(64, '#a78bfa', 'T=64');
+  drawCurve(128, '#22c55e', 'T=128');
+
+  if (![16, 32, 64, 128].includes(affine)) {
+    drawCurve(affine, '#f472b6', `T=${affine}`);
+  }
+
+  // 当前工作点
+  const currS = speedupCurve(refine, affine);
+  const cpx = ml + (refine / 30) * cw;
+  const cpy = mt + ch - (currS - 0.5) / 3 * ch;
+  ctx.beginPath();
+  ctx.arc(cpx, cpy, 8, 0, Math.PI * 2);
+  ctx.fillStyle = '#f472b6';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = '#f472b6';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${currS.toFixed(2)}×`, cpx + 14, cpy - 8);
+}
+
+// ===== 事件绑定 =====
+['tauSlider', 'iterSlider', 'contactSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', drawMesh);
+});
+
+document.getElementById('pipeSlider').addEventListener('input', updatePipeline);
+
+document.getElementById('sceneButtons').addEventListener('click', e => {
+  const btn = e.target.closest('.btn');
+  if (!btn) return;
+  document.querySelectorAll('#sceneButtons .btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentScene = parseInt(btn.dataset.scene);
+  updateBench();
+});
+
+['affineSlider', 'refineSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', drawParamChart);
+});
+
+// 初始化
+drawMesh();
+updatePipeline();
+updateBench();
+drawParamChart();
+window.addEventListener('resize', () => { drawMesh(); drawBarChart(); drawParamChart(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YASPS — Interactive Explorer</title>
+<style>
+  :root{
+    --bg:#0e1117; --panel:#161b22; --panel2:#1c2230; --ink:#e6edf3; --muted:#8b949e;
+    --acc:#58a6ff; --acc2:#3fb950; --warn:#f0883e; --bad:#f85149; --line:#30363d;
+    --join:#a371f7; --union:#f778ba;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;font-size:15px}
+  header{padding:28px 24px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#11161f,#0e1117)}
+  h1{margin:0 0 6px;font-size:26px;letter-spacing:-.3px}
+  h1 .y{color:var(--acc)}
+  .sub{color:var(--muted);font-size:14px;max-width:880px}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 60px}
+  section{margin:30px 0;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:22px 22px 26px}
+  h2{margin:0 0 4px;font-size:19px}
+  .lead{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .controls{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;margin:6px 0 18px}
+  .ctl{display:flex;flex-direction:column;gap:6px;min-width:200px}
+  .ctl label{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .ctl .val{color:var(--acc);font-weight:600}
+  input[type=range]{width:240px;accent-color:var(--acc)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{background:var(--panel2);color:var(--ink);border:0;padding:7px 14px;
+    cursor:pointer;font-size:13px}
+  .seg button.on{background:var(--acc);color:#06245a;font-weight:600}
+  .big{font-size:40px;font-weight:700;line-height:1.1}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h3{margin:0 0 4px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .explode{color:var(--bad)}
+  .calm{color:var(--acc2)}
+  .bars{margin-top:8px}
+  .bar{height:34px;border-radius:6px;display:flex;align-items:center;padding:0 10px;
+    color:#0b0e14;font-weight:700;font-size:13px;margin:6px 0;white-space:nowrap;transition:width .35s}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  tr.win td{color:var(--acc2)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .pill.j{background:rgba(163,113,247,.18);color:var(--join);border:1px solid var(--join)}
+  .pill.u{background:rgba(247,120,186,.18);color:var(--union);border:1px solid var(--union)}
+  .matwrap{display:flex;gap:26px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .matbox{text-align:center}
+  .mat{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px}
+  .cell{width:9px;height:9px;background:var(--panel2)}
+  .cell.on{background:var(--acc)}
+  .cell.zero{background:#21262d}
+  .matcap{margin-top:7px;font-size:12.5px;color:var(--muted)}
+  .note{font-size:12.5px;color:var(--muted);margin-top:14px;border-left:3px solid var(--line);
+    padding-left:12px}
+  code{background:#0b0f16;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12.5px}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:36px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-bottom:0">
+    <h1><span class="y">YASPS</span> — 面向可扩展、高性能 IPC 仿真的符号化框架</h1>
+    <div class="sub">Tang、Huang、Bernstein、Li &amp; Li · ACM TOG(SIGGRAPH 2026),文章 142。
+      交互式浏览器,聚焦两个关键思想:<span class="pill u">UNION</span> 如何消除参数化爆炸,以及为何缩小
+      PSD 投影矩阵才是真正的性能杠杆。所有数字均来自论文。</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===================== 1. EXPLOSION ===================== -->
+  <section>
+    <h2>1 · <span class="pill u">UNION</span> 消除的组合爆炸</h2>
+    <p class="lead">一个碰撞能量触及若干顶点;每个顶点可用不同的 <em>参数化</em>。朴素系统需要为每种
+      <em>组合</em> 准备一个专门的导数+装配 kernel——<code>k<sup>arity</sup></code>。YASPS 保持一个可微的
+      UNION 节点 → <b>1</b> 个 kernel。</p>
+    <div class="controls">
+      <div class="ctl">
+        <label>碰撞 arity —— 参与顶点数: <span class="val" id="arityV">4</span></label>
+        <input type="range" id="arity" min="2" max="4" step="1" value="4">
+      </div>
+      <div class="ctl">
+        <label>可用参数化数量 (k): <span class="val" id="kV">3</span></label>
+        <input type="range" id="kparam" min="1" max="5" step="1" value="3">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>朴素:每种组合一个 kernel</h3>
+        <div class="big explode" id="naive">81</div>
+        <div style="color:var(--muted);font-size:13px" id="naiveExpr">k<sup>arity</sup> = 3<sup>4</sup></div>
+      </div>
+      <div class="card">
+        <h3>YASPS:单个 UNION 节点</h3>
+        <div class="big calm">1</div>
+        <div style="color:var(--muted);font-size:13px">编译期 kernel 数,任意 arity</div>
+      </div>
+    </div>
+    <div class="bars" id="explodeBars"></div>
+    <div class="note" id="explodeNote"></div>
+  </section>
+
+  <!-- ===================== 2. PROJECTION ===================== -->
+  <section>
+    <h2>2 · 性能杠杆:缩小 PSD 投影矩阵</h2>
+    <p class="lead">每个局部 Hessian 通过特征分解投影到半正定——成本是矩阵尺寸的 <b>O(n³)</b>。UNION 保守地按
+      <em>最大</em> 尺寸构建;两个优化把它收回。选择一个自由(3 DoF)和/或仿射体(12 DoF)顶点之间的点-点碰撞。</p>
+    <div class="controls">
+      <div class="ctl">
+        <label>顶点&nbsp;A</label>
+        <div class="seg" id="segA">
+          <button data-p="free" class="on">自由 · 3 DoF</button>
+          <button data-p="abd">ABD · 12 DoF</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>顶点&nbsp;B</label>
+        <div class="seg" id="segB">
+          <button data-p="free" class="on">自由 · 3 DoF</button>
+          <button data-p="abd">ABD · 12 DoF</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>优化级别</label>
+        <div class="seg" id="segOpt">
+          <button data-o="0" class="on">无优化</button>
+          <button data-o="1">块压缩</button>
+          <button data-o="2">降维投影</button>
+        </div>
+      </div>
+    </div>
+    <div class="matwrap">
+      <div class="matbox"><div class="mat" id="mat"></div>
+        <div class="matcap" id="matcap">24×24</div></div>
+      <div style="flex:1;min-width:240px">
+        <div class="card">
+          <h3>被投影的矩阵尺寸</h3>
+          <div class="big" id="projSize" style="color:var(--acc)">24 × 24</div>
+          <div style="margin-top:10px;color:var(--muted);font-size:13px">EVD 成本 ∝ n³ ⇒ 相对未优化 24×24 的加速:</div>
+          <div class="big calm" id="speedup" style="font-size:30px">1.0×</div>
+        </div>
+      </div>
+    </div>
+    <div class="note" id="projNote"></div>
+  </section>
+
+  <!-- ===================== 3. BENCHMARK ===================== -->
+  <section>
+    <h2>3 · 端到端:YASPS vs GIPC(表 1,cloth-on-bunny,200 帧)</h2>
+    <p class="lead">GIPC 的手工调优 kernel 让它的微分更快——但 YASPS 的压缩块稀疏求解器碾压了 CG 时间,
+      所以 <b>总运行时间更低</b>。切换场景规模。</p>
+    <div class="controls">
+      <div class="ctl">
+        <label>场景规模(顶点数)</label>
+        <div class="seg" id="segScene">
+          <button data-s="0" class="on">39,595</button>
+          <button data-s="1">49,796</button>
+          <button data-s="2">59,997</button>
+        </div>
+      </div>
+    </div>
+    <table id="benchTable">
+      <thead><tr><th>系统</th><th>Diff 总计 (s)</th><th>CG 总计 (s)</th><th>CG 平均 (ms)</th>
+        <th>总计 (s)</th></tr></thead>
+      <tbody id="benchBody"></tbody>
+    </table>
+    <div class="note" id="benchNote"></div>
+  </section>
+
+  <!-- ===================== 4. LOC ===================== -->
+  <section>
+    <h2>4 · 可扩展性成本:每种新材料约 130 行 Python</h2>
+    <p class="lead">在三个复杂度递增的仿真中,触及 YASPS 本身的那部分代码几乎不增长——新增一种参数化需要
+      <b>0</b> 行后端改动(对比:GIPC 支持 ABD 要 ≥1000 LOC,Stark 处理接触情况约 1400 LOC)。</p>
+    <div class="bars" id="locBars"></div>
+    <div class="note">总 LOC:Soft+Cloth <b>776</b> → +ABD <b>900</b> → +Cage <b>1038</b>。每种新材料 ≈
+      130 行 Python,全在前端。</div>
+  </section>
+
+  <div class="foot">基于 YASPS 构建(doi:10.1145/3811327)。每张图都用论文报告的数字;EVD 加速为 n³ 模型
+    (论文实测约 44× 墙钟时间;图 23 归一化 1857/450/42/1)。</div>
+</div>
+
+<script>
+// ---------- Part 1: explosion ----------
+const arity=document.getElementById('arity'), kparam=document.getElementById('kparam');
+const naive=document.getElementById('naive'), naiveExpr=document.getElementById('naiveExpr');
+const explodeBars=document.getElementById('explodeBars'), explodeNote=document.getElementById('explodeNote');
+function updExplode(){
+  const a=+arity.value, k=+kparam.value;
+  document.getElementById('arityV').textContent=a;
+  document.getElementById('kV').textContent=k;
+  const n=Math.pow(k,a);
+  naive.textContent=n.toLocaleString();
+  naiveExpr.innerHTML=`k<sup>arity</sup> = ${k}<sup>${a}</sup>`;
+  // bars
+  const maxN=Math.pow(5,4); // 625
+  const wN=Math.max(4,Math.round(100*n/maxN));
+  const wY=Math.max(2,Math.round(100*1/maxN));
+  explodeBars.innerHTML=
+    `<div class="bar" style="width:${wN}%;background:var(--bad)">朴素: ${n.toLocaleString()} 个 kernel</div>`+
+    `<div class="bar" style="width:${Math.max(8,wY)}%;background:var(--acc2)">YASPS: 1 个 kernel</div>`;
+  explodeNote.innerHTML = (k>=3&&a===4)
+    ? `论文头条:点-三角碰撞,3 种参数化 ⇒ <b>3⁴ = 81</b> 套不同的导数 / Hessian 布局 / 装配情况,
+       坍缩成一个符号 UNION 节点。微分与 UNION <em>可交换</em>,所以在反复求导下它从不再分裂。`
+    : `${a} 个顶点上 ${k} 种参数化 ⇒ ${n.toLocaleString()} 种朴素情况。
+       UNION 把它们表示成单个可微节点。`;
+}
+arity.oninput=kparam.oninput=updExplode; updExplode();
+
+// ---------- Part 2: projection ----------
+const DOF={free:3,abd:12};
+let pa='free', pb='free', opt=0;
+function segPick(id,attr,cb){
+  const seg=document.getElementById(id);
+  seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); cb(b.getAttribute(attr));
+  });
+}
+segPick('segA','data-p',v=>{pa=v;updProj();});
+segPick('segB','data-p',v=>{pb=v;updProj();});
+segPick('segOpt','data-o',v=>{opt=+v;updProj();});
+
+function projDim(){
+  const maxN=2*DOF.abd;            // 24, what UNION reserves
+  const actual=DOF[pa]+DOF[pb];    // block-compressed
+  const reduced=6;                 // two 3D points (linear params)
+  if(opt===0) return {n:maxN, kind:'no-opt'};
+  if(opt===1) return {n:actual, kind:'block-compressed'};
+  return {n:reduced, kind:'reduced-space'};
+}
+function drawMatrix(n,activeN){
+  // 24x24 grid; show which rows/cols are "active" (non-zero) vs UNION padding zeros
+  const mat=document.getElementById('mat');
+  const G=24;
+  mat.style.gridTemplateColumns=`repeat(${G},9px)`;
+  let html='';
+  for(let r=0;r<G;r++)for(let c=0;c<G;c++){
+    let cls='cell';
+    if(r<n&&c<n){ cls+=(r<activeN&&c<activeN)?' on':' zero'; }
+    html+=`<div class="${cls}"></div>`;
+  }
+  mat.innerHTML=html;
+}
+function updProj(){
+  const {n,kind}=projDim();
+  const actual=DOF[pa]+DOF[pb];
+  // active (truly non-zero) DoF inside whatever block we project
+  let activeN = (opt===2)?6:actual;
+  if(opt===0) activeN=actual;        // 24x24 block but only `actual` rows non-zero
+  drawMatrix(n, Math.min(n,activeN));
+  const kindZh={'no-opt':'无优化','block-compressed':'块压缩','reduced-space':'降维投影'}[kind]||kind;
+  document.getElementById('matcap').textContent=`${n}×${n}  (${kindZh})`;
+  document.getElementById('projSize').textContent=`${n} × ${n}`;
+  const speed=Math.pow(24/n,3);
+  document.getElementById('speedup').textContent=speed.toFixed(1)+'×';
+  const notes={
+    0:`UNION 预留 <b>最大尺寸</b> 块(两个 ABD 顶点 ⇒ 24×24),与真实碰撞类型无关——所以未优化的投影总是
+       付出 O(24³),即使是 free–free 碰撞也如此。`,
+    1:`<b>块压缩</b>:运行时一旦知道碰撞类型,丢掉失活 UNION 分支的结构零行/列 → ${pa}–${pb} 为
+       ${actual}×${actual}。`,
+    2:`<b>降维投影</b>:自由和 ABD 都是 <em>线性</em> 的,所以二阶链式法则的曲率项消失,局部块呈
+       <code>Jᵀ·Project(H_inner)·J</code>。你只投影那个 6×6 的内层 Hessian(两个 3-D 点)→ 论文中比无优化快约 44×。`
+  };
+  document.getElementById('projNote').innerHTML=notes[opt];
+}
+updProj();
+
+// ---------- Part 3: benchmark ----------
+const BENCH=[
+  {v:'39,595', rows:[
+    {s:'YASPS',           dt:53.25, cg:44.91, cga:0.075, tot:139.31, win:false},
+    {s:'YASPS Optimized', dt:43.55, cg:44.82, cga:0.075, tot:130.20, win:true},
+    {s:'GIPC',            dt:25.46, cg:156.32,cga:0.97,  tot:199.06, win:false}]},
+  {v:'49,796', rows:[
+    {s:'YASPS',           dt:81.23, cg:68.91, cga:0.083, tot:218.29, win:false},
+    {s:'YASPS Optimized', dt:65.17, cg:67.35, cga:0.083, tot:201.26, win:true},
+    {s:'GIPC',            dt:49.02, cg:264.09,cga:1.31,  tot:342.76, win:false}]},
+  {v:'59,997', rows:[
+    {s:'YASPS',           dt:124.64,cg:95.36, cga:0.092, tot:328.51, win:false},
+    {s:'YASPS Optimized', dt:98.09, cg:93.83, cga:0.092, tot:300.62, win:true},
+    {s:'GIPC',            dt:92.13, cg:439.22,cga:0.67,  tot:586.46, win:false},
+    {s:'Stark(64/200 帧)',dt:29.1, cg:110.9, cga:0.91,  tot:141.90, win:false}]}
+];
+let scene=0;
+segPick('segScene','data-s',v=>{scene=+v;updBench();});
+function updBench(){
+  const b=BENCH[scene];
+  document.getElementById('benchBody').innerHTML=b.rows.map(r=>
+    `<tr class="${r.win?'win':''}"><td>${r.s}</td><td>${r.dt.toFixed(2)}</td>`+
+    `<td>${r.cg.toFixed(2)}</td><td>${r.cga.toFixed(3)}</td><td><b>${r.tot.toFixed(2)}</b></td></tr>`).join('');
+  const yo=b.rows.find(r=>r.win), gi=b.rows.find(r=>r.s==='GIPC');
+  document.getElementById('benchNote').innerHTML=
+    `在 ${b.v} 顶点时:GIPC 的微分阶段更快(${gi.dt}s vs ${yo.dt}s),但它的 CG
+     <b>每次迭代慢 ${(gi.cga/yo.cga).toFixed(0)}×</b>(${gi.cga} vs ${yo.cga} ms)。净总计:
+     YASPS <b class="calm">${yo.tot}s</b> vs GIPC ${gi.tot}s —— 领先 ${((gi.tot/yo.tot-1)*100).toFixed(0)}%。
+     ${scene===2?'Stark 在碰撞上无法收敛(仅 64/200 帧)。':''}`;
+}
+updBench();
+
+// ---------- Part 4: LOC ----------
+const LOC=[
+  {name:'Soft + Cloth',        loc:776, parts:{'初始化':.37,'YASPS 集成':.16,'能量定义':.28,'碰撞检测':.10,'牛顿迭代':.09}},
+  {name:'+ ABD',               loc:900, parts:{'初始化':.36,'YASPS 集成':.20,'能量定义':.25,'碰撞检测':.10,'牛顿迭代':.09}},
+  {name:'+ Cage',              loc:1038,parts:{'初始化':.36,'YASPS 集成':.22,'能量定义':.23,'碰撞检测':.10,'牛顿迭代':.09}}
+];
+const colors={'初始化':'#58a6ff','YASPS 集成':'#f778ba','能量定义':'#3fb950','碰撞检测':'#f0883e','牛顿迭代':'#8b949e'};
+function updLoc(){
+  const maxLoc=1038;
+  document.getElementById('locBars').innerHTML=LOC.map(d=>{
+    const w=Math.round(100*d.loc/maxLoc);
+    let seg='';
+    for(const[k,v]of Object.entries(d.parts)){
+      seg+=`<div style="width:${Math.round(v*100)}%;background:${colors[k]};height:100%;display:inline-block"
+             title="${k} ~${Math.round(v*100)}%"></div>`;
+    }
+    return `<div style="margin:10px 0">
+      <div style="font-size:13px;margin-bottom:3px">${d.name} — <b>${d.loc} LOC</b></div>
+      <div style="width:${w}%;height:26px;border-radius:6px;overflow:hidden;display:flex;min-width:120px">${seg}</div>
+    </div>`;
+  }).join('') +
+  `<div style="margin-top:8px;font-size:12px;color:var(--muted)">`+
+   Object.entries(colors).map(([k,c])=>`<span style="display:inline-block;width:10px;height:10px;background:${c};border-radius:2px;margin:0 4px 0 12px"></span>${k}`).join('')+`</div>`;
+}
+updLoc();
+</script>
+</body>
+</html>

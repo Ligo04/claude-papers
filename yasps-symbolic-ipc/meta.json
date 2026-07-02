@@ -1,0 +1,22 @@
+{
+  "title": "YASPS: A Symbolic Framework for Extensible, High-Performance IPC Simulation",
+  "authors": [
+    "Xuan Tang",
+    "Kemeng Huang",
+    "Gilbert Bernstein",
+    "Minchen Li",
+    "Tzumao Li"
+  ],
+  "venue": "ACM Transactions on Graphics (SIGGRAPH 2026), Vol. 45, No. 4, Article 142",
+  "year": 2026,
+  "date": "2026-07-01",
+  "doi": "10.1145/3811327",
+  "abstract": "增量势接触(IPC)是一种用于富接触仿真的鲁棒、统一表述,把弹性和碰撞处理转化为单一的能量最小化问题。然而,实现高性能通常需要高度专门化的实现,把关于能量、图元类型和参数化的假设硬编码进去,造成巨大的可扩展性瓶颈。YASPS(Yet Another Symbolic framework for Physical Simulation)通过在可微表示中显式化结构关系来解决这一问题。它引入两个关系算子 JOIN 和 UNION,直接在符号计算图中编码连接关系和异构参数化。借助对这两个算子的符号微分,YASPS 自动推导局部导数,并从同一份描述确定全局梯度和 Hessian 的诱导稀疏与块结构,避免混合参数化带来的组合式代码爆炸。YASPS 把符号图编译为 GPU(CUDA)kernel,用于局部能量求值、导数计算和块稀疏装配,并用 GPU 共轭梯度求解器求解所得牛顿系统。最终在性能上与 GIPC 等手工优化的 IPC 框架相当,同时新增能量和参数化只需约 130 行局部化的 Python 定义,无需手写导数或装配代码。",
+  "title_zh": "YASPS:面向可扩展、高性能 IPC 仿真的符号化框架",
+  "tags": ["contact simulation", "symbolic differentiation"],
+  "githubLinks": ["https://github.com/nvidia/warp"],
+  "codeLinks": [],
+  "difficulty": "Advanced",
+  "nature": "System design / compiler framework",
+  "slug": "yasps-symbolic-ipc"
+}

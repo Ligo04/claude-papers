@@ -1,0 +1,15 @@
+{
+  "id": "wall-wm-event-grounded-wam",
+  "title": "WALL-WM: Carving World Action Modeling at the Event Joints",
+  "slug": "wall-wm-event-grounded-wam",
+  "authors": ["X Square Robot Team"],
+  "abstract": "WALL-WM is a World Action Model that shifts video-action learning from chunk-centric optimization to event-grounded Vision-Language-Action pretraining, using semantically coherent action events as the atomic unit of learning. Existing WAMs commonly initialize from multimodal or video foundation models and then optimize fixed-length action chunks conditioned directly on the current observation and instruction. This chunk-centric formulation creates a fundamental granularity mismatch: language describes semantic goals and events, vision evolves through continuous scene dynamics, and actions operate at control-level timescales; forcing all three into the same fixed-length prediction window turns VLA training into short-horizon correlation fitting, underusing the pretrained visual-semantic prior and weakening compositionality and long-horizon generalization. WALL-WM organizes both supervision and data around semantic events, pairing event-grounded VLA pretraining with a data ecosystem built from event-level captions and cluster-balanced sampling. From the same event-pretrained backbone it supports two inference modes: an event mode that consumes next-event descriptions and enables variable-length execution chunks, and a unified mode that uses a VLM with Staircase Decoding to condition conventional fixed-length chunk inference while preserving a gradient-continuous VLA path. With Muon-optimizer-based large-scale pretraining infrastructure, WALL-WM achieves state-of-the-art performance in large-scale real-world generalization evaluation.",
+  "year": 2026,
+  "date": "2026-06-01",
+  "tags": ["具身操作", "事件对齐建模"],
+  "githubLinks": ["https://github.com/X-Square-Robot/wall-x"],
+  "codeLinks": ["https://github.com/X-Square-Robot/wall-x"],
+  "arxiv": "2606.01955",
+  "difficulty": "Advanced",
+  "nature": "Architecture + System + Empirical (technical report)"
+}

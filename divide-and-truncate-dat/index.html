@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Divide and Truncate (DAT) - Interactive Explorer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1419; color: #e7e9ea; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #1a2332 0%, #0d1b2a 100%); padding: 24px 32px; border-bottom: 1px solid #2d3748; }
+.header h1 { font-size: 1.4em; color: #7dd3fc; margin-bottom: 4px; }
+.header p { font-size: 0.85em; color: #94a3b8; }
+.container { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+.panel { background: #1a2332; border-radius: 12px; padding: 20px; border: 1px solid #2d3748; }
+.panel h2 { font-size: 1em; color: #7dd3fc; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.panel h2::before { content: ''; width: 4px; height: 16px; background: #7dd3fc; border-radius: 2px; }
+canvas { width: 100%; border-radius: 8px; background: #0f1419; border: 1px solid #2d3748; }
+.controls { display: flex; flex-direction: column; gap: 12px; }
+.control-group { display: flex; flex-direction: column; gap: 4px; }
+.control-group label { font-size: 0.8em; color: #94a3b8; display: flex; justify-content: space-between; }
+.control-group label span { color: #7dd3fc; font-weight: 600; }
+input[type="range"] { width: 100%; height: 6px; -webkit-appearance: none; background: #2d3748; border-radius: 3px; outline: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #7dd3fc; cursor: pointer; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.stat-box { background: #0f1419; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid #2d3748; }
+.stat-box .value { font-size: 1.3em; font-weight: 700; color: #7dd3fc; }
+.stat-box .label { font-size: 0.7em; color: #94a3b8; margin-top: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75em; color: #94a3b8; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.tab-bar { display: flex; gap: 4px; margin-bottom: 12px; }
+.tab { padding: 6px 14px; border-radius: 6px; font-size: 0.8em; cursor: pointer; background: #0f1419; color: #94a3b8; border: 1px solid #2d3748; transition: all 0.2s; }
+.tab.active { background: #7dd3fc; color: #0f1419; border-color: #7dd3fc; font-weight: 600; }
+.full-width { grid-column: 1 / -1; }
+.comparison-table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 8px; }
+.comparison-table th, .comparison-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+.comparison-table th { color: #7dd3fc; font-weight: 600; }
+.comparison-table td { color: #e7e9ea; }
+.highlight { color: #4ade80; font-weight: 600; }
+.warn { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>Divide and Truncate (DAT) — Interactive Explorer</h1>
+<p>NVIDIA | Chen, Hsu, Ayman, Macklin | 2026 — Penetration-free Multi-physics Simulation</p>
+</div>
+<div class="container">
+
+<div class="panel">
+<h2>2D Truncation Visualization</h2>
+<div class="tab-bar">
+<div class="tab active" onclick="setScene('tangential')">Tangential</div>
+<div class="tab" onclick="setScene('approaching')">Approaching</div>
+<div class="tab" onclick="setScene('separating')">Separating</div>
+<div class="tab" onclick="setScene('dense')">Dense Contact</div>
+</div>
+<canvas id="mainCanvas" width="500" height="400"></canvas>
+<div class="legend">
+<div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>Original Displacement</div>
+<div class="legend-item"><div class="legend-dot" style="background:#f87171"></div>Isotropic-DAT</div>
+<div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>Planar-DAT</div>
+<div class="legend-item"><div class="legend-dot" style="background:#fbbf24;opacity:0.5"></div>Division Plane</div>
+</div>
+</div>
+
+<div class="panel">
+<h2>Parameters</h2>
+<div class="controls">
+<div class="control-group">
+<label>Displacement Angle <span id="angleVal">0°</span></label>
+<input type="range" id="angle" min="-180" max="180" value="0" oninput="updateSim()">
+</div>
+<div class="control-group">
+<label>Displacement Magnitude <span id="magVal">1.0</span></label>
+<input type="range" id="magnitude" min="10" max="200" value="100" oninput="updateSim()">
+</div>
+<div class="control-group">
+<label>Distance to Surface <span id="distVal">1.0</span></label>
+<input type="range" id="distance" min="20" max="150" value="80" oninput="updateSim()">
+</div>
+<div class="control-group">
+<label>Relaxation γ_r <span id="gammaVal">0.9</span></label>
+<input type="range" id="gamma" min="50" max="99" value="90" oninput="updateSim()">
+</div>
+<div class="control-group">
+<label>Triangle Displacement <span id="triDispVal">0.0</span></label>
+<input type="range" id="triDisp" min="-100" max="100" value="0" oninput="updateSim()">
+</div>
+</div>
+<div class="stats">
+<div class="stat-box"><div class="value" id="isoRatio">—</div><div class="label">Isotropic Preservation</div></div>
+<div class="stat-box"><div class="value" id="planarRatio">—</div><div class="label">Planar Preservation</div></div>
+<div class="stat-box"><div class="value" id="improvement">—</div><div class="label">Improvement Factor</div></div>
+<div class="stat-box"><div class="value" id="lambdaVal">—</div><div class="label">λ (Plane Position)</div></div>
+</div>
+</div>
+
+<div class="panel full-width">
+<h2>Performance Comparison (from Paper)</h2>
+<table class="comparison-table">
+<tr><th>Experiment</th><th>Vertices</th><th>Contacts</th><th>Δt</th><th>Iter</th><th>Planar-DAT (ms/step)</th><th>Effective FPS</th></tr>
+<tr><td>200 Layers Cloth</td><td>4M</td><td>20M+</td><td>1/600s</td><td>10</td><td class="highlight">12.6</td><td>8</td></tr>
+<tr><td>Bullet (369 m/s)</td><td>9.7K</td><td>—</td><td>1.7e-5s</td><td>20</td><td class="highlight">1.0</td><td>—</td></tr>
+<tr><td>Gear Crusher</td><td>15K</td><td>—</td><td>1/600s</td><td>10</td><td class="highlight">1.1</td><td>91</td></tr>
+<tr><td>Multi-Physics</td><td>10.8K</td><td>—</td><td>1/600s</td><td>10</td><td class="highlight">1.8</td><td>56</td></tr>
+<tr><td>Yarn Twist</td><td>130K</td><td>—</td><td>1/25s</td><td>20</td><td class="highlight">0.45</td><td>53</td></tr>
+</table>
+</div>
+
+<div class="panel full-width">
+<h2>Algorithm Pipeline</h2>
+<canvas id="pipelineCanvas" width="1200" height="180"></canvas>
+</div>
+</div>
+
+<script>
+const mainCanvas = document.getElementById('mainCanvas');
+const ctx = mainCanvas.getContext('2d');
+let currentScene = 'tangential';
+
+function setScene(scene) {
+    currentScene = scene;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    const presets = {
+        tangential: { angle: 0, magnitude: 100, distance: 80, gamma: 90, triDisp: 0 },
+        approaching: { angle: -90, magnitude: 120, distance: 80, gamma: 90, triDisp: 30 },
+        separating: { angle: 60, magnitude: 100, distance: 80, gamma: 90, triDisp: -20 },
+        dense: { angle: -30, magnitude: 150, distance: 30, gamma: 90, triDisp: 20 }
+    };
+    const p = presets[scene];
+    document.getElementById('angle').value = p.angle;
+    document.getElementById('magnitude').value = p.magnitude;
+    document.getElementById('distance').value = p.distance;
+    document.getElementById('gamma').value = p.gamma;
+    document.getElementById('triDisp').value = p.triDisp;
+    updateSim();
+}
+
+function updateSim() {
+    const angleDeg = parseFloat(document.getElementById('angle').value);
+    const mag = parseFloat(document.getElementById('magnitude').value) / 100;
+    const dist = parseFloat(document.getElementById('distance').value) / 80;
+    const gamma = parseFloat(document.getElementById('gamma').value) / 100;
+    const triDispN = parseFloat(document.getElementById('triDisp').value) / 100;
+
+    document.getElementById('angleVal').textContent = angleDeg + '°';
+    document.getElementById('magVal').textContent = mag.toFixed(2);
+    document.getElementById('distVal').textContent = dist.toFixed(2);
+    document.getElementById('gammaVal').textContent = gamma.toFixed(2);
+    document.getElementById('triDispVal').textContent = triDispN.toFixed(2);
+
+    const angleRad = angleDeg * Math.PI / 180;
+    const dx = Math.cos(angleRad) * mag;
+    const dy = Math.sin(angleRad) * mag;
+
+    // Isotropic truncation
+    const maxDisp = 0.5 * dist;
+    const dispMag = Math.sqrt(dx*dx + dy*dy);
+    let isoX = dx, isoY = dy;
+    if (dispMag > maxDisp) {
+        isoX = dx * maxDisp / dispMag;
+        isoY = dy * maxDisp / dispMag;
+    }
+    const isoRatio = Math.min(1, maxDisp / dispMag);
+
+    // Planar truncation
+    const nx = 0, ny = 1; // normal pointing up (vertex above triangle)
+    const deltaV = Math.max(-dy, 0); // vertex moving toward triangle (downward)
+    const deltaT = Math.max(triDispN, 0); // triangle moving toward vertex (upward)
+    let lambda = 0.5;
+    if (deltaV + deltaT > 0) lambda = deltaT / (deltaT + deltaV);
+
+    const planeY = dist * (1 - lambda); // plane position from triangle
+    const available = dist - planeY; // distance from vertex to plane
+
+    let planarX = dx, planarY = dy;
+    let planarRatio = 1.0;
+    const normalComp = -dy; // component toward triangle
+    if (normalComp > 0) {
+        const ti = available / normalComp;
+        if (ti >= 0 && ti < 1.0 / gamma) {
+            const tv = Math.min(gamma * ti, 1.0);
+            planarX = dx * tv;
+            planarY = dy * tv;
+            planarRatio = tv;
+        }
+    }
+
+    document.getElementById('isoRatio').textContent = (isoRatio * 100).toFixed(0) + '%';
+    document.getElementById('planarRatio').textContent = (planarRatio * 100).toFixed(0) + '%';
+    const imp = isoRatio > 0.001 ? (planarRatio / isoRatio) : 999;
+    document.getElementById('improvement').textContent = imp.toFixed(2) + '×';
+    document.getElementById('lambdaVal').textContent = lambda.toFixed(3);
+
+    draw(dx, dy, isoX, isoY, planarX, planarY, dist, maxDisp, planeY, lambda, triDispN);
+}
+
+function draw(dx, dy, isoX, isoY, planarX, planarY, dist, maxDisp, planeY, lambda, triDispN) {
+    const W = mainCanvas.width, H = mainCanvas.height;
+    const scale = 120;
+    const cx = W / 2, cy = H / 2 - 30;
+    const vertexY = cy - dist * scale / 2;
+    const triY = cy + dist * scale / 2;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Triangle surface
+    ctx.fillStyle = '#374151';
+    ctx.beginPath();
+    ctx.moveTo(0, triY);
+    ctx.lineTo(W, triY);
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.fill();
+    ctx.strokeStyle = '#6b7280';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, triY);
+    ctx.lineTo(W, triY);
+    ctx.stroke();
+
+    // Triangle displacement arrow
+    if (Math.abs(triDispN) > 0.01) {
+        const triArrowLen = triDispN * scale;
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(cx, triY);
+        ctx.lineTo(cx, triY - triArrowLen);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        drawArrowHead(ctx, cx, triY - triArrowLen, 0, -Math.sign(triDispN), '#a78bfa');
+    }
+
+    // Isotropic region (circle)
+    ctx.strokeStyle = 'rgba(248, 113, 113, 0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.arc(cx, vertexY, maxDisp * scale, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Division plane
+    const planeScreenY = triY - planeY * scale;
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    ctx.moveTo(50, planeScreenY);
+    ctx.lineTo(W - 50, planeScreenY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.7)';
+    ctx.font = '11px monospace';
+    ctx.fillText('division plane (λ=' + lambda.toFixed(2) + ')', W - 200, planeScreenY - 6);
+
+    // Original displacement
+    drawArrow(ctx, cx, vertexY, cx + dx * scale, vertexY - dy * scale, '#60a5fa', 2, [6, 3]);
+
+    // Isotropic result
+    drawArrow(ctx, cx, vertexY, cx + isoX * scale, vertexY - isoY * scale, '#f87171', 3, []);
+
+    // Planar result
+    drawArrow(ctx, cx, vertexY, cx + planarX * scale, vertexY - planarY * scale, '#4ade80', 3, []);
+
+    // Vertex
+    ctx.fillStyle = '#e7e9ea';
+    ctx.beginPath();
+    ctx.arc(cx, vertexY, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px monospace';
+    ctx.fillText('vertex', cx + 12, vertexY + 4);
+
+    // Labels
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '11px monospace';
+    ctx.fillText('triangle surface', 10, triY + 16);
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, width, dash) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len > 5) drawArrowHead(ctx, x2, y2, dx/len, dy/len, color);
+}
+
+function drawArrowHead(ctx, x, y, dirX, dirY, color) {
+    const size = 8;
+    const perpX = -dirY, perpY = dirX;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - dirX * size + perpX * size * 0.4, y - dirY * size + perpY * size * 0.4);
+    ctx.lineTo(x - dirX * size - perpX * size * 0.4, y - dirY * size - perpY * size * 0.4);
+    ctx.fill();
+}
+
+// Pipeline visualization
+function drawPipeline() {
+    const canvas = document.getElementById('pipelineCanvas');
+    const pctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    pctx.clearRect(0, 0, W, H);
+
+    const steps = [
+        { label: 'Collision\nDetection', sub: 'BVH Query', color: '#f87171', pct: '63.5%' },
+        { label: 'Solver\nIteration', sub: 'VBD / Newton', color: '#60a5fa', pct: '13.8%' },
+        { label: 'Compute\nDivision Planes', sub: 'Per-pair parallel', color: '#fbbf24', pct: '' },
+        { label: 'Planar\nTruncation', sub: 'atomic_min', color: '#4ade80', pct: '12.8%' },
+        { label: 'Accumulate\nΔX', sub: 'Commit every 5 iter', color: '#a78bfa', pct: '' },
+    ];
+
+    const boxW = 160, boxH = 80, gap = 50;
+    const startX = (W - (steps.length * boxW + (steps.length - 1) * gap)) / 2;
+    const startY = (H - boxH) / 2;
+
+    steps.forEach((step, i) => {
+        const x = startX + i * (boxW + gap);
+        const y = startY;
+
+        // Box
+        pctx.fillStyle = step.color + '20';
+        pctx.strokeStyle = step.color;
+        pctx.lineWidth = 2;
+        pctx.beginPath();
+        pctx.roundRect(x, y, boxW, boxH, 8);
+        pctx.fill();
+        pctx.stroke();
+
+        // Label
+        pctx.fillStyle = '#e7e9ea';
+        pctx.font = 'bold 12px monospace';
+        pctx.textAlign = 'center';
+        const lines = step.label.split('\n');
+        lines.forEach((line, li) => {
+            pctx.fillText(line, x + boxW/2, y + 24 + li * 16);
+        });
+
+        // Sub label
+        pctx.fillStyle = '#94a3b8';
+        pctx.font = '10px monospace';
+        pctx.fillText(step.sub, x + boxW/2, y + boxH - 12);
+
+        // Percentage
+        if (step.pct) {
+            pctx.fillStyle = step.color;
+            pctx.font = 'bold 10px monospace';
+            pctx.fillText(step.pct, x + boxW/2, y - 6);
+        }
+
+        // Arrow
+        if (i < steps.length - 1) {
+            const ax = x + boxW + 5;
+            const ay = y + boxH / 2;
+            pctx.strokeStyle = '#4b5563';
+            pctx.lineWidth = 2;
+            pctx.beginPath();
+            pctx.moveTo(ax, ay);
+            pctx.lineTo(ax + gap - 10, ay);
+            pctx.stroke();
+            drawArrowHead(pctx, ax + gap - 10, ay, 1, 0, '#4b5563');
+        }
+    });
+
+    // Loop arrow
+    const loopStartX = startX + 3 * (boxW + gap) + boxW + 5;
+    const loopEndX = startX + (boxW + gap) - 5;
+    pctx.strokeStyle = '#6b7280';
+    pctx.lineWidth = 1.5;
+    pctx.setLineDash([4, 3]);
+    pctx.beginPath();
+    pctx.moveTo(loopStartX + gap - 10, startY + boxH + 10);
+    pctx.lineTo(loopStartX + gap - 10, startY + boxH + 25);
+    pctx.lineTo(loopEndX, startY + boxH + 25);
+    pctx.lineTo(loopEndX, startY + boxH + 10);
+    pctx.stroke();
+    pctx.setLineDash([]);
+    pctx.fillStyle = '#6b7280';
+    pctx.font = '10px monospace';
+    pctx.textAlign = 'center';
+    pctx.fillText('repeat until convergence (every 5 iter: re-detect collisions)', (loopStartX + gap + loopEndX) / 2, startY + boxH + 38);
+
+    pctx.textAlign = 'left';
+}
+
+updateSim();
+drawPipeline();
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "id": "kpm-fr-kinetic-moment-flux-reconstruction",
+  "slug": "kpm-fr-kinetic-moment-flux-reconstruction",
+  "title": "Kinetic Predicted-Moment Flux Reconstruction for High-Order High-Performance Fluid Simulation",
+  "authors": ["Zike Xu", "Xuan Zhang", "Xiaopei Liu"],
+  "affiliations": ["ShanghaiTech University"],
+  "venue": "ACM Transactions on Graphics (SIGGRAPH 2026)",
+  "journalRef": "ACM Trans. Graph. 45, 4, Article 67",
+  "year": 2026,
+  "date": "2026-07-01",
+  "doi": "10.1145/3811292",
+  "sourceUrl": "https://file.yuyuko.cc/kpm-fr.pdf",
+  "abstract": "KPM-FR is a spatially high-order kinetic-based scheme for low-Mach-number weakly compressible flows that simultaneously advances high fidelity, large throughput, and minimal memory footprint. Rooted in the gas-kinetic scheme (GKS), it derives numerical fluxes from the locally evolved Boltzmann-BGK equation to recover Navier-Stokes solutions, but carries out kinetic evolution entirely in moment space within a high-order flux reconstruction (FR) framework via a concise predictor-corrector scheme. This maps to two fused GPU kernels per time step, confining intermediate data to on-chip memory. It reduces per-point memory more than fivefold vs LBM, exhibits lower numerical dissipation than cumulant LBM, and sustains over 8 billion solution-point updates/sec on a single RTX 4090 at only 42 bytes/point, scaling to 1.8 billion solution points on a single workstation.",
+  "tags": ["fluid simulation", "gas-kinetic scheme"],
+  "githubLinks": [],
+  "codeLinks": [],
+  "difficulty": "Highly Theoretical",
+  "nature": "Novel architecture + System design + Heavy math derivation",
+  "keyMetrics": {
+    "throughput": ">8 billion solution-point updates/sec (RTX 4090)",
+    "memoryPerPoint": "42 bytes/point",
+    "memoryVsGraphicsLBM": "18%",
+    "memoryVsInPlaceCFDLBM": "34%",
+    "memoryVsMRLBM": "53%",
+    "raceCarDemo": "2000x332x800 grid (531M pts), 21 GiB, 5.5m car @ 220km/h",
+    "largestSim": "1.8 billion solution points (single workstation)",
+    "dissipation": "lower than state-of-the-art cumulant LBM",
+    "gpu": "NVIDIA RTX 4090 (consumer)"
+  }
+}

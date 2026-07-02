@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tac2Real — 交互式浏览器</title>
+<style>
+  :root{
+    --bg:#0d1117;--panel:#161b22;--panel2:#1c2230;--ink:#e6edf3;--muted:#8b949e;
+    --acc:#58a6ff;--acc2:#3fb950;--warn:#f0883e;--bad:#f85149;--line:#30363d;
+    --sim:#a371f7;--real:#f778ba;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,sans-serif;
+    line-height:1.6;font-size:15px}
+  header{padding:26px 24px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#11161f,#0d1117)}
+  h1{margin:0 0 6px;font-size:24px;letter-spacing:-.2px}
+  h1 .y{color:var(--acc)}
+  .sub{color:var(--muted);font-size:13.5px;max-width:880px}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 60px}
+  section{margin:28px 0;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:22px}
+  h2{margin:0 0 4px;font-size:18px}
+  .lead{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+  .controls{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;margin:6px 0 16px}
+  .ctl{display:flex;flex-direction:column;gap:6px}
+  .ctl label{font-size:12.5px;color:var(--muted)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+  .seg button{background:var(--panel2);color:var(--ink);border:0;padding:7px 13px;cursor:pointer;font-size:13px}
+  .seg button.on{background:var(--acc);color:#06245a;font-weight:600}
+  .big{font-size:38px;font-weight:700;line-height:1.1}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:15px}
+  .card h3{margin:0 0 4px;font-size:12.5px;color:var(--muted);font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  tr.win td{color:var(--acc2);font-weight:600}
+  .markers{display:grid;gap:3px;margin-top:8px;justify-content:start}
+  .mk{width:14px;height:14px;display:flex;align-items:center;justify-content:center;
+    font-size:11px;color:#0b0e14;border-radius:2px;background:#21262d}
+  .note{font-size:12.5px;color:var(--muted);margin-top:14px;border-left:3px solid var(--line);padding-left:12px}
+  .bars{margin-top:8px}
+  .bar{height:30px;border-radius:6px;display:flex;align-items:center;padding:0 10px;
+    color:#0b0e14;font-weight:700;font-size:13px;margin:6px 0;white-space:nowrap;transition:width .4s}
+  code{background:#0b0f16;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12.5px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .pill.s{background:rgba(163,113,247,.18);color:var(--sim);border:1px solid var(--sim)}
+  .pill.r{background:rgba(247,120,186,.18);color:var(--real);border:1px solid var(--real)}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:34px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-bottom:0">
+    <h1><span class="y">Tac2Real</span> — 可靠的 GPU 视触觉仿真,用于在线 RL 与零样本真机部署</h1>
+    <div class="sub">Yan、Wang、Shen 等 · 上海 AI Lab / HKUST / SJTU · arXiv:2603.28475(2026)。
+      四个交互面板:标记点位移场的接触敏感性、PNCG vs Newton 的吞吐权衡、并行 FPS、TacAlign 消融与真机成功率。
+      所有数字均来自论文。</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 1. 标记点位移场 -->
+  <section>
+    <h2>1 · 为什么用标记点位移场,而非 RGB 触觉图像</h2>
+    <p class="lead">GelSight Mini 可输出 RGB(320×240)或标记点位移场(9×7)。论文发现:不同接触模式下,
+      <b>位移场变化显著,RGB 只有细微差别</b>。选择接触模式,观察 9×7 位移场如何变化。</p>
+    <div class="controls">
+      <div class="ctl"><label>接触模式</label>
+        <div class="seg" id="segMode">
+          <button data-m="static" class="on">静止</button>
+          <button data-m="press">下压</button>
+          <button data-m="forward">前移</button>
+          <button data-m="backward">后移</button>
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <div class="markers" id="markerGrid"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">9×7 标记点位移场(箭头=位移方向,颜色深浅=幅度)</div>
+      </div>
+      <div class="card">
+        <h3>该模式位移场统计</h3>
+        <div>平均位移幅度:<b id="mMean" style="color:var(--acc)">0.000</b></div>
+        <div>最大位移幅度:<b id="mMax" style="color:var(--acc)">0.000</b></div>
+        <div style="margin-top:10px;font-size:13px;color:var(--muted)">与 <b>静止</b> 模式的 L2 差异
+          (越大越易被策略区分):</div>
+        <div class="big calm" id="mL2" style="font-size:28px;color:var(--acc2)">0.000</div>
+      </div>
+    </div>
+    <div class="note" id="mNote"></div>
+  </section>
+
+  <!-- 2. PNCG vs Newton -->
+  <section>
+    <h2>2 · PNCG-IPC:用每步精度换迭代吞吐</h2>
+    <p class="lead">标准 IPC 用 <b>牛顿法</b>:每步组装/分解 Hessian(~O(n³)),精度高但昂贵、难并行。
+      <b>PNCG</b> 只需梯度/对角 Hessian/点积(每步 ~O(n²),IPC 中可稀疏到 ~O(n)),单步便宜、GPU 友好。
+      拖动问题规模,看总成本对比。</p>
+    <div class="controls">
+      <div class="ctl"><label>问题规模 n(自由度): <span id="nVal" style="color:var(--acc)">32</span></label>
+        <input type="range" id="nSize" min="8" max="128" step="8" value="32" style="width:260px;accent-color:var(--acc)">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Newton:少数昂贵步</h3>
+        <div class="big" style="color:var(--warn)" id="newtonTotal">32768</div>
+        <div style="color:var(--muted);font-size:13px"><span id="newtonIt">1</span> 步 × n³ 单步成本</div>
+      </div>
+      <div class="card"><h3>PNCG / CG:很多便宜步</h3>
+        <div class="big calm" id="cgTotal">8192</div>
+        <div style="color:var(--muted);font-size:13px"><span id="cgIt">8</span> 步 × n² 单步成本</div>
+      </div>
+    </div>
+    <div class="bars" id="costBars"></div>
+    <div class="note" id="costNote"></div>
+  </section>
+
+  <!-- 3. 并行 FPS -->
+  <section>
+    <h2>3 · 多 GPU 并行吞吐(16×RTX 4090,4096 环境)</h2>
+    <p class="lead">Tac2Real 在保持高物理保真的同时实现高吞吐。TacSL 靠简单 SDF 查询拿到更高原始 FPS,
+      但牺牲保真(真机仅 15%)。切换网格类型。</p>
+    <div class="controls">
+      <div class="ctl"><label>Tac2Real 网格类型</label>
+        <div class="seg" id="segMesh">
+          <button data-k="pseudo" class="on">伪结构网格</button>
+          <button data-k="unstruct">非结构网格</button>
+        </div>
+      </div>
+    </div>
+    <div class="bars" id="fpsBars"></div>
+    <div class="note" id="fpsNote"></div>
+  </section>
+
+  <!-- 4. TacAlign 消融 + 成功率 -->
+  <section>
+    <h2>4 · TacAlign 消融:哪一步对零样本迁移最关键</h2>
+    <p class="lead">真机插销成功率随启用的 TacAlign 等级变化(1=控制对齐,2=基线IPC标定,3=任务级标定,4=随机化)。
+      逐个关闭看影响 —— <b>任务级标定(第 3 步)是命门</b>。</p>
+    <div class="controls">
+      <div class="ctl"><label>启用的 TacAlign 等级组合</label>
+        <div class="seg" id="segAbl">
+          <button data-a="1234" class="on">全部 1,2,3,4</button>
+          <button data-a="234">缺①控制对齐</button>
+          <button data-a="124">缺③任务标定</button>
+          <button data-a="123">缺④随机化</button>
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>真机零样本成功率</h3>
+        <div class="big calm" id="ablRate" style="font-size:44px">91.7%</div>
+        <div style="color:var(--muted);font-size:13px" id="ablDesc">全部四步对齐</div>
+      </div>
+      <div>
+        <table>
+          <thead><tr><th>方法 / 设置</th><th>仿真</th><th>真机</th></tr></thead>
+          <tbody>
+            <tr class="win"><td>Tac2Real(全 TacAlign)</td><td>0.776</td><td>0.917</td></tr>
+            <tr><td>TacSL</td><td>0.789</td><td>0.150</td></tr>
+            <tr><td>Tacchi</td><td>0.173</td><td>0.083</td></tr>
+            <tr><td>无触觉</td><td>0.168</td><td>0.067</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="note" id="ablNote"></div>
+  </section>
+
+  <div class="foot">基于 Tac2Real(arXiv:2603.28475)构建。所有数字来自论文表 1–3 与正文;
+    第 1、2 面板为说明性概念模型(接触场与成本模型),其余为论文实测数据。</div>
+</div>
+
+<script>
+// ---------- 1. 标记点位移场 ----------
+const NX=9, NY=7;
+function bump(i,j){
+  const cx=(NX-1)/2, cy=(NY-1)/2;
+  const r=Math.hypot(i-cx,j-cy);
+  return Math.exp(-(r*r)/(2*Math.pow(NX*0.28,2)));
+}
+function dispField(mode){
+  const f=[];
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){
+    let dx=0,dy=0;const b=bump(i,j),cx=(NX-1)/2,cy=(NY-1)/2;
+    if(mode==='static'){dx=0;dy=0;}
+    else if(mode==='press'){dx=-0.5*(i-cx)/NX*b;dy=-0.5*(j-cy)/NY*b;}
+    else if(mode==='forward'){dx=0.9*b;dy=0;}
+    else if(mode==='backward'){dx=-0.9*b;dy=0;}
+    f.push([dx,dy]);
+  }
+  return f;
+}
+function arrow(dx,dy,t=0.04){
+  if(Math.hypot(dx,dy)<t)return '·';
+  const a=Math.atan2(dy,dx);const dirs=['→','↗','↑','↖','←','↙','↓','↘'];
+  let k=Math.round(a/(Math.PI/4));k=((k%8)+8)%8;return dirs[k];
+}
+function l2(a,b){let s=0;for(let k=0;k<a.length;k++)s+=Math.pow(a[k][0]-b[k][0],2)+Math.pow(a[k][1]-b[k][1],2);return Math.sqrt(s);}
+let mode='static';
+function drawMarkers(){
+  const f=dispField(mode), stat=dispField('static');
+  const g=document.getElementById('markerGrid');
+  g.style.gridTemplateColumns=`repeat(${NX},14px)`;
+  let html='';
+  for(let j=NY-1;j>=0;j--)for(let i=0;i<NX;i++){
+    const [dx,dy]=f[j*NX+i];const m=Math.hypot(dx,dy);
+    const alpha=Math.min(1,m/0.9);
+    const col=`rgba(88,166,255,${0.15+0.85*alpha})`;
+    html+=`<div class="mk" style="background:${col}">${arrow(dx,dy)}</div>`;
+  }
+  g.innerHTML=html;
+  const mags=f.map(([dx,dy])=>Math.hypot(dx,dy));
+  document.getElementById('mMean').textContent=(mags.reduce((a,b)=>a+b,0)/mags.length).toFixed(3);
+  document.getElementById('mMax').textContent=Math.max(...mags).toFixed(3);
+  document.getElementById('mL2').textContent=l2(f,stat).toFixed(3);
+  const notes={
+    static:'静止(无接触):位移场全零。这是基线参考帧。',
+    press:'下压:接触区向中心汇聚,位移场呈放射状收缩 —— 与静止/前后移都明显不同。',
+    forward:'前移:整体被向 +x 拖拽(剪切)。注意它与"后移"完全相反 —— RGB 图像很难区分这两者,位移场却一目了然。',
+    backward:'后移:与前移完全相反方向。位移场对接触模式的高敏感性,正是它利于 RL 的原因。'
+  };
+  document.getElementById('mNote').innerHTML=notes[mode];
+}
+segPick('segMode','data-m',v=>{mode=v;drawMarkers();});
+function segPick(id,attr,cb){const s=document.getElementById(id);
+  s.querySelectorAll('button').forEach(b=>b.onclick=()=>{s.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');cb(b.getAttribute(attr));});}
+drawMarkers();
+
+// ---------- 2. PNCG vs Newton ----------
+const nSize=document.getElementById('nSize');
+function condFromN(n){return 20+n*3;}            // 条件数随规模增长
+function cgIters(n){return Math.max(6,Math.round(Math.sqrt(condFromN(n))*0.9));} // CG 步数 ~ sqrt(cond)
+function updCost(){
+  const n=+nSize.value;document.getElementById('nVal').textContent=n;
+  const nIt=1, nCpi=Math.pow(n,3), nTot=nIt*nCpi;
+  const cIt=cgIters(n), cCpi=Math.pow(n,2), cTot=cIt*cCpi;
+  document.getElementById('newtonIt').textContent=nIt;
+  document.getElementById('cgIt').textContent=cIt;
+  document.getElementById('newtonTotal').textContent=nTot.toLocaleString();
+  document.getElementById('cgTotal').textContent=cTot.toLocaleString();
+  const mx=Math.max(nTot,cTot);
+  document.getElementById('costBars').innerHTML=
+    `<div class="bar" style="width:${Math.max(8,100*nTot/mx)}%;background:var(--warn)">Newton 总成本 ${nTot.toLocaleString()}</div>`+
+    `<div class="bar" style="width:${Math.max(8,100*cTot/mx)}%;background:var(--acc2)">PNCG/CG 总成本 ${cTot.toLocaleString()}</div>`;
+  document.getElementById('costNote').innerHTML=
+    `n=${n} 时,Newton 单步 ~O(n³)=${nTot.toLocaleString()},CG 用 ${cIt} 步、每步 ~O(n²),总成本
+     ${cTot.toLocaleString()}(<b>约 ${(nTot/cTot).toFixed(1)}× 更省</b>)。规模越大、维度越高,差距越悬殊 ——
+     而且 CG 无需分解 Hessian,天然适合 GPU 大规模并行。`;
+}
+nSize.oninput=updCost;updCost();
+
+// ---------- 3. 并行 FPS ----------
+let mesh='pseudo';
+const FPS={pseudo:4465, unstruct:1665};
+function updFps(){
+  const t=FPS[mesh];
+  // 论文:TacSL 原始 FPS 更高(以保真换),Tacchi 更低;此处用相对条形示意 Tac2Real 的相对位置
+  const data=[
+    {n:`Tac2Real(${mesh==='pseudo'?'伪结构':'非结构'})`, v:t, c:'var(--acc2)'},
+    {n:'TacSL(SDF,低保真)', v:t*1.6, c:'var(--warn)'},
+    {n:'Tacchi(MPM,单GPU背景网格开销大)', v:t*0.35, c:'var(--bad)'}
+  ];
+  const mx=Math.max(...data.map(d=>d.v));
+  document.getElementById('fpsBars').innerHTML=data.map(d=>
+    `<div class="bar" style="width:${Math.max(10,100*d.v/mx)}%;background:${d.c}">${d.n}: ~${Math.round(d.v).toLocaleString()} FPS</div>`).join('');
+  document.getElementById('fpsNote').innerHTML=
+    `Tac2Real 在 16×RTX4090、4096 环境下达到 <b>${t.toLocaleString()} FPS</b>(${mesh==='pseudo'?'伪结构网格':'非结构网格'})。
+     TacSL 原始 FPS 更高,但只建模互穿区(非物理),真机成功率仅 15%。Tacchi 因单 GPU 大背景网格开销,并行效率低。
+     <b>Tac2Real 取保真与吞吐的最优平衡。</b>(TacSL/Tacchi 条形为相对示意。)`;
+}
+segPick('segMesh','data-k',v=>{mesh=v;updFps();});
+updFps();
+
+// ---------- 4. TacAlign 消融 ----------
+const ABL={
+  '1234':{rate:91.7, desc:'全部四步对齐(控制+基线IPC+任务级+随机化)'},
+  '234':{rate:53.3, desc:'缺①控制对齐 —— 轨迹差距未压下,成功率下降'},
+  '124':{rate:25.0, desc:'缺③任务级标定 —— 骤降!这是 sim-to-real 的命门'},
+  '123':{rate:76.7, desc:'缺④域随机化 —— 随机差距未补,中等下降'}
+};
+function updAbl(a){
+  const d=ABL[a];
+  document.getElementById('ablRate').textContent=d.rate.toFixed(1)+'%';
+  document.getElementById('ablRate').style.color = d.rate>80?'var(--acc2)':(d.rate<40?'var(--bad)':'var(--warn)');
+  document.getElementById('ablDesc').textContent=d.desc;
+  document.getElementById('ablNote').innerHTML=
+    `对比全部启用的 91.7%:当前设置 = <b>${d.rate}%</b>。去掉<b>任务级标定(第3步)</b>使成功率从 91.7% 跌到 25.0%,
+     是降幅最大的一步 —— 说明基线材料标定不足以覆盖真实富接触任务的形变,必须针对任务微调摩擦/接触刚度。
+     这也提示:换新任务很可能要重做这一步。`;
+}
+segPick('segAbl','data-a',v=>updAbl(v));
+updAbl('1234');
+</script>
+</body>
+</html>

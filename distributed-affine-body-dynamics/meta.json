@@ -1,0 +1,21 @@
+{
+  "id": "distributed-affine-body-dynamics",
+  "title": "Distributed Affine Body Dynamics with Adaptive Consensus",
+  "slug": "distributed-affine-body-dynamics",
+  "authors": [
+    "Jiafeng Liu",
+    "Wenhui Zhou",
+    "Xinming Pei",
+    "Yifan Peng",
+    "Huamin Wang",
+    "Yin Yang",
+    "Lei Lan",
+    "Weiwei Xu"
+  ],
+  "abstract": "Affine Body Dynamics (ABD) within the Incremental Potential Contact (IPC) framework provides accurate simulation of extremely stiff, near-rigid solids with strict non-penetration guarantees. However, IPC's globally coupled barrier constraints hinder scalable execution across multiple GPUs and compute nodes. This paper proposes a distributed formulation of ABD using a consensus-based ADMM scheme. Each compute node solves its local ABD subproblem in parallel, followed by a global consensus step that enforces consistency among shared boundary bodies. A mass-aware initialization of the ADMM penalty parameter combined with residual-driven adaptation accelerates convergence (22%-80% fewer iterations), and a feasibility-preserving consensus mechanism with a CCD-certified merge step guarantees penetration-free results. Experiments demonstrate stable convergence, non-penetration, and near-linear scaling on large-scale contact-rich scenes (thousands of bodies, tens of millions of triangles) across multiple nodes.",
+  "year": 2026,
+  "date": "2026-05-25",
+  "tags": ["distributed simulation", "consensus admm"],
+  "githubLinks": [],
+  "codeLinks": []
+}

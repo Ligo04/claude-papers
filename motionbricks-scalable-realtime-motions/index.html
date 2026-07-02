@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MotionBricks Interactive Explorer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:24px 32px;border-bottom:2px solid #76b900}
+.header h1{font-size:1.6em;color:#76b900;margin-bottom:4px}
+.header p{font-size:0.9em;color:#888}
+.tabs{display:flex;gap:4px;padding:12px 32px;background:#111;flex-wrap:wrap}
+.tab{padding:8px 16px;border:none;background:#1a1a2e;color:#aaa;cursor:pointer;border-radius:6px 6px 0 0;font-size:0.85em;transition:all 0.2s}
+.tab:hover{background:#222;color:#ddd}
+.tab.active{background:#76b900;color:#000;font-weight:600}
+.content{padding:24px 32px;max-width:1200px;margin:0 auto}
+.panel{display:none}
+.panel.active{display:block}
+.card{background:#1a1a2e;border-radius:8px;padding:20px;margin-bottom:16px;border:1px solid #2a2a4e}
+.card h3{color:#76b900;margin-bottom:12px;font-size:1.1em}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.metric{background:#111;border-radius:6px;padding:16px;text-align:center}
+.metric .value{font-size:2em;font-weight:700;color:#76b900}
+.metric .label{font-size:0.8em;color:#888;margin-top:4px}
+.bar-chart{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-label{width:120px;font-size:0.8em;text-align:right;color:#aaa}
+.bar-track{flex:1;height:24px;background:#111;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease}
+.bar-value{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:0.75em;color:#fff;font-weight:600}
+.slider-group{margin:12px 0}
+.slider-group label{display:block;font-size:0.85em;color:#aaa;margin-bottom:6px}
+.slider-group input[type=range]{width:100%;accent-color:#76b900}
+.slider-value{color:#76b900;font-weight:600;font-size:0.9em}
+.arch-box{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px}
+.arch-block{background:#16213e;border:2px solid #76b900;border-radius:8px;padding:12px 24px;text-align:center;min-width:200px;transition:all 0.3s;cursor:pointer}
+.arch-block:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(118,185,0,0.3)}
+.arch-block .title{font-weight:600;color:#76b900;font-size:0.95em}
+.arch-block .desc{font-size:0.75em;color:#888;margin-top:4px}
+.arrow{color:#76b900;font-size:1.5em}
+.flow-row{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap}
+canvas{border-radius:8px;background:#111;display:block;margin:0 auto}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #2a2a4e;font-size:0.85em}
+th{color:#76b900;font-weight:600}
+tr:hover{background:#16213e}
+.highlight{color:#76b900;font-weight:600}
+.toggle-row{display:flex;align-items:center;gap:12px;margin:8px 0}
+.toggle{position:relative;width:44px;height:24px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;inset:0;background:#333;border-radius:12px;transition:0.3s}
+.toggle .slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#666;border-radius:50%;transition:0.3s}
+.toggle input:checked+.slider{background:#76b900}
+.toggle input:checked+.slider:before{transform:translateX(20px);background:#fff}
+.toggle-label{font-size:0.85em;color:#aaa}
+.combo-display{font-size:1.2em;color:#76b900;font-weight:700;margin:12px 0;text-align:center}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}.flow-row{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>MotionBricks Interactive Explorer</h1>
+<p>NVIDIA | SIGGRAPH 2026 | Tingwu Wang, Olivier Dionne et al.</p>
+</div>
+<div class="tabs">
+<button class="tab active" onclick="showTab(0)">Architecture</button>
+<button class="tab" onclick="showTab(1)">Multi-Head Tokenizer</button>
+<button class="tab" onclick="showTab(2)">Performance</button>
+<button class="tab" onclick="showTab(3)">Root Refinement</button>
+<button class="tab" onclick="showTab(4)">Ablation</button>
+<button class="tab" onclick="showTab(5)">Scaling</button>
+</div>
+<div class="content">
+
+<div class="panel active" id="panel0">
+<div class="card">
+<h3>System Architecture Overview</h3>
+<p style="font-size:0.85em;color:#aaa;margin-bottom:16px">MotionBricks unifies all motion control as in-betweening: given keyframe constraints, generate natural intermediate motions. Click modules for details.</p>
+<div class="arch-box">
+<div class="flow-row">
+<div class="arch-block" onclick="showInfo('input')"><div class="title">User Input</div><div class="desc">Velocity / Style / Keyframes</div></div>
+<div class="arrow">&rarr;</div>
+<div class="arch-block" onclick="showInfo('sp')"><div class="title">Smart Primitives</div><div class="desc">Convert to keyframe constraints</div></div>
+</div>
+<div class="arrow">&darr;</div>
+<div class="flow-row">
+<div class="arch-block" onclick="showInfo('enc')"><div class="title">Encoder (Tokenizer)</div><div class="desc">Multi-Head VQ-VAE, 23.5M params</div></div>
+<div class="arrow">&rarr;</div>
+<div class="arch-block" onclick="showInfo('root')"><div class="title">Root Module</div><div class="desc">Transformer, 50M params</div></div>
+<div class="arrow">&rarr;</div>
+<div class="arch-block" onclick="showInfo('pose')"><div class="title">Pose Module</div><div class="desc">Transformer, 150M params</div></div>
+</div>
+<div class="arrow">&darr;</div>
+<div class="flow-row">
+<div class="arch-block" onclick="showInfo('dec')"><div class="title">Decoder</div><div class="desc">Pose Tokens + Root = Full Motion</div></div>
+<div class="arrow">&rarr;</div>
+<div class="arch-block" onclick="showInfo('out')"><div class="title">Output</div><div class="desc">15,000 FPS, 2ms latency</div></div>
+</div>
+</div>
+<div id="arch-info" style="margin-top:16px;padding:12px;background:#111;border-radius:6px;display:none">
+<p id="arch-info-text" style="font-size:0.85em;color:#ccc"></p>
+</div>
+</div>
+<div class="card">
+<h3>Key Design Principles</h3>
+<div class="metric-grid">
+<div class="metric"><div class="value">1</div><div class="label">Single forward pass (not iterative diffusion)</div></div>
+<div class="metric"><div class="value">3</div><div class="label">Cascaded generation stages</div></div>
+<div class="metric"><div class="value">4</div><div class="label">Root trajectory refinement steps</div></div>
+<div class="metric"><div class="value">0</div><div class="label">Task-specific fine-tuning needed</div></div>
+</div>
+</div>
+</div>
+
+<div class="panel" id="panel1">
+<div class="card">
+<h3>Multi-Head vs Single-Head Codebook Capacity</h3>
+<p style="font-size:0.85em;color:#aaa;margin-bottom:12px">Drag sliders to adjust head count and per-head codebook size. Observe how total capacity changes.</p>
+<div class="grid-2">
+<div>
+<div class="slider-group">
+<label>Number of Heads (K): <span class="slider-value" id="kVal">4</span></label>
+<input type="range" min="1" max="8" value="4" id="kSlider" oninput="updateTokenizer()">
+</div>
+<div class="slider-group">
+<label>Codebook Size per Head: <span class="slider-value" id="cVal">256</span></label>
+<input type="range" min="64" max="1024" value="256" step="64" id="cSlider" oninput="updateTokenizer()">
+</div>
+<div class="slider-group">
+<label>Single-Head Codebook (baseline): <span class="slider-value" id="sVal">16384</span></label>
+<input type="range" min="512" max="65536" value="16384" step="512" id="sSlider" oninput="updateTokenizer()">
+</div>
+</div>
+<div>
+<div class="combo-display">Multi-Head: <span id="multiCap">4,294,967,296</span></div>
+<div class="combo-display" style="color:#ff6b6b">Single-Head: <span id="singleCap">16,384</span></div>
+<div class="combo-display" style="color:#ffd93d">Ratio: <span id="capRatio">262,144</span>x</div>
+</div>
+</div>
+</div>
+<div class="card">
+<h3>Robustness: Graceful Degradation</h3>
+<p style="font-size:0.85em;color:#aaa;margin-bottom:12px">Toggle heads to simulate prediction errors. Other correct heads preserve quality.</p>
+<div id="robustness-toggles"></div>
+<div style="margin-top:12px;padding:12px;background:#111;border-radius:6px">
+<p style="font-size:0.9em">Information Retained: <span id="retainRate" class="highlight">100%</span></p>
+<div class="bar-track" style="margin-top:8px;height:32px">
+<div class="bar-fill" id="retainBar" style="width:100%;background:linear-gradient(90deg,#76b900,#4a8c00)"></div>
+</div>
+<p style="font-size:0.8em;color:#888;margin-top:8px" id="robustNote">All heads correct</p>
+</div>
+</div>
+</div>
+
+<div class="panel" id="panel2">
+<div class="card">
+<h3>Core Metrics (350k Dataset)</h3>
+<div class="metric-grid">
+<div class="metric"><div class="value">15,000</div><div class="label">FPS</div></div>
+<div class="metric"><div class="value">2ms</div><div class="label">Latency</div></div>
+<div class="metric"><div class="value">1.054</div><div class="label">FID (lower is better)</div></div>
+<div class="metric"><div class="value">86.5%</div><div class="label">Human Eval Win Rate</div></div>
+</div>
+</div>
+<div class="card">
+<h3>Method Comparison</h3>
+<p style="font-size:0.85em;color:#aaa;margin-bottom:8px">Select a metric to compare methods:</p>
+<select id="metricSelect" onchange="updateBars()" style="background:#111;color:#e0e0e0;border:1px solid #333;padding:6px 12px;border-radius:4px;margin-bottom:8px">
+<option value="fid">FID (lower is better)</option>
+<option value="fps">FPS (higher is better)</option>
+<option value="reach">Reaching Success Rate</option>
+<option value="foot">Foot Sliding (lower is better)</option>
+<option value="human">Human Score (1-5)</option>
+</select>
+<div class="bar-chart" id="compBars"></div>
+</div>
+</div>
+
+<div class="panel" id="panel3">
+<div class="card">
+<h3>4-Stage Root Trajectory Refinement</h3>
+<p style="font-size:0.85em;color:#aaa;margin-bottom:12px">Each stage makes small corrections. Drag the slider to see progressive refinement.</p>
+<canvas id="springCanvas" width="700" height="300"></canvas>
+<div class="slider-group" style="margin-top:12px">
+<label>Refinement Stage: <span class="slider-value" id="stageLabel">Stage 1: Naive Extrapolation</span></label>
+<input type="range" min="1" max="4" value="1" id="stageSlider" oninput="updateSpring()">
+</div>
+<div id="stageDesc" style="font-size:0.85em;color:#aaa;margin-top:8px;padding:12px;background:#111;border-radius:6px">
+r_g1: Direct velocity x time extrapolation. Simple but causes abrupt transitions.
+</div>
+</div>
+<div class="card">
+<h3>Critically Damped Spring Simulator</h3>
+<p style="font-size:0.85em;color:#aaa;margin-bottom:12px">Adjust spring parameters to see how critical damping smooths trajectory discontinuities.</p>
+<canvas id="dampCanvas" width="700" height="250"></canvas>
+<div class="grid-2">
+<div class="slider-group">
+<label>Halflife: <span class="slider-value" id="hlVal">0.27</span>s</label>
+<input type="range" min="5" max="100" value="27" id="hlSlider" oninput="updateDamp()">
+</div>
+<div class="slider-group">
+<label>Target Velocity Change: <span class="slider-value" id="tvVal">2.0</span> m/s</label>
+<input type="range" min="5" max="40" value="20" id="tvSlider" oninput="updateDamp()">
+</div>
+</div>
+</div>
+</div>
+
+<div class="panel" id="panel4">
+<div class="card">
+<h3>Component Ablation Study</h3>
+<p style="font-size:0.85em;color:#aaa;margin-bottom:12px">Toggle components to see their impact on FID (based on paper Table 4).</p>
+<div id="ablToggles"></div>
+<div style="margin-top:16px">
+<table>
+<thead><tr><th>Configuration</th><th>FID</th><th>Change</th></tr></thead>
+<tbody id="ablTable"></tbody>
+</table>
+</div>
+</div>
+<div class="card">
+<h3>Codebook Utilization vs Heads</h3>
+<table>
+<thead><tr><th>Heads (K)</th><th>Codebook Utilization</th><th>Recon FID</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>44.9%</td><td>0.379</td></tr>
+<tr><td>2</td><td>79.3%</td><td>0.239</td></tr>
+<tr><td class="highlight">4 (default)</td><td class="highlight">99.2%</td><td class="highlight">0.166</td></tr>
+<tr><td>8</td><td>99.6%</td><td>0.150</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="panel" id="panel5">
+<div class="card">
+<h3>Dataset Scaling Behavior</h3>
+<p style="font-size:0.85em;color:#aaa;margin-bottom:12px">FID continues to decrease with more data, showing no saturation.</p>
+<canvas id="scaleCanvas" width="700" height="300"></canvas>
+</div>
+<div class="card">
+<h3>Engineering Scale</h3>
+<div class="metric-grid">
+<div class="metric"><div class="value">350k</div><div class="label">Motion Clips</div></div>
+<div class="metric"><div class="value">700h</div><div class="label">MoCap Data</div></div>
+<div class="metric"><div class="value">9,300</div><div class="label">Skills</div></div>
+<div class="metric"><div class="value">163</div><div class="label">Performers</div></div>
+<div class="metric"><div class="value">223.5M</div><div class="label">Total Parameters</div></div>
+<div class="metric"><div class="value">17 days</div><div class="label">Training (32xH100)</div></div>
+</div>
+</div>
+</div>
+
+</div>
+
+<script>
+var panels=document.querySelectorAll('.panel');
+var tabs=document.querySelectorAll('.tab');
+function showTab(i){panels.forEach(function(p){p.classList.remove('active')});tabs.forEach(function(t){t.classList.remove('active')});panels[i].classList.add('active');tabs[i].classList.add('active');if(i===3){updateSpring();updateDamp()}if(i===5)drawScale()}
+
+var archInfos={
+input:'User input can be multiple modalities: gamepad velocity commands, style selection menus, precise keyframe positions. Smart Primitives convert these heterogeneous inputs into unified keyframe constraints.',
+sp:'Smart Primitives are an extensible interface layer. Smart Locomotion handles walk/run/navigation using critically damped springs. Smart Object handles object interactions via intent keyframes and interaction bindings. New tasks only need a new Primitive, no model retraining.',
+enc:'Multi-Head VQ-VAE Tokenizer: K=4 independent codebooks, 256 tokens per head. Only encodes pose (not root trajectory). Total capacity 256^4 = ~4 billion combinations.',
+root:'Root Module is a Transformer that predicts root trajectory token sequences. Input includes start/target keyframe root info and style/velocity conditions. 50M parameters.',
+pose:'Pose Module is the core Transformer (150M params). Receives root trajectory tokens and keyframe pose tokens, predicting all intermediate frame pose tokens.',
+dec:'Decoder receives Pose Tokens + Root Trajectory conditions to generate the final full-body motion. It automatically coordinates root motion with pose details.',
+out:'Final output: 15,000 FPS real-time generation, only 2ms per-frame latency. Drives UE5 virtual characters or Unitree G1 humanoid robots.'
+};
+function showInfo(key){var el=document.getElementById('arch-info');el.style.display='block';document.getElementById('arch-info-text').textContent=archInfos[key]}
+
+function updateTokenizer(){var k=+document.getElementById('kSlider').value;var c=+document.getElementById('cSlider').value;var s=+document.getElementById('sSlider').value;document.getElementById('kVal').textContent=k;document.getElementById('cVal').textContent=c;document.getElementById('sVal').textContent=s;var multi=Math.pow(c,k);var ratio=multi/s;document.getElementById('multiCap').textContent=multi.toLocaleString();document.getElementById('singleCap').textContent=s.toLocaleString();document.getElementById('capRatio').textContent=ratio>=1?Math.round(ratio).toLocaleString()+'x':'1/'+Math.round(s/multi).toLocaleString();initRobustness(k)}
+
+var currentK=4;
+function initRobustness(k){currentK=k;var c=document.getElementById('robustness-toggles');c.innerHTML='';for(var i=0;i<k;i++){var row=document.createElement('div');row.className='toggle-row';row.innerHTML='<label class="toggle"><input type="checkbox" checked onchange="updateRobust()"><span class="slider"></span></label><span class="toggle-label">Head '+(i+1)+' correct</span>';c.appendChild(row)}updateRobust()}
+function updateRobust(){var checks=document.querySelectorAll('#robustness-toggles input');var correct=0;checks.forEach(function(c){if(c.checked)correct++});var rate=Math.round(correct/currentK*100);document.getElementById('retainRate').textContent=rate+'%';document.getElementById('retainBar').style.width=rate+'%';var cl=rate>75?'#76b900':rate>50?'#a0d000':rate>25?'#ffd93d':'#ff6b6b';document.getElementById('retainBar').style.background=cl;var notes=['All heads wrong - output collapses','Severe degradation','Noticeable quality drop','Minor quality loss - graceful degradation','All heads correct - optimal quality'];document.getElementById('robustNote').textContent=notes[correct===currentK?4:correct===0?0:correct<=1?1:correct<=currentK/2?2:3]}
+
+var compData={fid:[{n:'MotionBricks',v:1.054,c:'#76b900'},{n:'CondMDI+CFG',v:1.201,c:'#4a90d9'},{n:'Closd-DiP',v:1.476,c:'#4a90d9'},{n:'MMM',v:1.803,c:'#4a90d9'},{n:'Cond.Inbtwn.',v:4.780,c:'#4a90d9'}],fps:[{n:'Cond.Inbtwn.',v:27000,c:'#4a90d9'},{n:'MotionBricks',v:15000,c:'#76b900'},{n:'MMM',v:5859,c:'#4a90d9'},{n:'Closd-DiP',v:65,c:'#4a90d9'},{n:'CondMDI+CFG',v:3,c:'#4a90d9'}],reach:[{n:'MotionBricks',v:99.6,c:'#76b900'},{n:'Cond.Inbtwn.',v:87.7,c:'#4a90d9'},{n:'CondMDI+CFG',v:86.5,c:'#4a90d9'},{n:'MMM',v:85.1,c:'#4a90d9'},{n:'Closd-DiP',v:79.5,c:'#4a90d9'}],foot:[{n:'MotionBricks',v:0.003,c:'#76b900'},{n:'MMM',v:0.004,c:'#4a90d9'},{n:'CondMDI+CFG',v:0.005,c:'#4a90d9'},{n:'Closd-DiP',v:0.007,c:'#4a90d9'},{n:'Cond.Inbtwn.',v:0.020,c:'#4a90d9'}],human:[{n:'MotionBricks',v:4.06,c:'#76b900'},{n:'CondMDI+CFG',v:3.58,c:'#4a90d9'},{n:'MMM',v:3.21,c:'#4a90d9'},{n:'Closd-DiP',v:3.15,c:'#4a90d9'},{n:'Cond.Inbtwn.',v:2.89,c:'#4a90d9'}]};
+function updateBars(){var sel=document.getElementById('metricSelect').value;var data=compData[sel];var max=Math.max.apply(null,data.map(function(d){return d.v}));var inv=sel==='fid'||sel==='foot';var el=document.getElementById('compBars');el.innerHTML='';data.forEach(function(d){var pct=inv?(1-d.v/max)*80+20:d.v/max*100;var row=document.createElement('div');row.className='bar-row';row.innerHTML='<div class="bar-label">'+d.n+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+d.c+'"></div><div class="bar-value">'+d.v+'</div></div>';el.appendChild(row)})}
+
+function updateSpring(){var stage=+document.getElementById('stageSlider').value;var labels=['Stage 1: Naive Extrapolation','Stage 2: Spring Smoothing','Stage 3: Root Module','Stage 4: Decoder'];var descs=['r_g1: Direct velocity x time extrapolation. Simple but causes abrupt transitions.','r_g2: Critically damped spring removes discontinuities. halflife=0.27s controls smoothing speed.','r_g3: Neural network adjusts based on style and timing, adding natural sway and rhythm.','r_g4: Decoder makes final micro-adjustments combining full-body pose details for coordinated foot placement.'];document.getElementById('stageLabel').textContent=labels[stage-1];document.getElementById('stageDesc').textContent=descs[stage-1];drawSpring(stage)}
+
+function drawSpring(stage){var cv=document.getElementById('springCanvas');var ctx=cv.getContext('2d');var w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#333';ctx.lineWidth=1;for(var x=0;x<w;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(var y=0;y<h;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+var n=100;var cy=h/2;var colors=['#ff6b6b80','#ffd93d80','#4a90d980','#76b900'];var widths=[1,1.5,2,2.5];
+for(var s=0;s<stage;s++){ctx.beginPath();ctx.strokeStyle=s===stage-1?colors[s].replace('80',''):colors[s];ctx.lineWidth=s===stage-1?widths[s]+1:widths[s];for(var i=0;i<n;i++){var t=i/(n-1);var px=t*w;var py=cy;if(s===0){py=cy-(t<0.3?0:t<0.5?(t-0.3)*200:40);if(t>0.7)py=cy-40+(t-0.7)*133}
+if(s===1){var tgt=t<0.3?0:40;var sm=1-Math.exp(-5*Math.max(0,t-0.25));py=cy-tgt*sm}
+if(s===2){var tgt2=t<0.3?0:40;var sm2=1-Math.exp(-5*Math.max(0,t-0.25));var wb=Math.sin(t*12)*2*(t>0.3?1:0)*Math.exp(-3*(t-0.5)*(t-0.5));py=cy-tgt2*sm2-wb}
+if(s===3){var tgt3=t<0.3?0:40;var sm3=1-Math.exp(-5*Math.max(0,t-0.25));var wb2=Math.sin(t*12)*1.5*(t>0.3?1:0)*Math.exp(-3*(t-0.5)*(t-0.5));var mc=Math.sin(t*25)*0.8;py=cy-tgt3*sm3-wb2-mc}
+if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py)}ctx.stroke()}
+ctx.fillStyle='#76b900';ctx.beginPath();ctx.arc(10,cy,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff6b6b';ctx.beginPath();ctx.arc(w-10,cy-40,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#888';ctx.font='11px sans-serif';ctx.fillText('Start',10,cy+18);ctx.fillText('Target',w-45,cy-45);var ly=20;for(var li=0;li<stage;li++){ctx.fillStyle=colors[li].replace('80','');ctx.fillRect(w-160,ly+li*18,12,12);ctx.fillStyle='#aaa';ctx.fillText(['Naive','Spring','Root Net','Decoder'][li],w-142,ly+li*18+10)}}
+
+function updateDamp(){var hl=+document.getElementById('hlSlider').value/100;var tv=+document.getElementById('tvSlider').value/10;document.getElementById('hlVal').textContent=hl.toFixed(2);document.getElementById('tvVal').textContent=tv.toFixed(1);drawDamp(hl,tv)}
+function drawDamp(hl,tv){var cv=document.getElementById('dampCanvas');var ctx=cv.getContext('2d');var w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#222';ctx.lineWidth=1;for(var x=0;x<w;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
+var n=200;var dt=0.005;var cy=h*0.7;var scale=h*0.5/tv;
+ctx.setLineDash([5,5]);ctx.strokeStyle='#ffd93d50';ctx.beginPath();ctx.moveTo(0,cy-tv*scale);ctx.lineTo(w,cy-tv*scale);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ffd93d';ctx.font='11px sans-serif';ctx.fillText('Target: '+tv.toFixed(1)+' m/s',w-120,cy-tv*scale-5);
+var vel=0;var omega=Math.log(2)/hl*2;ctx.beginPath();ctx.strokeStyle='#76b900';ctx.lineWidth=2.5;for(var i=0;i<n;i++){var px=i/n*w;var py=cy-vel*scale;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);var err=tv-vel;vel+=err*(1-Math.exp(-omega*dt))}ctx.stroke();
+ctx.strokeStyle='#ff6b6b';ctx.lineWidth=1.5;ctx.beginPath();for(var j=0;j<n;j++){var px2=j/n*w;var py2=cy-(j>n*0.1?tv:0)*scale;if(j===0)ctx.moveTo(px2,py2);else ctx.lineTo(px2,py2)}ctx.stroke();
+ctx.fillStyle='#76b900';ctx.fillRect(10,10,12,12);ctx.fillStyle='#aaa';ctx.fillText('Damped Spring',28,20);ctx.fillStyle='#ff6b6b';ctx.fillRect(10,28,12,12);ctx.fillStyle='#aaa';ctx.fillText('Step (no smoothing)',28,38)}
+
+var ablComponents=[{name:'Multi-Head (K=4)',on:true,fidDelta:-0.213},{name:'Root-Pose Disentangle',on:true,fidDelta:-0.187},{name:'Progressive Refine',on:true,fidDelta:-0.156},{name:'Smart Locomotion Spring',on:true,fidDelta:-0.098}];
+function initAblation(){var c=document.getElementById('ablToggles');ablComponents.forEach(function(comp,i){var row=document.createElement('div');row.className='toggle-row';row.innerHTML='<label class="toggle"><input type="checkbox" '+(comp.on?'checked':'')+' onchange="ablComponents['+i+'].on=this.checked;updateAblation()"><span class="slider"></span></label><span class="toggle-label">'+comp.name+'</span>';c.appendChild(row)});updateAblation()}
+function updateAblation(){var baseFid=1.708;var fid=baseFid;var tb=document.getElementById('ablTable');tb.innerHTML='';tb.innerHTML+='<tr><td>Baseline</td><td>'+baseFid.toFixed(3)+'</td><td>-</td></tr>';ablComponents.forEach(function(comp){if(comp.on){fid+=comp.fidDelta;tb.innerHTML+='<tr><td>+ '+comp.name+'</td><td>'+fid.toFixed(3)+'</td><td style="color:#76b900">'+comp.fidDelta.toFixed(3)+'</td></tr>'}});tb.innerHTML+='<tr style="font-weight:600"><td>Final</td><td class="highlight">'+fid.toFixed(3)+'</td><td></td></tr>'}
+
+function drawScale(){var cv=document.getElementById('scaleCanvas');if(!cv)return;var ctx=cv.getContext('2d');var w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);
+var data=[{x:10,fid:2.8,label:'10k'},{x:30,fid:2.1,label:'30k'},{x:70,fid:1.5,label:'70k'},{x:150,fid:1.2,label:'150k'},{x:350,fid:1.054,label:'350k'}];
+var padL=60,padR=30,padT=30,padB=40;var pw=w-padL-padR,ph=h-padT-padB;
+ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(padL,padT);ctx.lineTo(padL,h-padB);ctx.lineTo(w-padR,h-padB);ctx.stroke();
+var maxX=400,maxY=3.5;
+ctx.fillStyle='#888';ctx.font='11px sans-serif';for(var y=0.5;y<=3;y+=0.5){var py=padT+ph*(1-y/maxY);ctx.fillText(y.toFixed(1),padL-30,py+4);ctx.strokeStyle='#1a1a2e';ctx.beginPath();ctx.moveTo(padL,py);ctx.lineTo(w-padR,py);ctx.stroke()}
+ctx.beginPath();ctx.strokeStyle='#76b900';ctx.lineWidth=2.5;data.forEach(function(d,i){var px=padL+d.x/maxX*pw;var py=padT+ph*(1-d.fid/maxY);if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py)});ctx.stroke();
+data.forEach(function(d){var px=padL+d.x/maxX*pw;var py=padT+ph*(1-d.fid/maxY);ctx.fillStyle='#76b900';ctx.beginPath();ctx.arc(px,py,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#aaa';ctx.font='10px sans-serif';ctx.fillText(d.label,px-15,h-padB+15);ctx.fillText(d.fid.toFixed(2),px-12,py-10)});
+ctx.fillStyle='#888';ctx.font='12px sans-serif';ctx.fillText('FID',5,padT+ph/2);ctx.fillText('Dataset Size (clips)',padL+pw/2-50,h-5)}
+
+window.onload=function(){updateTokenizer();updateBars();initAblation();drawSpring(1);updateDamp();setTimeout(drawScale,100)};
+</script>
+</body>
+</html>

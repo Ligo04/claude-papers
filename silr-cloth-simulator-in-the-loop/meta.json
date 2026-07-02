@@ -1,0 +1,32 @@
+{
+  "title": "Enabling Robust Cloth Manipulation via Inference-Time Simulator-in-the-Loop Refinement",
+  "authors": [
+    "Xin Liu",
+    "Yulin Li",
+    "Ziming Li",
+    "Pengyu Jing",
+    "Zhenhao Huang",
+    "Bingyang Zhou",
+    "Ziqiu Zeng",
+    "Siyuan Luo",
+    "Chenkun Qi",
+    "Fan Shi"
+  ],
+  "affiliations": [
+    "National University of Singapore",
+    "Shanghai Jiao Tong University"
+  ],
+  "arxiv": "2606.24552v1",
+  "year": 2026,
+  "date": "2026-06-23",
+  "project_page": "https://silr-cloth.github.io/",
+  "abstract": "A simulator-in-the-loop framework that brings inference-time physics refinement to real-world cloth manipulation from a single RGB observation. Three pillars: (i) FLASH-based scalable synthetic-data generation and inference-time rollout pipeline for deformable objects; (ii) an RGB-native real-to-sim module trained purely on synthetic data that maps a single RGB image to simulation-compatible cloth state by fusing frozen DINOv2 features with learnable canonical tokens; (iii) prior-guided MPPI that couples a sparse-mesh rollout backend with sampling-based optimization anchored at an offline-distilled policy trajectory. Real-robot experiments show higher success rates and stronger robustness than baselines.",
+  "tags": [
+    "cloth manipulation",
+    "simulator-in-the-loop"
+  ],
+  "githubLinks": [],
+  "codeLinks": [
+    "https://silr-cloth.github.io/"
+  ]
+}

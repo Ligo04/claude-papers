@@ -1,0 +1,20 @@
+{
+  "title": "M-ABD: Scalable, Efficient, and Robust Multi-Affine-Body Dynamics",
+  "authors": [
+    "Zhiyong He",
+    "Dewen Guo",
+    "Minghao Guo",
+    "Yili Zhao",
+    "Wojciech Matusik",
+    "Hao Su",
+    "Chenfanfu Jiang",
+    "Peter Yichen Chen",
+    "Yin Yang"
+  ],
+  "abstract": "Simulating large-scale articulated assemblies poses a significant challenge due to the numerical stiffness and geometric complexity of jointed structures. Conventional rigid body solvers struggle with the high nonlinearity induced by rotation parameterization. This paper introduces a novel framework that leverages the linear kinematic mapping of Affine Body Dynamics (ABD). A co-rotational approach isolates geometric nonlinearities, enabling constant system matrices that can be pre-factorized throughout the simulation, even with fully implicit integration. Joint constraints are enforced via KKT in a compact dual space. Specialized solvers are provided for chains, trees, closed loops, and irregular networks. The approach achieves interactive rates for systems with hundreds of thousands of bodies on a single CPU core.",
+  "year": 2026,
+  "date": "2026-03-09",
+  "tags": ["multibody dynamics", "affine body"],
+  "githubLinks": [],
+  "codeLinks": []
+}

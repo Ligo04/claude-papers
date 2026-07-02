@@ -1,0 +1,13 @@
+{
+  "title": "Stable Proportional-Derivative Controllers",
+  "authors": ["Jie Tan", "Karen Liu", "Greg Turk"],
+  "affiliation": "Georgia Institute of Technology",
+  "venue": "IEEE Computer Graphics and Applications, 2011",
+  "year": 2011,
+  "date": "2011-07-01",
+  "abstract": "In computer animation, a common technique for tracking the motion of characters is the proportional-derivative (PD) controller. In this paper, we introduce a new formulation of the PD controller that allows arbitrarily high gains, even at large time steps. The key to our approach is to determine the joint forces and torques while taking into account the positions and velocities of the character in the next time step. The method is stable even when combined with a physics simulator that uses simple Euler integration. We demonstrate that these new, stable PD controllers can be used in a variety of ways, including motion tracking in a physics simulator, keyframe interpolation with secondary motion, and constraint satisfaction for simulation.",
+  "tags": ["character animation", "stable pd control"],
+  "githubLinks": [],
+  "codeLinks": [],
+  "pageCount": 7
+}

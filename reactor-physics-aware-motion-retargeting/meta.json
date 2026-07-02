@@ -1,0 +1,33 @@
+{
+  "title": "ReActor: Reinforcement Learning for Physics-Aware Motion Retargeting",
+  "authors": [
+    "David Müller",
+    "Agon Serifi",
+    "Sammy Christen",
+    "Ruben Grandia",
+    "Espen Knoop",
+    "Moritz Bächer"
+  ],
+  "affiliation": "Disney Research",
+  "venue": "ACM Transactions on Graphics",
+  "volume": "45",
+  "number": "4",
+  "year": 2026,
+  "month": "July",
+  "arxiv_id": "2605.06593",
+  "tags": [
+    "motion-retargeting",
+    "bilevel-optimization",
+    "reinforcement-learning",
+    "physics-simulation",
+    "character-animation"
+  ],
+  "difficulty": "Advanced",
+  "estimated_study_time": "6-8 hours",
+  "prerequisites": [
+    "Reinforcement learning fundamentals (PPO)",
+    "Physics simulation basics",
+    "Bilevel optimization concepts",
+    "Character animation terminology"
+  ]
+}

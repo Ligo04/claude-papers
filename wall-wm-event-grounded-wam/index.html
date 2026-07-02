@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WALL-WM：事件对齐世界动作建模 — 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0c0f16; --panel:#151a24; --panel2:#1d2433; --line:#2b3445;
+    --txt:#e9eef6; --muted:#90a0b8; --accent:#f0a868; --accent2:#5fb0e6;
+    --lang:#f0a868; --vis:#5fb0e6; --act:#7ee0a8; --bad:#f2706a; --good:#7ee0a8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,Arial,sans-serif;
+       background:var(--bg);color:var(--txt);line-height:1.7;}
+  header{padding:28px 24px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#10141e,#0c0f16);}
+  header h1{margin:0 0 4px;font-size:1.5rem}
+  header h1 .w{color:var(--accent)}
+  header .sub{color:var(--muted);font-size:.92rem;font-style:italic}
+  header .meta{margin-top:8px;font-size:.8rem;color:var(--muted)}
+  header .meta a{color:var(--accent2);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+  .tab{padding:8px 15px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:.88rem;color:var(--muted);user-select:none}
+  .tab.active{background:var(--accent);color:#0c0f16;border-color:var(--accent);font-weight:700}
+  .panel{display:none;animation:fade .25s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
+  .card h2{margin:0 0 6px;font-size:1.12rem}
+  .card h3{margin:16px 0 6px;font-size:.96rem;color:var(--accent2)}
+  .note{color:var(--muted);font-size:.87rem;margin:0 0 14px}
+  label.ctl{display:block;margin:14px 0 4px;font-size:.85rem;color:var(--muted)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .val{color:var(--accent);font-weight:700}
+  canvas{background:var(--panel2);border-radius:10px;width:100%;display:block}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem;margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:6px}
+  th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .bar{height:13px;border-radius:4px;display:inline-block;vertical-align:middle}
+  tr.ours td{background:rgba(240,168,104,.10);font-weight:600}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.74rem;margin:2px 4px 2px 0;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .big{font-size:2.0rem;font-weight:800;color:var(--accent)}
+  .kpi{display:flex;gap:22px;flex-wrap:wrap;margin-top:6px}
+  .kpi .b{text-align:center}
+  .kpi .b .l{font-size:.74rem;color:var(--muted)}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:.85em}
+  .quote{font-style:italic;color:var(--accent);border-left:3px solid var(--accent);padding-left:12px;margin:10px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="w">WALL-WM</span>：在"事件关节"处切分世界动作建模</h1>
+  <div class="sub">"Carve nature at its joints." —— 仿柏拉图《斐德罗篇》265e</div>
+  <div class="meta">X Square Robot Team · arXiv:2606.01955（2026） ·
+    <a href="https://github.com/X-Square-Robot/wall-x" target="_blank" rel="noopener">代码 wall-x</a> · 下方所有数字均来自论文</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active" data-t="seg">✂️ 事件 vs 定长 chunk</div>
+    <div class="tab" data-t="modes">🔀 两种推理模式</div>
+    <div class="tab" data-t="stair">🪜 Staircase 潜推理</div>
+    <div class="tab" data-t="results">📊 真机成绩</div>
+    <div class="tab" data-t="ablation">🔬 消融与视频生成</div>
+  </div>
+
+  <!-- ============ SEGMENTATION ============ -->
+  <div class="panel active" id="seg">
+    <div class="card">
+      <h2>核心：按"时钟"切 vs 按"具身动态的关节"切</h2>
+      <p class="quote">固定 chunk 按时钟切；语义事件按具身动态切。</p>
+      <p class="note">同一段"伸手→抓取→移动→放置→释放"轨迹。拖动 chunk 长度 L：定长 chunk 常跨越事件边界，
+      块内混入多种动态（<b style="color:var(--bad)">红色=跨界块</b>）；事件切分则每段恰好一个语义事件。</p>
+      <label class="ctl">定长 chunk 长度 L = <span class="val" id="Lv">16</span> 帧</label>
+      <input type="range" id="L" min="6" max="30" step="2" value="16">
+      <h3>定长 chunk（按时钟）</h3>
+      <canvas id="chunkcv" height="90"></canvas>
+      <h3>事件切分（按关节）</h3>
+      <canvas id="eventcv" height="90"></canvas>
+      <div class="legend" id="evlegend"></div>
+      <div class="kpi" style="margin-top:14px">
+        <div class="b"><div class="big" id="icv" style="color:var(--bad)">—</div><div class="l">定长块内不一致度（越低越好，1=完美）</div></div>
+        <div class="b"><div class="big" style="color:var(--good)">1.00</div><div class="l">事件切分块内不一致度</div></div>
+        <div class="b"><div class="big" id="fhv" style="color:var(--bad)">—</div><div class="l">定长块"需历史消歧"占比</div></div>
+      </div>
+      <p class="note" id="segtext" style="margin-top:12px"></p>
+    </div>
+  </div>
+
+  <!-- ============ MODES ============ -->
+  <div class="panel" id="modes">
+    <div class="card">
+      <h2>一个事件预训练骨干，两种推理模式</h2>
+      <p class="note">点击切换，看两种模式如何用同一骨干执行任务（论文 Fig.2 / §5.5）。</p>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <button class="tab active" id="mEvent">事件模式</button>
+        <button class="tab" id="mUnified">统一模式</button>
+      </div>
+      <canvas id="modecv" height="220"></canvas>
+      <div id="modetext" style="margin-top:14px;padding:12px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line)"></div>
+    </div>
+    <div class="card">
+      <h2>架构三板斧：先验保持式提升</h2>
+      <div class="legend" style="gap:24px">
+        <span><span class="dot" style="background:var(--vis)"></span><b>视频塔</b>（Wan2.2-5B，冻结）→ 保留视觉/语言先验</span>
+        <span><span class="dot" style="background:var(--act)"></span><b>动作塔</b>（随机初始化）→ 单向读视频特征</span>
+      </div>
+      <p class="note" style="margin-top:12px">① 视频塔<b>冻结</b>；② 跨视角分支<b>零初始化</b>（初始不改变继承行为）；③ 层间耦合<b>单向</b>（动作读视频、不改视频）。
+      多视角靠 <code>Camera RoPE</code>（免标定相机身份）+ 视锥/管状几何掩码（仅训练期）。</p>
+    </div>
+  </div>
+
+  <!-- ============ STAIRCASE ============ -->
+  <div class="panel" id="stair">
+    <div class="card">
+      <h2>Staircase 并行潜 CoT：把串行推理拆成深度并行</h2>
+      <p class="note">传统 CoT 串行逐 token，每步重算低层特征 → 延迟随链长暴涨。Staircase 在中继深度 Nr 切分：
+      低层只算一次（共享），高层各潜状态<b>并行</b>。调下面两个滑块，看成本与延迟变化（层前向次数成本模型）。</p>
+      <label class="ctl">潜状态数 Kc = <span class="val" id="Kcv">8</span></label>
+      <input type="range" id="Kc" min="2" max="16" step="1" value="8">
+      <label class="ctl">中继深度 Nr = <span class="val" id="Nrv">24</span>（总层数 L=36）</label>
+      <input type="range" id="Nr" min="4" max="34" step="2" value="24">
+      <canvas id="staircv" height="200"></canvas>
+      <div class="kpi" style="margin-top:14px">
+        <div class="b"><div class="big" id="totalSave">—</div><div class="l">总层前向 省下（vs 串行）</div></div>
+        <div class="b"><div class="big" id="critSpeed" style="color:var(--accent2)">—</div><div class="l">关键路径加速（延迟）</div></div>
+      </div>
+      <p class="note" id="stairtext" style="margin-top:12px"></p>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div class="panel" id="results">
+    <div class="card">
+      <h2>真机四套件：Task Progress（0–100，越高越好）</h2>
+      <p class="note">主模型为事件模式。U-Scratch = 去掉事件预训练/推理的从零定长基线。切换套件查看（论文 §7.2）。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="tab active" id="s_div">多样操作</button>
+        <button class="tab" id="s_rea">推理操作</button>
+        <button class="tab" id="s_dex">灵巧操作</button>
+        <button class="tab" id="s_gen">泛化</button>
+      </div>
+      <canvas id="rescv" height="240"></canvas>
+      <p class="note" id="restext" style="margin-top:12px"></p>
+    </div>
+  </div>
+
+  <!-- ============ ABLATION ============ -->
+  <div class="panel" id="ablation">
+    <div class="card">
+      <h2>消融：事件 + 跨视角建模的贡献（表 4）</h2>
+      <p class="note">Base = 同样用预训练骨干，但去掉 View-Interaction Self-Attention 且用定长统一解码。控制了"是否预训练"这一变量，只移除事件/跨视角设计。</p>
+      <table>
+        <thead><tr><th>套件</th><th class="num">Base（去事件/跨视角）</th><th class="num">Event（WALL-WM）</th><th class="num">增益</th></tr></thead>
+        <tbody>
+          <tr class="ours"><td>推理操作（平均）</td><td class="num">32.6</td><td class="num">71.6</td><td class="num" style="color:var(--good)">+39.0</td></tr>
+          <tr class="ours"><td>泛化（平均）</td><td class="num">22.0</td><td class="num">53.75</td><td class="num" style="color:var(--good)">+31.8</td></tr>
+          <tr><td>Press Button in Order</td><td class="num">0</td><td class="num">64</td><td class="num" style="color:var(--good)">+64</td></tr>
+          <tr><td>Place Plates into Slots</td><td class="num">30</td><td class="num">64</td><td class="num" style="color:var(--good)">+34</td></tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:8px">在同样有预训练的前提下，事件条件执行 + 跨视角建模仍带来巨大增益 → 增益来自<b>范式</b>，而非单纯"有没有预训练"。</p>
+    </div>
+    <div class="card">
+      <h2>具身视频生成（表 2）：视频塔基于 Wan2.2-5B</h2>
+      <p class="note">WALL-WM 在与具身相关的维度（运动质量、语义一致、物理合理）领先通用视频模型，同时保持竞争力的视觉质量。选维度查看。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="tab active" id="v_dyn">动态程度</button>
+        <button class="tab" id="v_inter">交互质量</button>
+        <button class="tab" id="v_traj">轨迹准确</button>
+        <button class="tab" id="v_instr">指令遵循</button>
+      </div>
+      <canvas id="vidcv" height="170"></canvas>
+      <p class="note" style="margin-top:10px">另：3D 感知（表 3，CO3Dv2）WALL-WM 点误差 0.271 / 深度误差 0.132，优于 WAN2.1-14B（0.284 / 0.151）。部署经蒸馏+FP8 达 <b>10Hz</b> 闭环。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function resize(c){c.width=c.clientWidth*devicePixelRatio;c.getContext('2d').setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
+document.querySelectorAll('.tab[data-t]').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab[data-t]').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');document.getElementById(t.dataset.t).classList.add('active');
+    if(t.dataset.t==='stair')drawStair();
+    if(t.dataset.t==='results')drawRes();
+    if(t.dataset.t==='ablation')drawVid();
+    if(t.dataset.t==='modes')drawMode();
+  };
+});
+
+// ===== events def =====
+const EV=[{n:'伸手',d:22,c:'#f0a868'},{n:'抓取',d:9,c:'#5fb0e6'},{n:'移动',d:26,c:'#7ee0a8'},{n:'放置',d:13,c:'#c98bf0'},{n:'释放',d:6,c:'#f2706a'}];
+const T=EV.reduce((a,e)=>a+e.d,0);
+const bnd=[0]; EV.forEach(e=>bnd.push(bnd[bnd.length-1]+e.d));
+const evId=[]; EV.forEach((e,i)=>{for(let k=0;k<e.d;k++)evId.push(i);});
+
+// ===== SEGMENTATION =====
+const L=document.getElementById('L');
+function frameColor(i){return EV[evId[i]].c;}
+function drawSeg(){
+  const Lv=+L.value; document.getElementById('Lv').textContent=Lv;
+  // legend
+  document.getElementById('evlegend').innerHTML=EV.map(e=>`<span><span class="dot" style="background:${e.c}"></span>${e.n}</span>`).join('');
+  // event timeline (truth)
+  drawTimeline('eventcv', bnd.slice(0,-1).map((s,i)=>[bnd[i],bnd[i+1]]), true);
+  // chunk timeline
+  const segs=[]; for(let s=0;s<T;s+=Lv)segs.push([s,Math.min(s+Lv,T)]);
+  drawTimeline('chunkcv', segs, false);
+  // metrics
+  let ic=0,need=0;
+  segs.forEach(([s,e])=>{
+    const ids=evId.slice(s,e); const uniq=new Set(ids);
+    ic+=uniq.size*(e-s);
+    const cnt={}; ids.forEach(x=>cnt[x]=(cnt[x]||0)+1);
+    const maj=+Object.keys(cnt).reduce((a,b)=>cnt[a]>cnt[b]?a:b);
+    if(ids[0]!==maj||uniq.size>1)need++;
+  });
+  ic/=T;
+  document.getElementById('icv').textContent=ic.toFixed(2);
+  document.getElementById('fhv').textContent=Math.round(need/segs.length*100)+'%';
+  document.getElementById('segtext').innerHTML=
+    `当前 L=${Lv}：定长切出 ${segs.length} 块，其中跨越事件边界的"脏块"使块内不一致度=${ic.toFixed(2)}（>1），`+
+    `${Math.round(need/segs.length*100)}% 的块需要历史上下文才能确定其语义。事件切分则是 ${EV.length} 段、不一致度=1.00、0% 需历史 —— 这就是"按关节切"的好处。`;
+}
+function drawTimeline(id,segs,isEvent){
+  const c=document.getElementById(id);resize(c);const x=c.getContext('2d');
+  const W=c.clientWidth,H=c.clientHeight,pad=8; x.clearRect(0,0,W,H);
+  const sx=i=>pad+(W-2*pad)*i/T;
+  // colored frames
+  for(let i=0;i<T;i++){x.fillStyle=frameColor(i);x.globalAlpha=0.85;x.fillRect(sx(i),24,sx(i+1)-sx(i)+0.5,H-40);}
+  x.globalAlpha=1;
+  // segment borders
+  segs.forEach(([s,e])=>{
+    const ids=evId.slice(s,e); const dirty=new Set(ids).size>1;
+    x.strokeStyle= (!isEvent&&dirty)? css('--bad'):'#0c0f16';
+    x.lineWidth=(!isEvent&&dirty)?3:2;
+    x.strokeRect(sx(s),24,sx(e)-sx(s),H-40);
+  });
+  x.fillStyle=css('--muted');x.font='11px sans-serif';
+  x.fillText(isEvent?'✂ 按事件关节切（每段一个语义事件）':'⏱ 按时钟每 L 帧切（红框=跨界脏块）',pad,16);
+}
+L.oninput=drawSeg;
+
+// ===== MODES =====
+let mode='event';
+function drawMode(){
+  document.getElementById('mEvent').classList.toggle('active',mode==='event');
+  document.getElementById('mUnified').classList.toggle('active',mode==='unified');
+  const c=document.getElementById('modecv');resize(c);const x=c.getContext('2d');
+  const W=c.clientWidth,H=c.clientHeight; x.clearRect(0,0,W,H);
+  x.font='12px sans-serif';x.textAlign='center';
+  const box=(cx,cy,w,h,col,txt)=>{x.fillStyle=col;x.globalAlpha=.22;x.fillRect(cx-w/2,cy-h/2,w,h);x.globalAlpha=1;
+    x.strokeStyle=col;x.lineWidth=1.5;x.strokeRect(cx-w/2,cy-h/2,w,h);x.fillStyle=css('--txt');
+    txt.split('\n').forEach((t,i)=>x.fillText(t,cx,cy-((txt.split('\n').length-1)*7)+i*14));};
+  const arrow=(x1,y1,x2,y2)=>{x.strokeStyle=css('--muted');x.lineWidth=1.5;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();
+    const a=Math.atan2(y2-y1,x2-x1);x.beginPath();x.moveTo(x2,y2);x.lineTo(x2-8*Math.cos(a-.4),y2-8*Math.sin(a-.4));x.lineTo(x2-8*Math.cos(a+.4),y2-8*Math.sin(a+.4));x.closePath();x.fillStyle=css('--muted');x.fill();};
+  const cy=H/2;
+  if(mode==='event'){
+    box(90,cy,150,52,css('--lang'),'VLM/人/agent\n提出"下一事件"');
+    arrow(168,cy,230,cy);
+    box(310,cy,150,52,css('--act'),'事件预训练骨干\n执行【变长】片段');
+    arrow(388,cy,450,cy);
+    box(530,cy,150,52,css('--vis'),'观测下一状态\n→ 提下个事件');
+    arrow(530,cy+30,530,cy+55);arrow(530,cy+55,90,cy+55);arrow(90,cy+55,90,cy+28);
+    x.fillStyle=css('--muted');x.fillText('事件空间 rollout：跟随任务自然时长',W/2,H-8);
+  }else{
+    box(90,cy,150,52,css('--lang'),'全局指令\n+ 多视角观测');
+    arrow(168,cy,230,cy);
+    box(320,cy,170,52,css('--accent'),'Staircase 解码\n→ 并行潜 CoT');
+    arrow(408,cy,470,cy);
+    box(560,cy,150,52,css('--act'),'定长 chunk 推理\n(梯度连续 VLA)');
+    x.fillStyle=css('--muted');x.fillText('统一模式：事件结构注入定长 chunk，部署友好',W/2,H-8);
+  }
+  x.textAlign='left';
+  document.getElementById('modetext').innerHTML= mode==='event'?
+    `<b style="color:var(--accent)">事件模式</b>：系统在事件空间 rollout。提议者给出"下一事件"描述，骨干执行对应的<b>变长</b>视频-动作片段，再观测下一状态。rollout 跟随每个任务阶段的自然时长，而非固定控制视野。`:
+    `<b style="color:var(--accent)">统一模式</b>：保留传统<b>定长</b> chunk 推理，但 chunk 不再仅以原始全局指令为条件——Staircase 解码一次并行产出 Kc 个潜 CoT 状态，注入 WAM 跨注意力，提供事件结构化引导，且保持梯度连续的 VLA 通路。部署友好。`;
+}
+document.getElementById('mEvent').onclick=()=>{mode='event';drawMode();};
+document.getElementById('mUnified').onclick=()=>{mode='unified';drawMode();};
+
+// ===== STAIRCASE =====
+const Kc=document.getElementById('Kc'),Nr=document.getElementById('Nr');
+const LAYERS=36;
+function drawStair(){
+  const kc=+Kc.value,nr=+Nr.value;
+  document.getElementById('Kcv').textContent=kc;document.getElementById('Nrv').textContent=nr;
+  const serialTotal=kc*LAYERS, stairTotal=nr+kc*(LAYERS-nr);
+  const serialCrit=kc*LAYERS, stairCrit=LAYERS;
+  document.getElementById('totalSave').textContent=Math.round((1-stairTotal/serialTotal)*100)+'%';
+  document.getElementById('critSpeed').textContent=(serialCrit/stairCrit).toFixed(1)+'×';
+  const c=document.getElementById('staircv');resize(c);const x=c.getContext('2d');
+  const W=c.clientWidth,H=c.clientHeight; x.clearRect(0,0,W,H);
+  // draw staircase: x = latent position (Kc), y = depth (layers). Shared low layers once, parallel high layers
+  const padL=50,padT=20,padB=24; const gw=(W-padL-20)/kc; const gh=(H-padT-padB)/LAYERS;
+  for(let p=0;p<kc;p++){
+    for(let d=0;d<LAYERS;d++){
+      const low=d<nr;
+      // low layers: only first latent computes; others reuse (shaded)
+      let col, alpha;
+      if(low){ if(p===0){col=css('--accent2');alpha=.9;} else {col='#3a4658';alpha=.35;} }
+      else { col=css('--accent');alpha=.85; }
+      x.fillStyle=col;x.globalAlpha=alpha;
+      x.fillRect(padL+p*gw+1,padT+d*gh,gw-2,gh-0.5);
+    }
+  }
+  x.globalAlpha=1;x.fillStyle=css('--muted');x.font='10px sans-serif';
+  x.fillText('深度↓',6,padT+8); x.fillText('潜状态 1..Kc →',padL,H-8);
+  x.fillStyle=css('--accent2');x.fillText('低层(共享,只算一次)',padL+5,padT+nr*gh-4);
+  x.fillStyle=css('--accent');x.fillText('高层(并行)',padL+5,padT+nr*gh+12);
+  // relay line
+  x.strokeStyle='#fff';x.globalAlpha=.4;x.setLineDash([4,3]);x.beginPath();x.moveTo(padL,padT+nr*gh);x.lineTo(W-20,padT+nr*gh);x.stroke();x.setLineDash([]);x.globalAlpha=1;
+  document.getElementById('stairtext').innerHTML=
+    `总层前向：串行 CoT = Kc×L = ${serialTotal}；Staircase = Nr + Kc×(L−Nr) = ${stairTotal}（省 ${Math.round((1-stairTotal/serialTotal)*100)}%）。`+
+    `关键路径：串行 = ${serialCrit}，Staircase 恒为 L = ${stairCrit} → 加速 ${(serialCrit/stairCrit).toFixed(1)}×（与 Kc 无关，链越长越划算）。`+
+    `${nr>=LAYERS-2?' ⚠️ Nr 太大：几乎全在低层，高层并行收益消失。':nr<=6?' ⚠️ Nr 太小：共享层太少，省下的重复计算有限。':''}`;
+}
+Kc.oninput=drawStair;Nr.oninput=drawStair;
+
+// ===== RESULTS =====
+const RES={
+  div:{t:'多样操作',rows:[['LingBot-VA',29.71],['DreamZero',39.97],['π0.5',55.64],['U-Scratch',63.00],['WALL-WM(事件)',75.86]],
+       note:'最强整体表现。优势集中在需要完整物体状态转换的任务（杯子摆三角、放勺入碗、套环、倒水）。注：π0.5 在置物上架、DreamZero 在篮子拣取上局部领先——WALL-WM 赢在整体均衡。'},
+  rea:{t:'推理操作',rows:[['LingBot-VA',31.60],['DreamZero',32.70],['π0.5',56.40],['U-Scratch',59.50],['WALL-WM(事件)',71.60]],
+       note:'语言引导推理（分类、排序、配对、指令条件选择）。事件模式用微调 Qwen3.5-VL-9B 把高层指令转成"下一事件"描述，对按序按钮、选水果等改变事件结构的任务帮助明显。'},
+  dex:{t:'灵巧操作（接触密集）',rows:[['π0.5/LingBot/DZ','（均更低）'],['U-Scratch',31.25],['WALL-WM(事件)',32.00]],
+       note:'事件 32.00 ≈ U-Scratch 31.25，差距很小且绝对分都低。瓶颈在低层位姿精度、接触时序、窄公差对齐，而非高层事件分解——这是事件范式帮助最有限的地方（可与库里 T-Rex 的高频触觉精修互补）。'},
+  gen:{t:'泛化（杂乱场景+指令切换）',rows:[['U-Scratch',18.50],['π0.5',24.00],['DreamZero',28.50],['WALL-WM(事件)',53.75]],
+       note:'复杂台面、多物体共存、指令随机切换。事件模式把当前指令转成"下一事件"再执行可复用转换（接近/对齐/插入/推/盖/释放），对场景接地与组合迁移最有利。'},
+};
+let curRes='div';
+function drawRes(){
+  const c=document.getElementById('rescv');resize(c);const x=c.getContext('2d');
+  const W=c.clientWidth,H=c.clientHeight; x.clearRect(0,0,W,H);
+  const d=RES[curRes]; const rows=d.rows.filter(r=>typeof r[1]==='number');
+  const pad=120, top=16, bottom=H-20, max=100, n=rows.length, gh=(bottom-top)/n;
+  for(let g=0;g<=100;g+=25){const px=pad+(W-pad-20)*g/max;
+    x.strokeStyle='#222b39';x.beginPath();x.moveTo(px,top);x.lineTo(px,bottom);x.stroke();
+    x.fillStyle='#8da0b8';x.font='10px sans-serif';x.fillText(g,px-4,bottom+14);}
+  rows.forEach(([m,v],i)=>{
+    const y=top+i*gh+gh*0.2, h=gh*0.6;
+    const isW=m.includes('WALL');
+    x.fillStyle=isW?css('--accent'):css('--accent2');
+    x.fillRect(pad,y,(W-pad-20)*v/max,h);
+    x.fillStyle=css('--txt');x.font=(isW?'bold ':'')+'12px sans-serif';x.textAlign='right';
+    x.fillText(m,pad-8,y+h*0.75);x.textAlign='left';
+    x.fillText(v.toFixed(2),pad+(W-pad-20)*v/max+6,y+h*0.75);
+  });
+  document.getElementById('restext').textContent=d.note;
+}
+['div','rea','dex','gen'].forEach(k=>{document.getElementById('s_'+k).onclick=()=>{curRes=k;
+  ['div','rea','dex','gen'].forEach(j=>document.getElementById('s_'+j).classList.toggle('active',j===k));drawRes();};});
+
+// ===== VIDEO GEN =====
+const VID={
+  dyn:{t:'动态程度 Dynamic Degree',rows:[['Wan2.1-1.3B',0.199],['Wan2.2-5B',0.418],['WALL-WM',0.484]]},
+  inter:{t:'交互质量 Interaction Quality',rows:[['Wan2.1-1.3B',0.219],['Wan2.2-5B',0.226],['WALL-WM',0.434]]},
+  traj:{t:'轨迹准确 Trajectory Acc',rows:[['Wan2.1-1.3B',0.214],['Wan2.2-5B',0.223],['WALL-WM',0.234]]},
+  instr:{t:'指令遵循 Instruction Following',rows:[['Wan2.1-1.3B',0.308],['Wan2.2-5B',0.298],['WALL-WM',0.391]]},
+};
+let curVid='dyn';
+function drawVid(){
+  const c=document.getElementById('vidcv');resize(c);const x=c.getContext('2d');
+  const W=c.clientWidth,H=c.clientHeight; x.clearRect(0,0,W,H);
+  const d=VID[curVid]; const max=Math.max(...d.rows.map(r=>r[1]))*1.2; const pad=110,top=24,bottom=H-16,n=d.rows.length,gh=(bottom-top)/n;
+  x.fillStyle=css('--muted');x.font='11px sans-serif';x.fillText(d.t+'（越高越好）',pad,14);
+  d.rows.forEach(([m,v],i)=>{const y=top+i*gh+gh*0.2,h=gh*0.55,isW=m.includes('WALL');
+    x.fillStyle=isW?css('--accent'):css('--accent2');x.fillRect(pad,y,(W-pad-50)*v/max,h);
+    x.fillStyle=css('--txt');x.font=(isW?'bold ':'')+'12px sans-serif';x.textAlign='right';x.fillText(m,pad-8,y+h*0.8);x.textAlign='left';
+    x.fillText(v.toFixed(3),pad+(W-pad-50)*v/max+6,y+h*0.8);});
+}
+['dyn','inter','traj','instr'].forEach(k=>{document.getElementById('v_'+k).onclick=()=>{curVid=k;
+  ['dyn','inter','traj','instr'].forEach(j=>document.getElementById('v_'+j).classList.toggle('active',j===k));drawVid();};});
+
+// init
+drawSeg();drawMode();
+window.addEventListener('resize',()=>{drawSeg();
+  if(document.getElementById('stair').classList.contains('active'))drawStair();
+  if(document.getElementById('results').classList.contains('active'))drawRes();
+  if(document.getElementById('ablation').classList.contains('active'))drawVid();
+  if(document.getElementById('modes').classList.contains('active'))drawMode();});
+</script>
+</body>
+</html>

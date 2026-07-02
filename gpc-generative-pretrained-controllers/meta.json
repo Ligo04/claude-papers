@@ -1,0 +1,29 @@
+{
+  "id": "gpc-generative-pretrained-controllers",
+  "slug": "gpc-generative-pretrained-controllers",
+  "title": "GPC: Large-Scale Generative Pretraining for Transferable Motor Control",
+  "authors": ["Yi Shi", "Yifeng Jiang", "Chen Tessler", "Xue Bin Peng"],
+  "affiliations": ["Simon Fraser University", "NVIDIA"],
+  "venue": "SIGGRAPH Conference Papers '26",
+  "year": 2026,
+  "date": "2026-06-28",
+  "arxiv": "2606.29148",
+  "arxivUrl": "https://arxiv.org/abs/2606.29148",
+  "doi": "10.1145/3799902.3811038",
+  "abstract": "GPC (Generative Pretrained Controllers) leverages tokenization and next-token modeling to create general-purpose, reusable generative controllers for physics-based character animation from large-scale motion datasets. The framework jointly optimizes a discrete 'motion vocabulary' via Finite Scalar Quantization (FSQ) together with a control policy using end-to-end reinforcement learning, then models the token structure with a GPT-style autoregressive transformer. Parameter-efficient fine-tuning (CoLA) adapts the pretrained controller to downstream tasks. Trained on 600+ hours of motion, GPC reaches a 99.98% tracking success rate and exhibits emergent behaviors such as perturbation responses and fall recovery.",
+  "tags": ["physics-based animation", "motion tokenization"],
+  "githubLinks": ["https://github.com/NVLabs/"],
+  "codeLinks": [],
+  "difficulty": "Advanced",
+  "nature": "Architecture / System design",
+  "keyMetrics": {
+    "trackingSuccessRate": "99.98%",
+    "datasetHours": "680 (Bones) / 40 (AMASS)",
+    "implicitCodebook": "9^40",
+    "fsqTokens": 40,
+    "fsqLevels": 9,
+    "peftOverhead": "<1% params",
+    "trainingHardware": "24x NVIDIA A100",
+    "inferenceHardware": "single RTX 4090"
+  }
+}

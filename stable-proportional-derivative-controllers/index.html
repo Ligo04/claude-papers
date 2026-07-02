@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stable PD Controllers — 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0e1117; --panel:#161b22; --border:#30363d; --txt:#e6edf3;
+    --muted:#8b949e; --pd:#f85149; --spd:#58a6ff; --accent:#3fb950; --target:#d29922;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;padding:24px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:24px;margin-bottom:4px}
+  h1 .sub{font-size:14px;color:var(--muted);font-weight:400}
+  .meta{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:20px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px}
+  .panel h2{font-size:15px;margin-bottom:14px;color:var(--accent)}
+  .ctrl{margin-bottom:18px}
+  .ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .ctrl label .val{color:var(--spd);font-variant-numeric:tabular-nums;font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--spd)}
+  .note{font-size:12px;color:var(--muted);margin-top:4px}
+  canvas{width:100%;background:#0a0d12;border-radius:8px;display:block}
+  .status{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap}
+  .badge{padding:5px 12px;border-radius:6px;font-size:13px;font-weight:600}
+  .badge.stable{background:rgba(63,185,80,.15);color:var(--accent);border:1px solid var(--accent)}
+  .badge.unstable{background:rgba(248,81,73,.15);color:var(--pd);border:1px solid var(--pd)}
+  .legend{display:flex;gap:18px;font-size:13px;margin:10px 0;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .swatch{width:14px;height:4px;border-radius:2px;display:inline-block}
+  .formula{background:#0a0d12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:ui-monospace,monospace;font-size:13px;margin:12px 0;overflow-x:auto;white-space:pre}
+  .hl{color:var(--spd)}
+  .hl2{color:var(--target)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  th,td{border:1px solid var(--border);padding:7px 10px;text-align:right}
+  th{background:#0a0d12;color:var(--muted)}
+  td.na{color:var(--pd);font-weight:600}
+  td.lab{text-align:left;color:var(--muted)}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:7px 14px;background:#0a0d12;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px}
+  .tab.active{background:var(--spd);color:#000;border-color:var(--spd);font-weight:600}
+  .hide{display:none}
+  .btn{padding:8px 14px;background:var(--spd);color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px}
+  .kicker{font-size:12px;color:var(--muted);margin-top:6px}
+  p.lead{color:var(--muted);font-size:13px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Stable Proportional-Derivative Controllers <span class="sub">交互式探索器</span></h1>
+  <div class="meta">Jie Tan, Karen Liu, Greg Turk · Georgia Tech · IEEE CG&amp;A 2011 · 数据取自论文原文</div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="sim">① 实时仿真：PD vs SPD</div>
+    <div class="tab" data-tab="boundary">② 稳定性边界（Figure 4）</div>
+    <div class="tab" data-tab="data">③ 论文误差数据（Table 1/2）</div>
+  </div>
+
+  <!-- TAB 1: SIMULATION -->
+  <div id="tab-sim">
+    <div class="grid">
+      <div class="panel">
+        <h2>控制参数</h2>
+        <div class="ctrl">
+          <label>比例增益 k<sub>p</sub> <span class="val" id="kpv">300</span></label>
+          <input type="range" id="kp" min="1" max="7" step="0.05" value="2.477">
+          <div class="note">范围 10¹ ~ 10⁷（对数）。增大它看 PD 何时爆炸。</div>
+        </div>
+        <div class="ctrl">
+          <label>阻尼比 α = k<sub>d</sub>/(k<sub>p</sub>Δt) <span class="val" id="av">1.00</span></label>
+          <input type="range" id="alpha" min="0.1" max="2" step="0.05" value="1">
+          <div class="note">论文稳定条件：<b>α ≥ 1</b>。拖到 &lt;1 看 SPD 也会失稳。</div>
+        </div>
+        <div class="ctrl">
+          <label>时间步长 Δt <span class="val" id="dtv">16.7 ms</span></label>
+          <input type="range" id="dt" min="1" max="40" step="0.5" value="16.7">
+          <div class="note">论文卖点：SPD 可用 33ms 大步长，PD 需要 0.67ms。</div>
+        </div>
+        <button class="btn" id="reset">↻ 重置仿真</button>
+
+        <div class="formula" style="margin-top:16px">SPD 加速度（多体）:
+q̈ = (M + <span class="hl">K_d·Δt</span>)⁻¹ ·
+   (−C − K_p(q+q̇Δt−<span class="hl2">q̄ₙ₊₁</span>) − K_d q̇)
+
+PD 加速度（传统）:
+q̈ = M⁻¹ ·
+   (−C − K_p(q−q̄ₙ) − K_d q̇)</div>
+        <div class="kicker">差别只在：SPD 把 <span class="hl">K_d·Δt</span> 加进质量矩阵，并用<span class="hl2">下一帧目标</span>。</div>
+      </div>
+
+      <div class="panel">
+        <h2>单自由度跟踪（目标 q̄=0，初始 q₀=1）</h2>
+        <p class="lead">两个控制器跟踪同一目标。红=PD，蓝=SPD。提高 k<sub>p</sub> 直到红线发散——蓝线始终贴着目标。</p>
+        <div class="status">
+          <span class="badge" id="pdBadge">PD: —</span>
+          <span class="badge" id="spdBadge">SPD: —</span>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--target)"></i>目标 q̄</span>
+          <span><i class="swatch" style="background:var(--pd)"></i>PD</span>
+          <span><i class="swatch" style="background:var(--spd)"></i>SPD</span>
+        </div>
+        <canvas id="cv" width="760" height="380"></canvas>
+        <div class="kicker" id="explain"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: BOUNDARY -->
+  <div id="tab-boundary" class="hide">
+    <div class="panel">
+      <h2>稳定性边界：最大可用步长 vs 增益（复现 Figure 4）</h2>
+      <p class="lead">对每个 k<sub>p</sub>，扫描出仍能保持稳定的最大 Δt。PD（红）随增益增大被迫用越来越小的步长；SPD（蓝）不受稳定性限制——只被参考动作的采样率（30fps≈33ms）所限。</p>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--pd)"></i>PD 最大步长</span>
+        <span><i class="swatch" style="background:var(--spd)"></i>SPD 最大步长</span>
+        <span><i class="swatch" style="background:var(--muted)"></i>33ms 参考上限</span>
+      </div>
+      <canvas id="cv2" width="1100" height="440"></canvas>
+      <div class="kicker">纵轴对数刻度。PD 曲线斜率约 −1（步长 ∝ 1/k<sub>p</sub>），SPD 维持在参考采样上限。</div>
+    </div>
+  </div>
+
+  <!-- TAB 3: DATA -->
+  <div id="tab-data" class="hide">
+    <div class="panel">
+      <h2>论文原始误差数据（Table 1 &amp; 2，Δt=1/60s 双摆跟踪）</h2>
+      <p class="lead">DOF1 跟踪 q₁=cos t。注意 PD 在 k<sub>p</sub>≥3×10³ 处直接发散（NA），SPD + 参考速度时误差随增益近乎线性下降到 0.0016。</p>
+      <table id="t1"></table>
+      <p class="lead" style="margin-top:18px">应用层效率对比：</p>
+      <table>
+        <tr><th class="lab" style="text-align:left">指标</th><th>传统 PD (Zordan&amp;Hodgins'02)</th><th>SPD (本文)</th></tr>
+        <tr><td class="lab">可用时间步长</td><td>0.67 ms</td><td>33 ms（<b>50×</b>）</td></tr>
+        <tr><td class="lab">42-DOF 角色调参</td><td>每个 DOF 单独调（42 个增益）</td><td>单个全局增益</td></tr>
+        <tr><td class="lab">关节限位增益</td><td>受限于稳定性</td><td>k<sub>p</sub>=10⁹</td></tr>
+        <tr><td class="lab">约束求解增益</td><td>小步长才稳定</td><td>k<sub>p</sub>=10¹⁶（折线螺旋）</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <p class="kicker" style="margin-top:20px;text-align:center">所有数值取自论文 Table 1–3 与正文。仿真为忠实复现论文 1D toy example 的实时计算。</p>
+</div>
+
+<script>
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    ['sim','boundary','data'].forEach(id=>document.getElementById('tab-'+id).classList.add('hide'));
+    document.getElementById('tab-'+t.dataset.tab).classList.remove('hide');
+    if(t.dataset.tab==='boundary') drawBoundary();
+  };
+});
+
+// ---------- TAB 1: live simulation ----------
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const kpEl=document.getElementById('kp'), aEl=document.getElementById('alpha'), dtEl=document.getElementById('dt');
+const kpv=document.getElementById('kpv'), av=document.getElementById('av'), dtv=document.getElementById('dtv');
+const pdBadge=document.getElementById('pdBadge'), spdBadge=document.getElementById('spdBadge');
+const explain=document.getElementById('explain');
+
+const Q0=1.0, QBAR=0.0, M=1.0;
+const N=120; // steps to plot
+
+function simPD(kp,kd,dt){
+  let q=Q0,qd=0,out=[q];
+  for(let i=0;i<N;i++){
+    let tau=-kp*(q-QBAR)-kd*qd;
+    let qdd=tau/M;
+    let qn=q+dt*qd; qd=qd+dt*qdd; q=qn;
+    if(!isFinite(q)||Math.abs(q)>50){out.push(NaN);return {traj:out,div:true};}
+    out.push(q);
+  }
+  return {traj:out,div:false};
+}
+function simSPD(kp,kd,dt){
+  let q=Q0,qd=0,out=[q];
+  for(let i=0;i<N;i++){
+    let qdd=-(kp*(q+dt*qd-QBAR)+kd*qd)/(M+kd*dt);
+    let qn=q+dt*qd; qd=qd+dt*qdd; q=qn;
+    if(!isFinite(q)||Math.abs(q)>50){out.push(NaN);return {traj:out,div:true};}
+    out.push(q);
+  }
+  return {traj:out,div:false};
+}
+
+function draw(){
+  const kp=Math.pow(10,parseFloat(kpEl.value));
+  const alpha=parseFloat(aEl.value);
+  const dt=parseFloat(dtEl.value)/1000;
+  const kd=alpha*kp*dt;
+  kpv.textContent=kp>=1000?kp.toExponential(1):kp.toFixed(0);
+  av.textContent=alpha.toFixed(2);
+  dtv.textContent=(dt*1000).toFixed(1)+' ms';
+
+  const pd=simPD(kp,kd,dt), spd=simSPD(kp,kd,dt);
+
+  pdBadge.textContent='PD: '+(pd.div?'发散 ✗':'稳定 ✓');
+  pdBadge.className='badge '+(pd.div?'unstable':'stable');
+  spdBadge.textContent='SPD: '+(spd.div?'发散 ✗':'稳定 ✓');
+  spdBadge.className='badge '+(spd.div?'unstable':'stable');
+
+  // plot
+  const W=cv.width,H=cv.height,pad=40;
+  ctx.clearRect(0,0,W,H);
+  const ymin=-2.2,ymax=2.2;
+  const X=i=>pad+(W-2*pad)*i/N;
+  const Y=v=>{v=Math.max(ymin,Math.min(ymax,v));return pad+(H-2*pad)*(1-(v-ymin)/(ymax-ymin));};
+  // grid
+  ctx.strokeStyle='#21262d';ctx.lineWidth=1;
+  for(let g=-2;g<=2;g++){ctx.beginPath();ctx.moveTo(pad,Y(g));ctx.lineTo(W-pad,Y(g));ctx.stroke();
+    ctx.fillStyle='#484f58';ctx.font='11px monospace';ctx.fillText(g.toFixed(0),6,Y(g)+4);}
+  // target
+  ctx.strokeStyle='#d29922';ctx.lineWidth=2;ctx.setLineDash([6,4]);
+  ctx.beginPath();ctx.moveTo(pad,Y(QBAR));ctx.lineTo(W-pad,Y(QBAR));ctx.stroke();ctx.setLineDash([]);
+  // curves
+  function plot(traj,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.beginPath();let started=false;
+    for(let i=0;i<traj.length;i++){
+      const v=traj[i];if(!isFinite(v)){break;}
+      const x=X(i),y=Y(v);
+      if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plot(pd.traj,'#f85149');
+  plot(spd.traj,'#58a6ff');
+
+  // explanation
+  let msg='';
+  if(pd.div&&!spd.div) msg='⚡ 当前增益下 PD 已发散，SPD 仍精确跟踪——这正是论文的核心结果。';
+  else if(!pd.div&&!spd.div) msg='两者都稳定，但注意 SPD 震荡更小、更快贴合目标。继续增大 k_p…';
+  else if(spd.div&&alpha<1) msg='SPD 也发散了，因为 α<1 违反了稳定条件 K_d≥K_p·Δt。';
+  else if(spd.div) msg='极端参数下数值溢出。';
+  explain.textContent=msg;
+}
+[kpEl,aEl,dtEl].forEach(e=>e.oninput=draw);
+document.getElementById('reset').onclick=()=>{kpEl.value=2.477;aEl.value=1;dtEl.value=16.7;draw();};
+draw();
+
+// ---------- TAB 2: stability boundary ----------
+function maxStableDt(kind,kp){
+  // binary-search largest dt (ms) that stays stable, alpha=1
+  let lo=0.05,hi=200,ans=lo;
+  for(let it=0;it<40;it++){
+    const mid=(lo+hi)/2, dt=mid/1000, kd=kp*dt;
+    const r=(kind==='pd')?simPD(kp,kd,dt):simSPD(kp,kd,dt);
+    if(!r.div){ans=mid;lo=mid;}else hi=mid;
+  }
+  return ans;
+}
+function drawBoundary(){
+  const cv2=document.getElementById('cv2'),c=cv2.getContext('2d');
+  const W=cv2.width,H=cv2.height,pad=56;
+  c.clearRect(0,0,W,H);
+  const kps=[];for(let e=1;e<=7;e+=0.25)kps.push(Math.pow(10,e));
+  const xmin=1,xmax=7;          // log10 kp
+  const ymin=-1,ymax=2.4;       // log10 dt(ms)
+  const X=lk=>pad+(W-2*pad)*(lk-xmin)/(xmax-xmin);
+  const Y=ld=>pad+(H-2*pad)*(1-(ld-ymin)/(ymax-ymin));
+  // grid + axes
+  c.strokeStyle='#21262d';c.fillStyle='#8b949e';c.font='12px monospace';
+  for(let e=1;e<=7;e++){c.beginPath();c.moveTo(X(e),pad);c.lineTo(X(e),H-pad);c.stroke();
+    c.fillText('10^'+e,X(e)-14,H-pad+18);}
+  for(let d=-1;d<=2;d++){c.beginPath();c.moveTo(pad,Y(d));c.lineTo(W-pad,Y(d));c.stroke();
+    c.fillText('10^'+d,8,Y(d)+4);}
+  c.fillStyle='#c9d1d9';c.font='13px sans-serif';
+  c.fillText('比例增益 k_p →',W/2-50,H-12);
+  c.save();c.translate(16,H/2+60);c.rotate(-Math.PI/2);c.fillText('最大稳定步长 Δt (ms) →',0,0);c.restore();
+  // 33ms reference line
+  c.strokeStyle='#8b949e';c.setLineDash([6,5]);c.lineWidth=1.5;
+  c.beginPath();c.moveTo(pad,Y(Math.log10(33)));c.lineTo(W-pad,Y(Math.log10(33)));c.stroke();c.setLineDash([]);
+  c.fillStyle='#8b949e';c.fillText('33ms 参考采样上限',W-pad-150,Y(Math.log10(33))-6);
+  // curves
+  function curve(kind,color){
+    c.strokeStyle=color;c.lineWidth=2.5;c.beginPath();let s=false;
+    kps.forEach(kp=>{
+      let dt=maxStableDt(kind,kp);
+      if(kind==='spd') dt=Math.min(dt,33); // SPD capped by reference rate, not stability
+      const x=X(Math.log10(kp)),y=Y(Math.log10(Math.max(dt,0.05)));
+      if(!s){c.moveTo(x,y);s=true;}else c.lineTo(x,y);
+    });
+    c.stroke();
+  }
+  curve('pd','#f85149');
+  curve('spd','#58a6ff');
+}
+
+// ---------- TAB 3: data table (paper Table 1, DOF1) ----------
+const T1=[
+  // kp, PD_inf, PD_2, PDv_inf, PDv_2, SPD_inf, SPD_2, SPDv_inf, SPDv_2
+  ['3×10¹','0.4630','4.0542','0.4585','4.0317','0.3164','3.1939','0.3210','3.1955'],
+  ['3×10²','0.0598','0.5188','0.0505','0.4658','0.0312','0.4047','0.0297','0.3451'],
+  ['3×10³','NA','NA','NA','NA','0.0174','0.2301','0.0023','0.0330'],
+  ['3×10⁴','NA','NA','NA','NA','0.0167','0.2293','0.0001','0.0016'],
+];
+(function(){
+  let h='<tr><th class="lab" style="text-align:left">k_p</th>'+
+    '<th>PD ‖e‖∞</th><th>PD ‖e‖₂</th>'+
+    '<th>SPD ‖e‖∞</th><th>SPD ‖e‖₂</th><th>SPD+v̄ ‖e‖∞</th><th>SPD+v̄ ‖e‖₂</th></tr>';
+  T1.forEach(r=>{
+    const cell=(v)=>v==='NA'?'<td class="na">NA</td>':'<td>'+v+'</td>';
+    h+='<tr><td class="lab">'+r[0]+'</td>'+cell(r[1])+cell(r[2])+cell(r[5])+cell(r[6])+cell(r[7])+cell(r[8])+'</tr>';
+  });
+  document.getElementById('t1').innerHTML=h;
+})();
+</script>
+</body>
+</html>

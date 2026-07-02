@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kamino Paper Explorer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a1a; color: #e0e0e0; overflow-x: hidden; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+h1 { text-align: center; font-size: 1.8em; background: linear-gradient(135deg, #00d4ff, #7b61ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+.subtitle { text-align: center; color: #888; margin-bottom: 30px; font-size: 0.95em; }
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab { padding: 10px 20px; background: #1a1a2e; border: 1px solid #333; border-radius: 8px 8px 0 0; cursor: pointer; transition: all 0.2s; font-size: 0.9em; }
+.tab:hover { background: #252540; }
+.tab.active { background: #1e1e3a; border-bottom-color: #1e1e3a; color: #00d4ff; }
+.panel { display: none; background: #1e1e3a; border-radius: 0 12px 12px 12px; padding: 24px; border: 1px solid #333; }
+.panel.active { display: block; }
+.card { background: #12122a; border-radius: 10px; padding: 18px; margin-bottom: 16px; border: 1px solid #2a2a4a; }
+.card h3 { color: #00d4ff; margin-bottom: 10px; font-size: 1.1em; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+label { display: block; color: #aaa; margin: 8px 0 4px; font-size: 0.85em; }
+input[type="range"] { width: 100%; accent-color: #00d4ff; }
+.value { color: #00d4ff; font-weight: bold; font-family: monospace; }
+canvas { width: 100%; border-radius: 8px; background: #0a0a1a; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+th, td { padding: 10px; text-align: center; border-bottom: 1px solid #2a2a4a; }
+th { color: #00d4ff; background: #12122a; }
+tr:hover { background: #1a1a3a; }
+.bar-container { height: 20px; background: #12122a; border-radius: 10px; overflow: hidden; margin: 4px 0; }
+.bar { height: 100%; border-radius: 10px; transition: width 0.3s; }
+.bar.sparse { background: linear-gradient(90deg, #00d4ff, #0088cc); }
+.bar.dense { background: linear-gradient(90deg, #ff6b6b, #cc3333); }
+.bar.dense-sparse { background: linear-gradient(90deg, #ffaa33, #cc7700); }
+.legend { display: flex; gap: 20px; justify-content: center; margin: 12px 0; font-size: 0.85em; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+.algo-step { padding: 12px; margin: 6px 0; border-left: 3px solid #333; background: #12122a; border-radius: 0 8px 8px 0; transition: all 0.3s; }
+.algo-step.highlight { border-left-color: #00d4ff; background: #1a1a3a; }
+.algo-step .step-num { color: #7b61ff; font-weight: bold; margin-right: 8px; }
+.algo-step code { color: #ffaa33; font-family: monospace; }
+.metric { text-align: center; padding: 16px; }
+.metric .number { font-size: 2em; color: #00d4ff; font-weight: bold; font-family: monospace; }
+.metric .label { color: #888; font-size: 0.85em; margin-top: 4px; }
+svg text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Kamino: GPU-based Multi-Body Simulation</h1>
+<p class="subtitle">Disney Research & NVIDIA — Interactive Paper Explorer</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview')">概览</div>
+  <div class="tab" onclick="showTab('algorithm')">PADMM 算法</div>
+  <div class="tab" onclick="showTab('performance')">性能分析</div>
+  <div class="tab" onclick="showTab('compare')">坐标对比</div>
+  <div class="tab" onclick="showTab('rl')">RL 训练</div>
+</div>
+
+<!-- Tab 1: Overview -->
+<div class="panel active" id="panel-overview">
+  <div class="grid-3">
+    <div class="card"><div class="metric"><div class="number">4096</div><div class="label">并行环境数</div></div></div>
+    <div class="card"><div class="metric"><div class="number">6</div><div class="label">DR Legs 闭环数</div></div></div>
+    <div class="card"><div class="metric"><div class="number">31h</div><div class="label">训练收敛时间</div></div></div>
+  </div>
+
+  <div class="card">
+    <h3>机器人系统概览</h3>
+    <table>
+      <thead><tr><th>系统</th><th>刚体数</th><th>驱动关节</th><th>被动关节</th><th>闭环数</th><th>Delassus 维度</th></tr></thead>
+      <tbody>
+        <tr><td>DR Legs</td><td>31</td><td>12</td><td>24</td><td>6</td><td>192</td></tr>
+        <tr><td>BDX</td><td>21</td><td>14</td><td>0</td><td>0</td><td>84</td></tr>
+        <tr><td>Olaf</td><td>36</td><td>25</td><td>15</td><td>5</td><td>168</td></tr>
+        <tr><td>Iron Man</td><td>151</td><td>27</td><td>169</td><td>45</td><td>955</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>核心架构</h3>
+    <svg viewBox="0 0 700 220" style="width:100%">
+      <defs>
+        <linearGradient id="gBlue" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#0088cc"/></linearGradient>
+        <linearGradient id="gPurple" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7b61ff"/><stop offset="100%" stop-color="#5544cc"/></linearGradient>
+        <linearGradient id="gGreen" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00cc88"/><stop offset="100%" stop-color="#008855"/></linearGradient>
+      </defs>
+      <rect x="10" y="10" width="160" height="55" rx="8" fill="url(#gGreen)" opacity="0.8"/>
+      <text x="90" y="33" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Isaac Lab</text>
+      <text x="90" y="52" text-anchor="middle" fill="#cfc" font-size="10">RL 环境 + 训练管线</text>
+
+      <rect x="190" y="10" width="160" height="55" rx="8" fill="url(#gPurple)" opacity="0.8"/>
+      <text x="270" y="33" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Newton</text>
+      <text x="270" y="52" text-anchor="middle" fill="#ccf" font-size="10">碰撞检测 + 可视化</text>
+
+      <rect x="370" y="10" width="320" height="55" rx="8" fill="url(#gBlue)" opacity="0.9"/>
+      <text x="530" y="33" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Kamino Solver</text>
+      <text x="530" y="52" text-anchor="middle" fill="#cef" font-size="10">极大坐标 + PADMM + GPU 并行化</text>
+
+      <line x1="90" y1="65" x2="270" y2="75" stroke="#555" stroke-width="1"/>
+      <line x1="270" y1="65" x2="530" y2="75" stroke="#555" stroke-width="1"/>
+
+      <rect x="10" y="80" width="680" height="45" rx="8" fill="#1a1a2e" stroke="#444"/>
+      <text x="350" y="100" text-anchor="middle" fill="#ffaa33" font-size="13" font-weight="bold">NVIDIA Warp</text>
+      <text x="350" y="115" text-anchor="middle" fill="#886" font-size="10">Python → CUDA | PyTorch/JAX 互操作</text>
+
+      <rect x="10" y="140" width="680" height="35" rx="8" fill="#0d0d1a" stroke="#333"/>
+      <text x="350" y="163" text-anchor="middle" fill="#666" font-size="12">CUDA</text>
+
+      <g transform="translate(50,190)">
+        <rect x="0" y="0" width="600" height="25" rx="5" fill="#12122a" stroke="#333"/>
+        <text x="300" y="17" text-anchor="middle" fill="#888" font-size="11">极大坐标: 每刚体独立 SE(3) 位姿 → 闭环 = 普通约束 → PADMM 统一求解</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- Tab 2: Algorithm -->
+<div class="panel" id="panel-algorithm">
+  <div class="card">
+    <h3>Proximal-ADMM 迭代过程</h3>
+    <p style="color:#aaa;margin-bottom:12px;font-size:0.9em">调节参数观察 PADMM 收敛行为（模拟残差下降曲线）</p>
+
+    <div class="grid-2">
+      <div>
+        <label>近端参数 η: <span class="value" id="eta-val">0.001</span></label>
+        <input type="range" id="eta" min="-5" max="0" step="0.1" value="-3" oninput="updateAlgo()">
+        <label>惩罚参数 ρ: <span class="value" id="rho-val">1.0</span></label>
+        <input type="range" id="rho" min="-1" max="2" step="0.1" value="0" oninput="updateAlgo()">
+        <label>摩擦系数 μ: <span class="value" id="mu-val">0.5</span></label>
+        <input type="range" id="mu" min="0" max="1.5" step="0.05" value="0.5" oninput="updateAlgo()">
+        <label>Nesterov 加速: <span class="value" id="nesterov-val">ON</span></label>
+        <input type="range" id="nesterov" min="0" max="1" step="1" value="1" oninput="updateAlgo()">
+      </div>
+      <div>
+        <canvas id="convergence-canvas" width="500" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>算法步骤 (每时间步)</h3>
+    <div class="algo-step highlight"><span class="step-num">0</span>构建 <code>D_{η,ρ} = D + (η+ρ)I</code> — 整个时间步内不变</div>
+    <div class="algo-step"><span class="step-num">1</span>Cholesky 分解 / 预处理 — <strong>每时间步一次</strong></div>
+    <div class="algo-step"><span class="step-num">2</span>Warm-start 初始化 <code>x⁰, y⁰, z⁰</code></div>
+    <div class="algo-step"><span class="step-num">3</span>for i = 1..N:</div>
+    <div class="algo-step" style="margin-left:30px"><span class="step-num">4</span><code>s ← Γ(z)</code> De Saxcé 修正</div>
+    <div class="algo-step" style="margin-left:30px"><span class="step-num">5</span><code>x ← D⁻¹_{η,ρ} · rhs</code> <strong>线性求解 (核心瓶颈)</strong></div>
+    <div class="algo-step" style="margin-left:30px"><span class="step-num">6</span><code>y ← Π_K(x - z/ρ)</code> 锥投影 (解析)</div>
+    <div class="algo-step" style="margin-left:30px"><span class="step-num">7</span><code>z ← z - ρ(x - y)</code> 对偶更新</div>
+    <div class="algo-step" style="margin-left:30px"><span class="step-num">8</span>Nesterov 加速 + 自适应重启</div>
+    <div class="algo-step"><span class="step-num">9</span>return <code>λ* ← y</code></div>
+  </div>
+</div>
+
+<!-- Tab 3: Performance -->
+<div class="panel" id="panel-performance">
+  <div class="card">
+    <h3>吞吐量 vs 并行世界数</h3>
+    <p style="color:#aaa;margin-bottom:8px;font-size:0.9em">选择系统查看不同求解器的吞吐量曲线</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button onclick="setSystem('bdx')" id="btn-bdx" style="padding:6px 14px;border-radius:6px;border:1px solid #00d4ff;background:#1a1a2e;color:#00d4ff;cursor:pointer">BDX</button>
+      <button onclick="setSystem('olaf')" id="btn-olaf" style="padding:6px 14px;border-radius:6px;border:1px solid #555;background:#1a1a2e;color:#aaa;cursor:pointer">Olaf</button>
+      <button onclick="setSystem('drlegs')" id="btn-drlegs" style="padding:6px 14px;border-radius:6px;border:1px solid #555;background:#1a1a2e;color:#aaa;cursor:pointer">DR Legs</button>
+      <button onclick="setSystem('ironman')" id="btn-ironman" style="padding:6px 14px;border-radius:6px;border:1px solid #555;background:#1a1a2e;color:#aaa;cursor:pointer">Iron Man</button>
+    </div>
+    <canvas id="throughput-canvas" width="700" height="350"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#00d4ff"></div>Sparse CR</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff6b6b"></div>Dense LLT (Dense Jacobian)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffaa33"></div>Dense LLT (Sparse Jacobian)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>内存使用 (每世界)</h3>
+    <table>
+      <thead><tr><th>系统</th><th>问题规模</th><th>Sparse CR</th><th>LLT Dense J</th><th>LLT Sparse J</th></tr></thead>
+      <tbody id="memory-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Tab 4: Coordinate Comparison -->
+<div class="panel" id="panel-compare">
+  <div class="card">
+    <h3>极大坐标 vs 归约坐标</h3>
+    <p style="color:#aaa;margin-bottom:12px;font-size:0.9em">拖动滑块改变系统复杂度，观察两种表述的维度变化</p>
+    <label>刚体数量: <span class="value" id="nbodies-val">10</span></label>
+    <input type="range" id="nbodies" min="2" max="50" step="1" value="10" oninput="updateCoords()">
+    <label>闭环数量: <span class="value" id="nloops-val">0</span></label>
+    <input type="range" id="nloops" min="0" max="20" step="1" value="0" oninput="updateCoords()">
+    <div class="grid-2" style="margin-top:16px">
+      <div class="card" style="border-color:#ff6b6b55">
+        <h3 style="color:#ff6b6b">归约坐标</h3>
+        <div class="metric"><div class="number" id="reduced-dof">--</div><div class="label">状态维度 (广义坐标)</div></div>
+        <div class="metric"><div class="number" id="reduced-mass">--</div><div class="label">质量矩阵大小</div></div>
+        <p id="reduced-note" style="color:#888;font-size:0.85em;text-align:center;margin-top:8px"></p>
+      </div>
+      <div class="card" style="border-color:#00d4ff55">
+        <h3 style="color:#00d4ff">极大坐标 (Kamino)</h3>
+        <div class="metric"><div class="number" id="maximal-dof">--</div><div class="label">状态维度 (SE(3) × n)</div></div>
+        <div class="metric"><div class="number" id="maximal-constraints">--</div><div class="label">约束维度 (Delassus)</div></div>
+        <p id="maximal-note" style="color:#888;font-size:0.85em;text-align:center;margin-top:8px"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 5: RL Training -->
+<div class="panel" id="panel-rl">
+  <div class="card">
+    <h3>DR Legs RL 训练配置</h3>
+    <div class="grid-2">
+      <div>
+        <table>
+          <tr><td style="text-align:left;color:#aaa">算法</td><td>PPO (RSL-RL)</td></tr>
+          <tr><td style="text-align:left;color:#aaa">并行环境</td><td>4096</td></tr>
+          <tr><td style="text-align:left;color:#aaa">仿真频率</td><td>250 Hz</td></tr>
+          <tr><td style="text-align:left;color:#aaa">策略频率</td><td>50 Hz (dec=5)</td></tr>
+          <tr><td style="text-align:left;color:#aaa">控制方式</td><td>隐式 PD (Kp=15, Kd=0.6)</td></tr>
+          <tr><td style="text-align:left;color:#aaa">策略网络</td><td>MLP 512×512×512, ELU</td></tr>
+          <tr><td style="text-align:left;color:#aaa">观测维度</td><td>94</td></tr>
+          <tr><td style="text-align:left;color:#aaa">动作维度</td><td>12</td></tr>
+        </table>
+      </div>
+      <div>
+        <table>
+          <tr><td style="text-align:left;color:#aaa">吞吐量</td><td>~3600 env steps/s</td></tr>
+          <tr><td style="text-align:left;color:#aaa">总迭代</td><td>4000 PPO iterations</td></tr>
+          <tr><td style="text-align:left;color:#aaa">总步数</td><td>~390M env transitions</td></tr>
+          <tr><td style="text-align:left;color:#aaa">训练时间</td><td>~31 hours</td></tr>
+          <tr><td style="text-align:left;color:#aaa">GPU</td><td>RTX Pro 6000</td></tr>
+          <tr><td style="text-align:left;color:#aaa">积分格式</td><td>Moreau-Jean 中点</td></tr>
+          <tr><td style="text-align:left;color:#aaa">求解器</td><td>Sparse J + CR</td></tr>
+          <tr><td style="text-align:left;color:#aaa">PADMM 迭代</td><td>10-30</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>训练曲线 (模拟)</h3>
+    <canvas id="training-canvas" width="700" height="280"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>奖励组成</h3>
+    <div id="reward-bars"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// Tab switching
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'performance') drawThroughput();
+  if (name === 'rl') drawTraining();
+}
+
+// Algorithm tab
+function updateAlgo() {
+  const eta = Math.pow(10, parseFloat(document.getElementById('eta').value));
+  const rho = Math.pow(10, parseFloat(document.getElementById('rho').value));
+  const mu = parseFloat(document.getElementById('mu').value);
+  const nesterov = parseInt(document.getElementById('nesterov').value);
+
+  document.getElementById('eta-val').textContent = eta.toExponential(1);
+  document.getElementById('rho-val').textContent = rho.toFixed(2);
+  document.getElementById('mu-val').textContent = mu.toFixed(2);
+  document.getElementById('nesterov-val').textContent = nesterov ? 'ON' : 'OFF';
+
+  // Simulate convergence
+  const canvas = document.getElementById('convergence-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#1a1a3a';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 6; i++) {
+    const y = 30 + (H - 60) * i / 6;
+    ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(W - 20, y); ctx.stroke();
+  }
+
+  // Simulate PADMM convergence with given parameters
+  const n_iter = 30;
+  let residual = 1.0;
+  const residuals = [residual];
+  const rate_base = Math.min(0.95, 1.0 / (1 + rho * 0.5));
+  const accel = nesterov ? 0.7 : 1.0;
+
+  for (let i = 1; i <= n_iter; i++) {
+    let rate = rate_base * accel;
+    if (mu > 0.8) rate *= 1.05; // Higher friction = slower convergence
+    if (eta > 0.01) rate *= 1.1; // Too much proximal = slower
+    residual *= rate;
+    if (nesterov && i % 8 === 0 && mu > 0.3) residual *= 1.5; // Restart
+    residual = Math.max(residual, 1e-8);
+    residuals.push(residual);
+  }
+
+  // Draw axes
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(50, 30); ctx.lineTo(50, H - 30); ctx.lineTo(W - 20, H - 30); ctx.stroke();
+
+  // Y-axis labels (log scale)
+  ctx.fillStyle = '#888';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 6; i++) {
+    const y = 30 + (H - 60) * i / 6;
+    const val = Math.pow(10, -i);
+    ctx.fillText(val.toExponential(0), 46, y + 4);
+  }
+
+  // X-axis labels
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 30; i += 5) {
+    const x = 50 + (W - 70) * i / 30;
+    ctx.fillText(i, x, H - 14);
+  }
+  ctx.fillText('Iteration', W / 2, H - 2);
+
+  // Draw convergence line
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < residuals.length; i++) {
+    const x = 50 + (W - 70) * i / 30;
+    const logR = -Math.log10(Math.max(residuals[i], 1e-8));
+    const y = 30 + (H - 60) * logR / 6;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Dots
+  ctx.fillStyle = '#00d4ff';
+  for (let i = 0; i < residuals.length; i++) {
+    const x = 50 + (W - 70) * i / 30;
+    const logR = -Math.log10(Math.max(residuals[i], 1e-8));
+    const y = 30 + (H - 60) * logR / 6;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Tolerance line
+  ctx.strokeStyle = '#ff6b6b';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  const tolY = 30 + (H - 60) * 6 / 6;
+  ctx.beginPath(); ctx.moveTo(50, tolY); ctx.lineTo(W - 20, tolY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#ff6b6b';
+  ctx.textAlign = 'left';
+  ctx.fillText('ε = 10⁻⁶', W - 70, tolY - 5);
+
+  // Find convergence iteration
+  const convIter = residuals.findIndex(r => r < 1e-6);
+  if (convIter > 0) {
+    ctx.fillStyle = '#00ff88';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Converged at iter ${convIter}`, W / 2, 20);
+  }
+}
+
+// Performance tab
+const perfData = {
+  bdx: { worlds: [256,512,1024,2048,4096,8192], sparse:[30000,55000,95000,130000,145000,140000], dense:[40000,75000,120000,150000,148000,142000], denseSparse:[42000,80000,130000,155000,152000,148000] },
+  olaf: { worlds: [256,512,1024,2048,4096,8192], sparse:[12000,22000,35000,42000,44000,42000], dense:[15000,28000,40000,48000,45000,43000], denseSparse:[16000,30000,45000,52000,50000,48000] },
+  drlegs: { worlds: [256,512,1024,2048,4096,8192], sparse:[6000,11000,18000,25000,30000,28000], dense:[5000,9000,14000,18000,16000,15000], denseSparse:[7000,13000,20000,27000,25000,24000] },
+  ironman: { worlds: [128,256,512,1024,1500,2000], sparse:[800,1500,2800,4500,5500,5000], dense:[200,350,500,600,550,500], denseSparse:[300,550,900,1200,1100,1000] }
+};
+
+let currentSystem = 'bdx';
+function setSystem(sys) {
+  currentSystem = sys;
+  document.querySelectorAll('[id^="btn-"]').forEach(b => { b.style.borderColor = '#555'; b.style.color = '#aaa'; });
+  document.getElementById('btn-' + sys).style.borderColor = '#00d4ff';
+  document.getElementById('btn-' + sys).style.color = '#00d4ff';
+  drawThroughput();
+}
+
+function drawThroughput() {
+  const canvas = document.getElementById('throughput-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, W, H);
+
+  const data = perfData[currentSystem];
+  const maxY = Math.max(...data.sparse, ...data.dense, ...data.denseSparse) * 1.15;
+
+  // Grid
+  ctx.strokeStyle = '#1a1a3a';
+  for (let i = 0; i <= 5; i++) {
+    const y = 30 + (H - 70) * i / 5;
+    ctx.beginPath(); ctx.moveTo(70, y); ctx.lineTo(W - 20, y); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#444';
+  ctx.beginPath(); ctx.moveTo(70, 30); ctx.lineTo(70, H - 40); ctx.lineTo(W - 20, H - 40); ctx.stroke();
+
+  // Y labels
+  ctx.fillStyle = '#888';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const y = 30 + (H - 70) * (5 - i) / 5;
+    const val = (maxY * i / 5 / 1000).toFixed(0) + 'k';
+    ctx.fillText(val, 65, y + 4);
+  }
+
+  // X labels
+  ctx.textAlign = 'center';
+  data.worlds.forEach((w, i) => {
+    const x = 70 + (W - 90) * i / (data.worlds.length - 1);
+    ctx.fillText(w, x, H - 24);
+  });
+  ctx.fillText('Number of Worlds', W / 2, H - 6);
+
+  // Draw lines
+  function drawLine(values, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    values.forEach((v, i) => {
+      const x = 70 + (W - 90) * i / (values.length - 1);
+      const y = 30 + (H - 70) * (1 - v / maxY);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    values.forEach((v, i) => {
+      const x = 70 + (W - 90) * i / (values.length - 1);
+      const y = 30 + (H - 70) * (1 - v / maxY);
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  drawLine(data.dense, '#ff6b6b');
+  drawLine(data.denseSparse, '#ffaa33');
+  drawLine(data.sparse, '#00d4ff');
+
+  // Title
+  ctx.fillStyle = '#e0e0e0';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'left';
+  const names = { bdx: 'BDX', olaf: 'Olaf', drlegs: 'DR Legs', ironman: 'Iron Man' };
+  ctx.fillText(names[currentSystem] + ' — Samples/s', 80, 22);
+}
+
+// Memory table
+const memData = [
+  { name: 'BDX', size: 84, sparse: 0.15, dense: 0.8, denseSparse: 0.5 },
+  { name: 'Olaf', size: 168, sparse: 0.3, dense: 2.5, denseSparse: 1.5 },
+  { name: 'DR Legs', size: 192, sparse: 0.35, dense: 3.5, denseSparse: 2.0 },
+  { name: 'Iron Man', size: 955, sparse: 1.8, dense: 50, denseSparse: 30 },
+];
+const memTable = document.getElementById('memory-table');
+memData.forEach(d => {
+  memTable.innerHTML += `<tr><td>${d.name}</td><td>${d.size}</td><td style="color:#00d4ff">${d.sparse} MB</td><td style="color:#ff6b6b">${d.dense} MB</td><td style="color:#ffaa33">${d.denseSparse} MB</td></tr>`;
+});
+
+// Coordinate comparison
+function updateCoords() {
+  const nb = parseInt(document.getElementById('nbodies').value);
+  const nl = parseInt(document.getElementById('nloops').value);
+  document.getElementById('nbodies-val').textContent = nb;
+  document.getElementById('nloops-val').textContent = nl;
+
+  // Reduced coordinates
+  const joints = nb - 1;
+  const dof = joints - nl; // Each loop removes 1 DOF (simplified)
+  const reducedDim = Math.max(1, dof);
+  document.getElementById('reduced-dof').textContent = reducedDim;
+  document.getElementById('reduced-mass').textContent = reducedDim + '×' + reducedDim;
+  document.getElementById('reduced-note').textContent = nl > 0
+    ? `⚠️ ${nl} 个闭环需要额外等式约束和特殊处理`
+    : '✅ 树状拓扑，O(n) 递归算法可用';
+
+  // Maximal coordinates
+  const maxDim = nb * 13; // 7 pose + 6 twist per body (using quaternion)
+  const constraints = joints * 5 + nl * 5; // ~5 constraints per joint (3D revolute)
+  document.getElementById('maximal-dof').textContent = nb * 13;
+  document.getElementById('maximal-constraints').textContent = constraints;
+  document.getElementById('maximal-note').textContent = nl > 0
+    ? `✅ 闭环与普通关节统一处理，无特殊逻辑`
+    : `维度较高但结构统一，GPU 大规模并行可弥补`;
+}
+
+// RL Training curve
+function drawTraining() {
+  const canvas = document.getElementById('training-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Simulated reward curve (based on paper Fig. 9)
+  const points = [];
+  for (let i = 0; i <= 4000; i += 20) {
+    const t = i / 4000;
+    const reward = 25 * (1 - Math.exp(-3 * t)) + 2 * Math.sin(t * 20) * Math.exp(-2 * t);
+    points.push({ x: i, y: reward + (Math.random() - 0.5) * 1.5 });
+  }
+
+  // Grid
+  ctx.strokeStyle = '#1a1a3a';
+  for (let i = 0; i <= 5; i++) {
+    const y = 30 + (H - 60) * i / 5;
+    ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 20, y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#444';
+  ctx.beginPath(); ctx.moveTo(60, 30); ctx.lineTo(60, H - 30); ctx.lineTo(W - 20, H - 30); ctx.stroke();
+
+  // Y labels
+  ctx.fillStyle = '#888';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const y = 30 + (H - 60) * (5 - i) / 5;
+    ctx.fillText((30 * i / 5).toFixed(0), 55, y + 4);
+  }
+  ctx.save(); ctx.translate(14, H / 2); ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center'; ctx.fillText('Mean Episode Reward', 0, 0);
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+  [0, 1000, 2000, 3000, 4000].forEach(v => {
+    const x = 60 + (W - 80) * v / 4000;
+    ctx.fillText(v, x, H - 14);
+  });
+  ctx.fillText('Training Iteration', W / 2, H - 2);
+
+  // Draw curve
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = 60 + (W - 80) * p.x / 4000;
+    const y = 30 + (H - 60) * (1 - Math.max(0, p.y) / 30);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  ctx.fillStyle = '#e0e0e0';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('DR Legs — 4096 envs on RTX Pro 6000', 70, 22);
+}
+
+// Reward composition
+const rewardBars = document.getElementById('reward-bars');
+const rewards = [
+  { name: 'Velocity tracking', weight: 1.0, color: '#00d4ff' },
+  { name: 'Heading tracking', weight: 0.8, color: '#00bbdd' },
+  { name: 'Gait contact match', weight: 0.7, color: '#0099bb' },
+  { name: 'Foot clearance', weight: 0.5, color: '#007799' },
+  { name: 'Root orientation', weight: 0.4, color: '#005577' },
+  { name: 'Survival bonus', weight: 0.3, color: '#00ff88' },
+  { name: 'Torque penalty', weight: -0.3, color: '#ff6b6b' },
+  { name: 'Action rate penalty', weight: -0.2, color: '#ff4444' },
+  { name: 'Impact penalty', weight: -0.15, color: '#cc3333' },
+];
+rewards.forEach(r => {
+  const w = Math.abs(r.weight);
+  rewardBars.innerHTML += `
+    <div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+      <span style="width:160px;text-align:right;font-size:0.85em;color:#aaa">${r.name}</span>
+      <div class="bar-container" style="flex:1"><div class="bar" style="width:${w*100}%;background:${r.color}"></div></div>
+      <span style="width:40px;font-family:monospace;font-size:0.85em;color:${r.color}">${r.weight > 0 ? '+' : ''}${r.weight.toFixed(1)}</span>
+    </div>`;
+});
+
+// Initialize
+updateAlgo();
+updateCoords();
+setTimeout(() => { drawThroughput(); drawTraining(); }, 100);
+</script>
+</body>
+</html>

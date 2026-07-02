@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLASH 交互式探索器 · GPU 原生可变形仿真</title>
+<style>
+  :root{
+    --bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--border:#30363d;
+    --txt:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--accent2:#bc8cff;
+    --green:#3fb950;--yellow:#d29922;--red:#f85149;--cyan:#39c5cf;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;padding:24px;max-width:1180px;margin:0 auto}
+  h1{font-size:25px;margin-bottom:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:6px}
+  .meta{color:var(--muted);font-size:12px;margin-bottom:20px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:10px}
+  .tab{padding:8px 14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:.15s;user-select:none}
+  .tab:hover{border-color:var(--accent);color:var(--txt)}
+  .tab.active{background:var(--accent);color:#04121f;border-color:var(--accent);font-weight:600}
+  .view{display:none;animation:fade .25s}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:17px;margin-bottom:10px;color:var(--accent)}
+  p,li{font-size:13.5px;color:#c9d1d9}
+  .muted{color:var(--muted)}
+  .hint{font-size:12.5px;color:var(--muted);background:var(--panel2);border-left:3px solid var(--accent);padding:8px 12px;border-radius:0 6px 6px 0;margin:10px 0}
+  button.ctl{background:var(--panel2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:13px}
+  button.ctl:hover{border-color:var(--accent)}
+  button.ctl.primary{background:var(--accent);color:#04121f;font-weight:600;border-color:var(--accent)}
+  label.sl{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 4px}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .col{flex:1;min-width:230px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:8px}
+  th,td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+  th{background:var(--panel2);color:var(--muted);font-weight:600}
+  td.name{text-align:left;white-space:nowrap}
+  .ours td{background:rgba(88,166,255,.10)}
+  .ours td.name{color:var(--accent);font-weight:700}
+  .yes{color:var(--green);font-weight:700}.no{color:var(--red)}
+  .best{color:var(--green);font-weight:700}
+  .na{color:var(--red);font-style:italic}
+  .tblwrap{overflow-x:auto}
+  canvas{background:#0a0e14;border:1px solid var(--border);border-radius:8px;display:block}
+  .matgrid{display:inline-grid;gap:2px;margin:6px}
+  .cellm{width:17px;height:17px;border-radius:3px}
+  .nz{background:var(--accent)}.z{background:#21262d}
+  .nz2{background:var(--accent2)}
+  .stat{display:inline-block;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin:4px 6px 4px 0;font-size:12.5px}
+  .stat b{color:var(--accent)}
+  .bar{height:15px;border-radius:3px;display:inline-block;vertical-align:middle}
+  .barwrap{margin:6px 0;font-size:12.5px}
+  .legend{font-size:11.5px;color:var(--muted);margin-top:8px}
+  code{color:var(--cyan);font-size:12px}
+  .kpi{font-size:30px;font-weight:800;color:var(--accent)}
+</style>
+</head>
+<body>
+  <h1>FLASH 交互式探索器</h1>
+  <div class="sub">GPU 原生高保真可变形仿真 · 几分钟训练可部署折叠策略 · <b>惯性近似保稀疏 → 块对角线性扩展</b></div>
+  <div class="meta">arXiv:2604.17513v1 [cs.RO] · 2026-04-19 · NUS + ETH + ShanghaiTech + Gradient · siyuanluo.com/flash &nbsp;|&nbsp; 数据取自 Table I/II、§V/VI</div>
+
+  <div class="tabs">
+    <div class="tab active" data-v="sparse">① 惯性近似 &amp; 稀疏性(核心)</div>
+    <div class="tab" data-v="scale">② 多环境吞吐 (Table II)</div>
+    <div class="tab" data-v="cmp">③ 平台 &amp; 仿真器对比 (Table I/Fig.4)</div>
+    <div class="tab" data-v="learn">④ 训练时间 &amp; 真机结果</div>
+  </div>
+
+  <!-- ===================== VIEW 1: SPARSITY ===================== -->
+  <div class="view active" id="v-sparse">
+    <div class="card">
+      <h2>FLASH 的核心技巧:惯性主导近似让 Schur 补保持稀疏(式 10)</h2>
+      <p class="muted">接触密集时,全隐式接触度量 <code>Z = J A⁻¹ Jᵀ + E</code> 中 A⁻¹ 稠密 → Z 稠密 → 性能瓶颈。FLASH 近似为 <code>Z ≈ J M⁻¹ Jᵀ + E</code>(M⁻¹ 块对角稀疏)。拖动系统规模,看两种度量下矩阵的非零元结构对比:</p>
+      <label class="sl">系统自由度 n = <b id="nV">8</b></label>
+      <input type="range" id="nS" min="5" max="14" value="8" style="max-width:400px">
+      <div class="row" style="margin-top:10px">
+        <div class="col">
+          <div style="font-size:13px;color:var(--accent2);margin-bottom:4px">全隐式:A⁻¹(稠密)→ Schur 补稠密</div>
+          <div id="denseM"></div>
+          <div id="denseStat" class="legend"></div>
+        </div>
+        <div class="col">
+          <div style="font-size:13px;color:var(--accent);margin-bottom:4px">惯性近似:M⁻¹(对角)→ Schur 补稀疏带状</div>
+          <div id="sparseM"></div>
+          <div id="sparseStat" class="legend"></div>
+        </div>
+      </div>
+      <div class="hint">蓝/紫格=非零元,深灰=零。全隐式 A⁻¹ 完全稠密(n² 个非零),惯性近似 M⁻¹ 只有 n 个对角非零。稠密 Schur 补在多环境并行下随"环境数 × 活跃约束数"恶化;稀疏带状结构则能块对角拼装、线性扩展。<b>这是 FLASH 全篇的工程主线:保持稀疏。</b></div>
+    </div>
+    <div class="card">
+      <h2>为什么这个近似对软材料"够准"</h2>
+      <p class="muted">物理直觉:对布料、泡沫等软材料,<b>弹性耦合主导系统行为</b>(由投影动力学的隐式内力精确保留),而<b>接触响应主要由惯性与局部几何决定</b>。所以把接触度量从全隐式 A⁻¹ 放松为惯性 M⁻¹,牺牲的是接触全局耦合精度(影响小),换来稀疏性(收益大)。对"接触少但需强全局接触耦合"的任务,可切回全隐式 —— <b>度量按任务可选</b>。</p>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 2: THROUGHPUT ===================== -->
+  <div class="view" id="v-scale">
+    <div class="card">
+      <h2>大规模并行吞吐 (Table II,ms/step,越低越好)</h2>
+      <p class="muted">准静态折叠设置下,随并行环境数 1→256 的每步时间。点击切换并行数,看各仿真器表现:</p>
+      <div style="margin:10px 0">
+        <button class="ctl ebtn primary" data-e="1">1 env</button>
+        <button class="ctl ebtn" data-e="8">8</button>
+        <button class="ctl ebtn" data-e="32">32</button>
+        <button class="ctl ebtn" data-e="64">64</button>
+        <button class="ctl ebtn" data-e="128">128</button>
+        <button class="ctl ebtn" data-e="256">256</button>
+      </div>
+      <div id="thBars"></div>
+      <div class="hint" id="thHint"></div>
+    </div>
+    <div class="card">
+      <h2>关键观察</h2>
+      <p class="muted">• <b>Genesis</b> 多环境(≥32)数值发散,无法有意义扩展。<br>
+      • <b>Isaac Sim</b> 大规模并行更快(256 env=47.81ms),但衣物行为物理不准、伪影明显,所生成数据对学习价值有限。<br>
+      • <b>Newton</b> 稳定但持续慢于 FLASH(256 env=480.64ms)且折叠更不真实。<br>
+      • <b>FLASH</b> 稳定 + 保真/吞吐更优权衡。吞吐对比用"与真实一致的准静态折叠"设置,而非最大化裸 FPS。</p>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 3: COMPARISON ===================== -->
+  <div class="view" id="v-cmp">
+    <div class="card">
+      <h2>仿真平台能力对比 (Table I)</h2>
+      <p class="muted">FLASH 是唯一同时满足全部能力的平台。<span class="yes">✓</span>=支持 <span class="no">✗</span>=不支持。</p>
+      <div class="tblwrap"><table id="platTable"></table></div>
+      <div class="legend">LCP/CCP/NCP = 线性/锥/非线性互补问题;PGS = 投影 Gauss-Seidel。FLASH 用 FEM + NCP 接触模型。</div>
+    </div>
+    <div class="card">
+      <h2>跨仿真器 T 恤双袖折叠 (Fig.4) — 谁最接近真实</h2>
+      <p class="muted">固定轨迹、准静态。点击各仿真器看其失败特征:</p>
+      <div style="margin:8px 0">
+        <button class="ctl fbtn primary" data-f="0">FLASH (NCP)</button>
+        <button class="ctl fbtn" data-f="1">Genesis (PBD)</button>
+        <button class="ctl fbtn" data-f="2">Isaac Sim (FEM)</button>
+        <button class="ctl fbtn" data-f="3">Newton (VBD)</button>
+      </div>
+      <div class="hint" id="foldHint"></div>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 4: LEARNING ===================== -->
+  <div class="view" id="v-learn">
+    <div class="card">
+      <h2>训练时间(单 NVIDIA RTX 5090,仿真+学习总墙钟)</h2>
+      <p class="muted">纯仿真合成数据 + teacher-student 蒸馏,无真机演示:</p>
+      <div id="trainBars"></div>
+    </div>
+    <div class="card">
+      <h2>真机实验结果</h2>
+      <div class="row">
+        <div class="col" style="text-align:center">
+          <div class="kpi">85.8%</div>
+          <div class="muted" style="font-size:12px">AdamU 人形一小时连续<br>91/106 次毛巾折叠<br>(40秒内角对齐 5cm 内)</div>
+        </div>
+        <div class="col" style="text-align:center">
+          <div class="kpi">70%</div>
+          <div class="muted" style="font-size:12px">T 恤折叠 35/50<br>(更长程多步任务)</div>
+        </div>
+        <div class="col" style="text-align:center">
+          <div class="kpi">60%</div>
+          <div class="muted" style="font-size:12px">短裤折叠 12/20<br>(双腿拓扑)</div>
+        </div>
+        <div class="col" style="text-align:center">
+          <div class="kpi">±8cm</div>
+          <div class="muted" style="font-size:12px">毛巾初始放置容忍<br>+ 任意方位旋转<br>(Airbot,50分钟训练)</div>
+        </div>
+      </div>
+      <div class="hint">涌现反应式恢复:漏抓自动重试、被人拖走后适应完成、无需复位。失败主因:① 薄织物深度噪声 + 自遮挡导致抓取错位;② 统一二值抓取未建模电机动力学 + 无触觉反馈。</div>
+    </div>
+  </div>
+
+<script>
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');document.getElementById('v-'+t.dataset.v).classList.add('active');};});
+
+// ---------- (1) sparsity matrices ----------
+function renderMat(elId, pattern, n, cls){
+  const el=document.getElementById(elId);
+  el.innerHTML='';
+  const g=document.createElement('div');
+  g.className='matgrid';
+  g.style.gridTemplateColumns=`repeat(${n},17px)`;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+    const c=document.createElement('div');
+    c.className='cellm '+(pattern(i,j)?cls:'z');
+    g.appendChild(c);
+  }
+  el.appendChild(g);
+}
+function updateSparse(){
+  const n=+document.getElementById('nS').value;
+  // Schur complement m = n-1 contacts. Dense: full. Approx: tridiagonal band.
+  const m=n-1;
+  // dense Schur (from A^-1 dense): all nonzero
+  renderMat('denseM',(i,j)=>i<m&&j<m,m,'nz2');
+  // sparse Schur (from M^-1 diagonal): tridiagonal
+  renderMat('sparseM',(i,j)=>i<m&&j<m&&Math.abs(i-j)<=1,m,'nz');
+  const denseNz=m*m;
+  const sparseNz=m + 2*(m-1);
+  document.getElementById('denseStat').innerHTML=`Schur 补非零元:<b style="color:var(--accent2)">${denseNz}</b> / ${m*m}(100% 稠密)`;
+  document.getElementById('sparseStat').innerHTML=`Schur 补非零元:<b style="color:var(--accent)">${sparseNz}</b> / ${m*m}(${(100*sparseNz/(m*m)).toFixed(0)}% 三对角带状)`;
+}
+document.getElementById('nS').oninput=e=>{document.getElementById('nV').textContent=e.target.value;updateSparse();};
+updateSparse();
+
+// ---------- (2) throughput ----------
+const th={1:{FLASH:5.68,Genesis:5.97,'Isaac Sim':18.02,Newton:9.57},
+ 8:{FLASH:9.67,Genesis:6.07,'Isaac Sim':18.46,Newton:12.23},
+ 32:{FLASH:24.79,Genesis:null,'Isaac Sim':19.88,Newton:24.47},
+ 64:{FLASH:50.43,Genesis:null,'Isaac Sim':22.62,Newton:52.79},
+ 128:{FLASH:90.41,Genesis:null,'Isaac Sim':29.04,Newton:143.76},
+ 256:{FLASH:185.10,Genesis:null,'Isaac Sim':47.81,Newton:480.64}};
+const thColors={FLASH:'var(--accent)',Genesis:'#8b949e','Isaac Sim':'var(--yellow)',Newton:'var(--accent2)'};
+function buildTh(e){
+  const d=th[e];
+  const maxv=Math.max(...Object.values(d).filter(v=>v!=null));
+  let h='';
+  ['FLASH','Isaac Sim','Newton','Genesis'].forEach(k=>{
+    const v=d[k];
+    if(v==null){h+=`<div class="barwrap"><span style="display:inline-block;width:90px">${k}</span> <span class="na">数值发散 N/A</span></div>`;}
+    else{h+=`<div class="barwrap"><span style="display:inline-block;width:90px">${k}${k==='FLASH'?' ★':''}</span> <span class="bar" style="width:${Math.max(v/maxv*340,4)}px;background:${thColors[k]}"></span> <b>${v.toFixed(2)}ms</b></div>`;}
+  });
+  document.getElementById('thBars').innerHTML=h;
+  const f=d.FLASH;
+  let msg=`在 ${e} 个并行环境:FLASH = <b>${f.toFixed(2)}ms/step</b>。`;
+  if(d['Isaac Sim']<f) msg+=` Isaac Sim 更快(${d['Isaac Sim'].toFixed(2)}ms)但物理不准、数据对学习价值有限。`;
+  if(d.Genesis==null) msg+=` Genesis 已数值发散无法运行。`;
+  if(d.Newton>f) msg+=` Newton(${d.Newton.toFixed(2)}ms)更慢且折叠更不真实。`;
+  document.getElementById('thHint').innerHTML=msg;
+}
+document.querySelectorAll('.ebtn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.ebtn').forEach(x=>x.classList.remove('primary'));
+  b.classList.add('primary');buildTh(+b.dataset.e);});
+buildTh(1);
+
+// ---------- (3) platform table ----------
+const plats=[
+ ['Isaac Sim','XPBD, FEM','Compliant',1,1,1,1,0],
+ ['Newton','XPBD, VBD','Compliant',1,1,0,0,0],
+ ['Genesis','PBD, MPM','Compliant',1,1,1,0,0],
+ ['SOFA','FEM','LCP-PGS',0,1,0,0,0],
+ ['Pinocchio','/','NCP (rigid)',0,0,0,0,0],
+ ['MuJoCo','/','CCP (rigid)',1,1,1,0,0],
+ ['FLASH (Ours)','FEM','NCP',1,1,1,1,1],
+];
+let ph='<thead><tr><th class="name">平台</th><th>动力学求解</th><th>接触模型</th><th>多环境</th><th>GPU</th><th>Torch</th><th>真实渲染</th><th>可变形</th></tr></thead><tbody>';
+plats.forEach(r=>{
+  const ours=r[0].includes('Ours');
+  ph+=`<tr class="${ours?'ours':''}"><td class="name">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td>`+
+    [3,4,5,6,7].map(i=>`<td>${r[i]?'<span class=yes>✓</span>':'<span class=no>✗</span>'}</td>`).join('')+`</tr>`;
+});
+ph+='</tbody>';document.getElementById('platTable').innerHTML=ph;
+
+// ---------- (3b) fold hints ----------
+const foldHints=[
+ "<b>FLASH (NCP) ★:</b> 最接近真实 —— 平滑对称折叠,稳定静止,准确摩擦粘滞,无虚假滑移或松手后运动。同时准确解析摩擦接触并平衡拉伸-弯曲耦合。",
+ "<b>Genesis (PBD):</b> 大弹性 snapping + 差的摩擦稳定性 → 持续滑移,无法达到稳定折叠。反映 PBD 刚度依赖迭代数、摩擦处理弱。",
+ "<b>Isaac Sim (FEM):</b> 难以耦合刚性面内拉伸与柔顺弯曲 → 剪切样畸变、过度起皱(像揉皱)。256 env 虽快但物理伪影使数据对学习价值有限。",
+ "<b>Newton (VBD):</b> 最强基线但弯曲过硬 → 折叠的袖子无法平贴桌面,松手后逐渐弹性展开。能量耗散不足。",
+];
+function selFold(i){document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('primary',+b.dataset.f===i));
+  document.getElementById('foldHint').innerHTML=foldHints[i];}
+document.querySelectorAll('.fbtn').forEach(b=>b.onclick=()=>selFold(+b.dataset.f));
+selFold(0);
+
+// ---------- (4) training times ----------
+const train=[['单臂毛巾折叠',50],['人形毛巾折叠',50],['双臂毛巾折叠',150],['T 恤折叠',600],['短裤折叠',600]];
+const maxt=600;
+let tb='';
+train.forEach(([n,v])=>{tb+=`<div class="barwrap"><span style="display:inline-block;width:130px">${n}</span> `+
+  `<span class="bar" style="width:${v/maxt*300}px;background:var(--green)"></span> <b>${v} min</b></div>`;});
+document.getElementById('trainBars').innerHTML=tb;
+</script>
+</body>
+</html>

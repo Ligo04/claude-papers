@@ -1,0 +1,25 @@
+{
+  "title": "Floating-Point Robustness in Parametric Surface Continuous Collision Detection: From Algorithm to Benchmarking",
+  "slug": "floating-point-robust-parametric-ccd",
+  "authors": [
+    "Xuwen Chen",
+    "Junyu Wang",
+    "Cheng Yu",
+    "Xingyu Ni",
+    "Meng Zhang",
+    "Bin Wang",
+    "Mengyu Chu",
+    "Baoquan Chen"
+  ],
+  "venue": "ACM Transactions on Graphics (SIGGRAPH 2026), Vol. 45, No. 4, Article 141",
+  "year": 2026,
+  "date": "2026-07-01",
+  "doi": "10.1145/3811310",
+  "abstract": "连续碰撞检测（CCD）在仿真与建模中对准确识别物体碰撞至关重要。鲁棒 CCD 技术在三角网格上已经成熟，但对参数曲面而言，由于其表示复杂性与更高的算法敏感性，浮点鲁棒性仍是开放挑战。本文提出首个面向参数曲面的浮点鲁棒 CCD 框架。基于时间相关包含法（TDIBM），我们引入一种全新的误差分解策略，将系数误差与算术误差分离，从而实现结构化分析与安全保证。为严格地基准化鲁棒性，我们通过反演 CCD 流程构建了一个基于有理算术的数据集：从规定的碰撞结果生成精确真值数据集，既覆盖典型场景，也覆盖近退化用例。我们用该基准评测多种 CCD 算法以提供深入分析。我们的方法与数据集共同为分析、基准化并改进参数曲面 CCD 的浮点鲁棒性奠定了全面基础。",
+  "abstract_en": "Continuous Collision Detection is essential in simulation and modeling for accurately identifying object collisions. While robust CCD techniques have matured for triangle meshes, ensuring floating-point robustness for parametric surfaces remains an open challenge. We present the first floating-point-robust CCD framework for parametric surfaces, built on TDIBM, with a novel error decomposition separating coefficient and arithmetic errors, plus a rational-arithmetic ground-truth benchmark built by inverting the CCD process.",
+  "tags": ["碰撞检测", "浮点鲁棒性"],
+  "githubLinks": [],
+  "codeLinks": [],
+  "difficulty": "Advanced / Highly Theoretical",
+  "nature": "Algorithm + Dataset / Benchmark (theoretical error analysis + system design)"
+}

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMPACT — 内模型预测控制 · 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2430; --line:#30363d;
+    --txt:#e6edf3; --dim:#8b949e; --acc:#58a6ff; --acc2:#3fb950;
+    --warn:#f0883e; --bad:#f85149; --good:#3fb950; --purple:#bc8cff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;font-size:15px}
+  header{padding:28px 24px 20px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#11161d,#0d1117)}
+  header h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header .sub{color:var(--dim);font-size:14px}
+  header .meta{color:var(--dim);font-size:12.5px;margin-top:8px}
+  header a{color:var(--acc);text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 18px}
+  .tab{padding:8px 14px;border:1px solid var(--line);border-radius:8px;
+    background:var(--panel);color:var(--dim);cursor:pointer;font-size:13.5px}
+  .tab.active{background:var(--acc);color:#0d1117;border-color:var(--acc);font-weight:600}
+  .view{display:none}
+  .view.active{display:block}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin-bottom:18px}
+  .card h2{margin:0 0 4px;font-size:17px}
+  .card h3{margin:18px 0 6px;font-size:14px;color:var(--acc)}
+  .card p.note{color:var(--dim);font-size:13px;margin:2px 0 14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  label.ctl{display:block;margin:14px 0 4px;font-size:13px;color:var(--dim)}
+  label.ctl b{color:var(--txt)}
+  input[type=range]{width:100%;accent-color:var(--acc)}
+  .toggle{display:inline-flex;align-items:center;gap:8px;margin:6px 12px 6px 0;
+    cursor:pointer;user-select:none;font-size:13.5px}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px}
+  .btn:hover{border-color:var(--acc)}
+  canvas{width:100%;background:#0a0e14;border:1px solid var(--line);border-radius:8px;display:block}
+  .readout{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+  @media(max-width:560px){.readout{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px}
+  .stat .k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px}
+  .stat .v{font-size:20px;font-weight:700;margin-top:3px}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
+  .pill.on{background:rgba(248,81,73,.18);color:var(--bad);border:1px solid var(--bad)}
+  .pill.off{background:rgba(63,185,80,.15);color:var(--good);border:1px solid var(--good)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:center}
+  th{background:var(--panel2);color:var(--dim);font-weight:600}
+  td.l,th.l{text-align:left}
+  .hi{color:var(--good);font-weight:700}
+  .lo{color:var(--bad);font-weight:700}
+  .diagram{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+    white-space:pre;overflow-x:auto;background:#0a0e14;border:1px solid var(--line);
+    border-radius:8px;padding:14px;color:var(--dim);line-height:1.45}
+  .legend{font-size:12.5px;color:var(--dim);margin-top:8px}
+  .legend span{display:inline-block;margin-right:14px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .kbd{font-family:ui-monospace,monospace;background:var(--panel2);border:1px solid var(--line);
+    border-radius:5px;padding:1px 6px;font-size:12px}
+  ul.tight{margin:6px 0;padding-left:20px}ul.tight li{margin:3px 0}
+  .em{color:var(--purple)}
+</style>
+</head>
+<body>
+<header>
+  <h1>IMPACT：面向力交互操作的内模型预测控制</h1>
+  <div class="sub">Gao, Liu, Wu, Chen, Du — 哈佛大学 &amp; 斯坦福大学</div>
+  <div class="meta">arXiv:2606.10818 (cs.RO)，2026 年 6 月 ·
+    <a href="https://gao-jiawei.com/IMPACT/" target="_blank" rel="noopener">项目主页</a> ·
+    交互式探索器 — 以下每个数字都来自论文</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active" data-v="sim">🎮 实时控制环</div>
+    <div class="tab" data-v="arch">🏗️ 架构</div>
+    <div class="tab" data-v="results">📊 结果</div>
+    <div class="tab" data-v="wrench">🔧 力矩求力</div>
+  </div>
+
+  <!-- ============ LIVE SIM ============ -->
+  <div class="view active" id="sim">
+    <div class="card">
+      <h2>实时观看内模型学习一个负载</h2>
+      <p class="note">这是 IMPACT 1000&nbsp;Hz 内环的 1-DOF"举升"抽象。设定负载，然后在运行中改变它以触发
+        <b class="em">惊讶门控</b>。开启 IMPACT 时，内模型学到负载并前馈出去，位姿误差收敛到 ~0。关闭 IMPACT
+        可看到纯阻抗基线（图&nbsp;9）：永久的稳态误差。</p>
+
+      <div class="grid2">
+        <div>
+          <label class="ctl">负载质量：<b><span id="massV">2.5</span> kg</b>
+            <span style="color:var(--dim)">（拖动以制造"惊讶"）</span></label>
+          <input type="range" id="mass" min="0" max="10" step="0.1" value="2.5">
+
+          <label class="ctl">惊讶阈值：<b><span id="thrV">5.0</span> N</b>
+            （论文：5&nbsp;N）</label>
+          <input type="range" id="thr" min="1" max="15" step="0.5" value="5">
+
+          <label class="ctl">低通速率 η <b><span id="etaV">0.08</span></b>
+            — 监督信号速度（论文：设计性地慢）</label>
+          <input type="range" id="eta" min="0.01" max="0.4" step="0.01" value="0.08">
+
+          <div style="margin-top:14px">
+            <span class="toggle"><input type="checkbox" id="impact" checked> <b>IMPACT 前馈 开</b></span>
+            <span class="toggle"><input type="checkbox" id="noise" checked> 传感器噪声</span>
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn" id="preset">▶ 运行三阶段协议（2.5→2.5→5 kg）</button>
+            <button class="btn" id="reset">↺ 重置模型</button>
+          </div>
+
+          <div class="readout">
+            <div class="stat"><div class="k">门控</div><div class="v"><span id="gateP" class="pill off">冻结</span></div></div>
+            <div class="stat"><div class="k">真实负载</div><div class="v"><span id="wext">24.5</span> N</div></div>
+            <div class="stat"><div class="k">模型预测</div><div class="v"><span id="wpred">0.0</span> N</div></div>
+            <div class="stat"><div class="k">位姿误差</div><div class="v"><span id="perr">0.0</span> mm</div></div>
+          </div>
+        </div>
+
+        <div>
+          <canvas id="cv" height="300"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:#f85149"></span>真实外部力旋量</span>
+            <span><span class="dot" style="background:#bc8cff"></span>低通 w_slow（监督）</span>
+            <span><span class="dot" style="background:#3fb950"></span>内模型 w_pred（前馈）</span>
+            <span><span class="dot" style="background:#f0883e"></span>|位姿误差| ×缩放</span>
+          </div>
+          <p class="note" style="margin-top:10px">当 <b style="color:var(--purple)">w_slow</b> 和
+            <b style="color:var(--good)">模型</b> 与 <b style="color:var(--bad)">真实负载</b> 分离时，
+            门控触发，绿线爬升去匹配负载——随后冻结。橙色 = 阻抗控制器还在对抗的部分。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ARCHITECTURE ============ -->
+  <div class="view" id="arch">
+    <div class="card">
+      <h2>双层、双频率架构</h2>
+      <p class="note">高层策略以 30&nbsp;Hz <i>仅规划运动</i>；底层内模型控制器以 1000&nbsp;Hz 处理所有<i>力</i>。</p>
+<div class="diagram">  ┌────────────────────────────────────────────────────────────────┐
+  │  高层 · 任务规划                      （学习的扩散策略）   30 Hz  │
+  │  π_θ(O) ──► X_d[t : t+H_p]   期望末端执行器位姿                   │
+  └───────────────────────────────┬────────────────────────────────┘
+                                  │  期望位姿 x_d  （插值得到）
+  ┌───────────────────────────────▼────────────────────────────────┐
+  │  底层 · 基于内模型的力预测控制                           1000 Hz │
+  │                                                                 │
+  │  (1) 阻抗反馈             w_imp = K·e − D·ẋ                      │
+  │  (2) 力旋量估计          ŵ_ext = (JJᵀ+λ²I)⁻¹ J·τ_res   ← 式1    │
+  │  (3) 慢/快低通           w_slow = LowPass(ŵ_ext)       ← 式2    │
+  │  (4) 内模型             w_pred = M_ϕ(z_{t-L:t})  + 惊讶门控的    │
+  │                          在线梯度更新                            │
+  │  (5) 前馈               w_ff = w_pred ,  τ_ff = Jᵀ·w_ff          │
+  │  (6) 指令               τ = τ_imp + τ_ff + τ_null  ──► 机器人    │
+  └─────────────────────────────────────────────────────────────────┘</div>
+      <div class="grid2" style="margin-top:18px">
+        <div>
+          <h3>为何解耦？</h3>
+          <ul class="tight">
+            <li><b>策略</b>学习对质量不变的部分——任务的<i>几何</i>。</li>
+            <li><b>控制器</b>处理依赖质量的部分——<i>力</i>。</li>
+            <li>既有工作把两者都塞进策略 → 必须为每个重量记忆不同的过冲 → 泛化差。</li>
+          </ul>
+          <h3>小脑蓝图</h3>
+          <ul class="tight">
+            <li>无腕部传感器 → 从本体感觉（关节力矩残差）推断负载。</li>
+            <li>内模型经练习精炼 → 在线梯度下降。</li>
+            <li>根据<i>预测误差</i>更新 → 惊讶门控。</li>
+            <li>前馈以抵消可预测扰动 → τ_ff。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>关键超参数（表 2）</h3>
+          <table>
+            <tr><th class="l">参数</th><th>符号</th><th>取值</th></tr>
+            <tr><td class="l">预测时域</td><td>H_p</td><td>32</td></tr>
+            <tr><td class="l">观测历史</td><td>H_o</td><td>2</td></tr>
+            <tr><td class="l">刚度（平移）</td><td>K</td><td>400</td></tr>
+            <tr><td class="l">阻尼（平移）</td><td>D</td><td>40</td></tr>
+            <tr><td class="l">力旋量正则化</td><td>λ</td><td>0.02</td></tr>
+            <tr><td class="l">低通速率</td><td>η</td><td>2.0 / 1.0 s⁻¹</td></tr>
+            <tr><td class="l">Clip 界限</td><td>—</td><td>10 N / 1 Nm</td></tr>
+            <tr><td class="l">模型历史</td><td>L</td><td>32</td></tr>
+            <tr><td class="l">模型学习率</td><td>—</td><td>0.01</td></tr>
+            <tr><td class="l">惊讶门控</td><td>—</td><td>≥5 N</td></tr>
+            <tr><td class="l">策略 / 控制频率</td><td>—</td><td>30 / 1000 Hz</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div class="view" id="results">
+    <div class="card">
+      <h2>真实 Franka FR3 — 抓取放置哑铃（成功数 / 25）</h2>
+      <p class="note">表 1。IMPACT 仅在 2.5 kg 上训练；5 kg 对它是<b>未见过</b>的。点击某行高亮。</p>
+      <table id="rwt">
+        <tr><th class="l">方法</th><th>训练质量</th><th>测试 2.5 kg</th><th>测试 5 kg</th></tr>
+        <tr><td class="l">Vanilla DP</td><td>2.5 kg</td><td>18 / 25</td><td class="lo">0 / 25</td></tr>
+        <tr><td class="l">Augmented DP</td><td>2.5 + 5.0 kg</td><td>9 / 25</td><td>5 / 25</td></tr>
+        <tr><td class="l"><b>IMPACT</b></td><td>仅 2.5 kg</td><td class="hi">22 / 25</td><td class="hi">21 / 25</td></tr>
+      </table>
+      <p class="note" style="margin-top:12px">⚡ IMPACT 在 5 kg 上击败 Augmented DP，<b>尽管 Augmented DP 训练过 5 kg 而 IMPACT 没有。</b>
+        结构化力补偿 &gt; 数据增强。</p>
+    </div>
+
+    <div class="card">
+      <h2>仿真 — MuJoCo 锤子，质量扫描 0–10 kg（成功率）</h2>
+      <p class="note">图 6。Vanilla DP 在 0.2 kg 训练；Augmented DP 在 0.1–8 kg 训练；IMPACT 仅在 0.2 kg 训练。
+        拖动质量滑块读取各方法。</p>
+      <canvas id="simcv" height="280"></canvas>
+      <label class="ctl" style="margin-top:14px">物体质量：<b><span id="smV">5.0</span> kg</b></label>
+      <input type="range" id="sm" min="0" max="10" step="1" value="5">
+      <div class="readout" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat"><div class="k" style="color:#f85149">Vanilla DP</div><div class="v"><span id="vd">0.00</span></div></div>
+        <div class="stat"><div class="k" style="color:#f0883e">Augmented DP</div><div class="v"><span id="ad">0.58</span></div></div>
+        <div class="stat"><div class="k" style="color:#3fb950">IMPACT</div><div class="v"><span id="im">0.84</span></div></div>
+      </div>
+      <p class="note" style="margin-top:10px">Vanilla 越过训练质量即崩溃；Augmented 在 &gt;8 kg（分布外）退化；
+        IMPACT 尽管只在单一质量训练，却在整个范围保持。</p>
+    </div>
+  </div>
+
+  <!-- ============ WRENCH ============ -->
+  <div class="view" id="wrench">
+    <div class="card">
+      <h2>虚拟力传感器：λ 正则化（式 1）</h2>
+      <p class="note">ŵ_ext = (JJᵀ + λ²I)⁻¹ J·τ_res。在运动学奇异附近，JJᵀ 病态，原始逆会爆炸；
+        λ²I 项（Tikhonov 阻尼）将其驯服——但 λ 太大会把估计偏向零。拖动 λ 找到论文使用的甜点（0.02）。</p>
+      <label class="ctl">λ（正则化权重）：<b><span id="lamV">0.02</span></b></label>
+      <input type="range" id="lam" min="0" max="0.6" step="0.005" value="0.02">
+      <label class="ctl">雅可比条件数：<b><span id="condV">接近奇异</span></b></label>
+      <input type="range" id="cond" min="0" max="1" step="0.01" value="0.85">
+      <div class="readout" style="grid-template-columns:repeat(2,1fr);margin-top:14px">
+        <div class="stat"><div class="k">估计误差 ‖ŵ−w‖</div><div class="v"><span id="werr">—</span> N</div></div>
+        <div class="stat"><div class="k">状态</div><div class="v"><span id="reg" class="pill off">稳定</span></div></div>
+      </div>
+      <canvas id="lamcv" height="240" style="margin-top:16px"></canvas>
+      <p class="note" style="margin-top:8px">曲线：当前条件数下估计误差随 λ 的变化。标记点是你的 λ。
+        注意 U 形——λ→0 时误差高（爆炸），λ 大时误差也高（过阻尼）。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById(t.dataset.v).classList.add('active');
+});
+
+// ================= LIVE CONTROL LOOP =================
+(function(){
+  const G=9.81, K=400;
+  const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  const massEl=document.getElementById('mass'), thrEl=document.getElementById('thr'),
+        etaEl=document.getElementById('eta'), impEl=document.getElementById('impact'),
+        noiseEl=document.getElementById('noise');
+  let wpred=0, wslow=0, hist=[], protocol=null, pt=0;
+  function resetModel(){wpred=0;wslow=0;hist=[];}
+  document.getElementById('reset').onclick=resetModel;
+  document.getElementById('preset').onclick=()=>{
+    resetModel(); protocol=[[2.5,90],[2.5,130],[5.0,140]]; pt=0;
+  };
+  const W=()=>cv.width, Hc=()=>cv.height;
+  function resize(){cv.width=cv.clientWidth*devicePixelRatio;cv.height=300*devicePixelRatio;}
+  window.addEventListener('resize',resize); resize();
+
+  function step(){
+    // protocol overrides slider
+    if(protocol){
+      let acc=0,m=protocol[protocol.length-1][0];
+      for(const [mm,dur] of protocol){ if(pt<acc+dur){m=mm;break;} acc+=dur; }
+      massEl.value=m.toFixed(1); pt++;
+      if(pt>protocol.reduce((s,x)=>s+x[1],0)) protocol=null;
+    }
+    const mass=parseFloat(massEl.value);
+    const thr=parseFloat(thrEl.value);
+    const eta=parseFloat(etaEl.value);
+    const useFF=impEl.checked;
+    document.getElementById('massV').textContent=mass.toFixed(1);
+    document.getElementById('thrV').textContent=thr.toFixed(1);
+    document.getElementById('etaV').textContent=eta.toFixed(2);
+
+    const wext=mass*G;
+    const n=noiseEl.checked?(Math.sin(pt*1.7)+Math.sin(pt*0.9))*0.9:0; // deterministic "noise"
+    const wmeas=wext+n;
+    // low-pass (supervision)
+    const d=Math.max(-10,Math.min(10,wmeas-wslow)); wslow+=eta*d;
+    // surprise gate
+    const surprise=Math.abs(wpred-wmeas);
+    const gateOpen = surprise>=thr;
+    if(gateOpen) wpred += 0.30*(wslow-wpred);   // online gradient step
+    const wff=useFF?wpred:0;
+    const residual=wext-wff;
+    const perr=residual/K*1000; // mm
+
+    document.getElementById('gateP').className='pill '+(gateOpen?'on':'off');
+    document.getElementById('gateP').textContent=gateOpen?'惊讶':'冻结';
+    document.getElementById('wext').textContent=wext.toFixed(1);
+    document.getElementById('wpred').textContent=wff.toFixed(1);
+    document.getElementById('perr').textContent=Math.abs(perr).toFixed(1);
+
+    hist.push({wext,wslow,wpred:wff,perr:Math.abs(perr),gate:gateOpen});
+    if(hist.length>240) hist.shift();
+    draw();
+  }
+  function draw(){
+    const w=W(),h=Hc(); ctx.clearRect(0,0,w,h);
+    const pad=8, maxF=70, maxE=60; // N, mm
+    const x=i=>pad+(w-2*pad)*i/240;
+    const yF=v=>h-pad-(h-2*pad)*v/maxF;
+    const yE=v=>h-pad-(h-2*pad)*v/maxE;
+    // grid
+    ctx.strokeStyle='#1c2430';ctx.lineWidth=1;
+    for(let gy=0;gy<=maxF;gy+=10){ctx.beginPath();ctx.moveTo(pad,yF(gy));ctx.lineTo(w-pad,yF(gy));ctx.stroke();}
+    function line(key,color,yfn,wd){
+      ctx.strokeStyle=color;ctx.lineWidth=wd*devicePixelRatio;ctx.beginPath();
+      hist.forEach((p,i)=>{const X=x(i),Y=yfn(p[key]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+      ctx.stroke();
+    }
+    // gate shading
+    hist.forEach((p,i)=>{if(p.gate){ctx.fillStyle='rgba(248,81,73,.07)';ctx.fillRect(x(i),pad,(w-2*pad)/240+1,h-2*pad);}});
+    line('wext','#f85149',yF,2);
+    line('wslow','#bc8cff',yF,1.5);
+    line('wpred','#3fb950',yF,2);
+    line('perr','#f0883e',yE,1.5);
+  }
+  setInterval(step,40);
+})();
+
+// ================= SIM RESULTS (Fig 6) =================
+(function(){
+  // success rates read off Fig. 6 (x = mass 0..10)
+  const mass=[0,1,2,3,4,5,6,7,8,9,10];
+  const vanilla=[0.70,0.74,0.56,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00];
+  const augment=[0.25,0.64,0.68,0.62,0.58,0.52,0.52,0.45,0.38,0.30,0.24];
+  const impact =[0.46,0.86,0.88,0.86,0.84,0.84,0.80,0.76,0.76,0.62,0.62];
+  const cv=document.getElementById('simcv'),ctx=cv.getContext('2d');
+  function resize(){cv.width=cv.clientWidth*devicePixelRatio;cv.height=280*devicePixelRatio;draw();}
+  window.addEventListener('resize',resize);
+  const smEl=document.getElementById('sm');
+  function interp(a,x){const i=Math.max(0,Math.min(10,Math.round(x)));return a[i];}
+  function update(){
+    const m=parseInt(smEl.value);
+    document.getElementById('smV').textContent=m.toFixed(1);
+    document.getElementById('vd').textContent=vanilla[m].toFixed(2);
+    document.getElementById('ad').textContent=augment[m].toFixed(2);
+    document.getElementById('im').textContent=impact[m].toFixed(2);
+    draw();
+  }
+  smEl.oninput=update;
+  function draw(){
+    const w=cv.width,h=cv.height,pad=34*devicePixelRatio;
+    ctx.clearRect(0,0,w,h);
+    const X=mm=>pad+(w-1.4*pad)*mm/10;
+    const Y=v=>h-pad-(h-1.6*pad)*v;
+    ctx.strokeStyle='#1c2430';ctx.lineWidth=1;ctx.fillStyle='#8b949e';
+    ctx.font=(11*devicePixelRatio)+'px sans-serif';
+    for(let v=0;v<=1;v+=0.25){ctx.beginPath();ctx.moveTo(pad,Y(v));ctx.lineTo(w-0.4*pad,Y(v));ctx.stroke();
+      ctx.fillText(v.toFixed(2),4,Y(v)+4);}
+    for(let mm=0;mm<=10;mm+=2){ctx.fillText(mm+'kg',X(mm)-8,h-10*devicePixelRatio);}
+    function plot(a,c){ctx.strokeStyle=c;ctx.lineWidth=2.4*devicePixelRatio;ctx.beginPath();
+      a.forEach((v,i)=>{i?ctx.lineTo(X(i),Y(v)):ctx.moveTo(X(i),Y(v));});ctx.stroke();
+      a.forEach((v,i)=>{ctx.fillStyle=c;ctx.beginPath();ctx.arc(X(i),Y(v),3*devicePixelRatio,0,7);ctx.fill();});}
+    plot(vanilla,'#f85149');plot(augment,'#f0883e');plot(impact,'#3fb950');
+    // mass marker
+    const m=parseInt(smEl.value);
+    ctx.strokeStyle='#58a6ff';ctx.lineWidth=1.5*devicePixelRatio;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(X(m),pad*0.4);ctx.lineTo(X(m),h-pad);ctx.stroke();ctx.setLineDash([]);
+  }
+  resize();update();
+})();
+
+// ================= ROW HIGHLIGHT =================
+document.querySelectorAll('#rwt tr').forEach((r,i)=>{if(i>0)r.style.cursor='pointer';
+  r.onclick=()=>{document.querySelectorAll('#rwt tr').forEach(x=>x.style.background='');
+  if(i>0)r.style.background='rgba(88,166,255,.12)';};});
+
+// ================= WRENCH / LAMBDA =================
+(function(){
+  const lamEl=document.getElementById('lam'),condEl=document.getElementById('cond');
+  const cv=document.getElementById('lamcv'),ctx=cv.getContext('2d');
+  function resize(){cv.width=cv.clientWidth*devicePixelRatio;cv.height=240*devicePixelRatio;update();}
+  window.addEventListener('resize',resize);
+  // model of estimate error vs lambda: blow-up term ~ 1/(s^2+lam^2) at small singular value s,
+  // plus bias term ~ lam (over-damping). illustrative, matches the demo's U-shape.
+  function err(lam,cond){
+    const s=Math.max(0.002,(1-cond)*1.0+0.01); // smallest singular value
+    const blow= 6.0*s/(s*s+lam*lam);           // amplified noise near singularity
+    const bias= 38*lam/(lam+s);                // over-damping bias toward 0
+    return blow+bias+0.06;
+  }
+  function update(){
+    const lam=parseFloat(lamEl.value),cond=parseFloat(condEl.value);
+    document.getElementById('lamV').textContent=lam.toFixed(3);
+    document.getElementById('condV').textContent= cond>0.6?'接近奇异':cond>0.3?'中等':'良态';
+    const e=err(lam,cond);
+    document.getElementById('werr').textContent=e.toFixed(2);
+    const reg=document.getElementById('reg');
+    if(lam<0.003){reg.className='pill on';reg.textContent='爆炸中';}
+    else if(lam>0.25){reg.className='pill on';reg.textContent='过阻尼';}
+    else{reg.className='pill off';reg.textContent='稳定';}
+    draw(lam,cond);
+  }
+  function draw(lam,cond){
+    const w=cv.width,h=cv.height,pad=30*devicePixelRatio;
+    ctx.clearRect(0,0,w,h);
+    const maxL=0.6, maxE=14;
+    const X=l=>pad+(w-1.4*pad)*l/maxL, Y=e=>h-pad-(h-1.6*pad)*Math.min(e,maxE)/maxE;
+    ctx.strokeStyle='#1c2430';ctx.fillStyle='#8b949e';ctx.font=(11*devicePixelRatio)+'px sans-serif';
+    for(let e=0;e<=maxE;e+=2){ctx.beginPath();ctx.moveTo(pad,Y(e));ctx.lineTo(w-0.4*pad,Y(e));ctx.stroke();
+      ctx.fillText(e,4,Y(e)+4);}
+    ctx.fillText('λ →',w-40*devicePixelRatio,h-8*devicePixelRatio);
+    ctx.strokeStyle='#58a6ff';ctx.lineWidth=2.4*devicePixelRatio;ctx.beginPath();
+    for(let i=0;i<=120;i++){const l=maxL*i/120;const X0=X(l),Y0=Y(err(l,cond));i?ctx.lineTo(X0,Y0):ctx.moveTo(X0,Y0);}
+    ctx.stroke();
+    // paper value 0.02
+    ctx.strokeStyle='#3fb950';ctx.setLineDash([4,4]);ctx.lineWidth=1.3*devicePixelRatio;
+    ctx.beginPath();ctx.moveTo(X(0.02),pad*0.3);ctx.lineTo(X(0.02),h-pad);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#3fb950';ctx.fillText('λ=0.02 (论文)',X(0.02)+4,pad);
+    // current marker
+    const e=err(lam,cond);
+    ctx.fillStyle='#f0883e';ctx.beginPath();ctx.arc(X(lam),Y(e),5*devicePixelRatio,0,7);ctx.fill();
+  }
+  lamEl.oninput=update;condEl.oninput=update;resize();
+})();
+</script>
+</body>
+</html>

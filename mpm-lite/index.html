@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPM Lite 交互式探索器</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #171c24; --panel2: #1f2630; --ink: #e6edf3;
+    --muted: #9aa7b4; --accent: #4fc3f7; --accent2: #ffb74d; --good: #66bb6a;
+    --bad: #ef5350; --line: #2a3340;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", Segoe UI, Roboto, sans-serif;
+    line-height: 1.65; padding: 0 0 60px;
+  }
+  header {
+    padding: 28px 24px 18px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #131922, #0e1116);
+  }
+  h1 { margin: 0 0 6px; font-size: 24px; }
+  h2 { font-size: 19px; margin: 0 0 12px; color: var(--accent); }
+  .sub { color: var(--muted); font-size: 14px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  section {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 22px; margin: 22px 0;
+  }
+  .lead { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+  .row { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
+  .col { flex: 1; min-width: 280px; }
+  label { font-size: 13px; color: var(--muted); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .big { font-size: 40px; font-weight: 700; }
+  .accent { color: var(--accent); }
+  .accent2 { color: var(--accent2); }
+  .good { color: var(--good); } .bad { color: var(--bad); }
+  .stat { background: var(--panel2); border-radius: 10px; padding: 14px 16px; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--accent); font-weight: 600; }
+  td.center, th.center { text-align: center; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; }
+  .pill.lite { background:#1b3a4b; color:var(--accent); }
+  .pill.trad { background:#3a2a1b; color:var(--accent2); }
+  button {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 14px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.on { background: var(--accent); color: #06121a; border-color: var(--accent); }
+  canvas { display:block; width:100%; background: var(--panel2); border-radius: 10px; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  .hl { color: var(--ink); background:#243; padding:0 4px; border-radius:4px; }
+  .stage-btns { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .legend { font-size:12px; color:var(--muted); display:flex; gap:16px; flex-wrap:wrap; margin-top:8px;}
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle;}
+  code { background:#0c1f2b; color:var(--accent); padding:1px 5px; border-radius:4px; font-size:12.5px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>MPM Lite 交互式探索器</h1>
+    <div class="sub">线性核 + 无粒子积分 · SIGGRAPH 2026 · 所有数字均取自论文，无虚构</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ===================== 模块 A：PPC 加速 ===================== -->
+<section>
+  <h2>① 求解成本与 PPC 解耦 —— 隐式加速曲线</h2>
+  <p class="lead">
+    传统隐式 MPM 每次迭代都要对全部粒子做 G2P2G 循环，成本正比于每胞粒子数（PPC）。
+    MPM Lite 把积分搬到固定胞心，<span class="hl">求解阶段不碰粒子</span>，运行时间几乎与 PPC 无关。
+    拖动滑块感受两者的分道扬镳（数据来自论文 Fig. 5，扭转 "faceless toy"）。
+  </p>
+  <div class="row">
+    <div class="col">
+      <label>每胞粒子数 PPC：<b id="ppcVal" class="accent">8</b></label>
+      <input type="range" id="ppc" min="0" max="4" step="1" value="0">
+      <div class="legend" style="margin-top:10px;">
+        <span><span class="dot" style="background:var(--accent)"></span>MPM Lite</span>
+        <span><span class="dot" style="background:var(--accent2)"></span>隐式 MPM (B-spline)</span>
+      </div>
+      <canvas id="ppcChart" height="260"></canvas>
+    </div>
+    <div class="col" style="max-width:300px;">
+      <div class="stat" style="margin-bottom:12px;">
+        <div class="k">MPM Lite 运行时间</div>
+        <div class="big accent" id="liteT">63.5 s</div>
+      </div>
+      <div class="stat" style="margin-bottom:12px;">
+        <div class="k">隐式 MPM 运行时间</div>
+        <div class="big accent2" id="tradT">300.3 s</div>
+      </div>
+      <div class="stat">
+        <div class="k">加速比</div>
+        <div class="big good" id="spd">4.7×</div>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    实践中为抑制数值断裂常需 PPC ≥ 20 —— 也就是说，MPM Lite 在你<b>最需要它</b>的高 PPC 区间提速最猛。
+    MPM Lite 从 63.5→77.1 s（近乎持平），隐式 MPM 从 300→1225 s（近线性暴涨）。
+  </p>
+</section>
+
+<!-- ===================== 模块 B：load/unload 流水线 ===================== -->
+<section>
+  <h2>② Particle → CellCenter → GridNode 的 load/unload 流水线</h2>
+  <p class="lead">
+    一个时间步分三阶段。点击切换，观察数据流向。<span class="hl">关键：Integrate 阶段高亮的连线只在胞心(c)与节点(i)之间，粒子(p)完全变灰——求解不碰粒子。</span>
+  </p>
+  <div class="stage-btns">
+    <button id="b0" class="on">① Unload（卸载）</button>
+    <button id="b1">② Integrate（积分 · 纯 FEM）</button>
+    <button id="b2">③ Load（装载）</button>
+  </div>
+  <canvas id="pipe" height="300"></canvas>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--accent)"></span>粒子 p（状态载体）</span>
+    <span><span class="dot" style="background:var(--accent2)"></span>胞心 c（固定求积点）</span>
+    <span><span class="dot" style="background:var(--good)"></span>网格节点 i（FEM 顶点）</span>
+  </div>
+  <p class="note" id="stageNote"></p>
+</section>
+
+<!-- ===================== 模块 C：对比矩阵 ===================== -->
+<section>
+  <h2>③ 方法对比矩阵</h2>
+  <p class="lead">MPM Lite vs 传统 B-spline MPM vs CK-MPM。点击行高亮，注意最后一行"隐式成本随 PPC"的差异。</p>
+  <table id="matrix">
+    <thead>
+      <tr><th>维度</th>
+        <th class="center"><span class="pill lite">MPM Lite</span></th>
+        <th class="center"><span class="pill trad">B-spline MPM</span></th>
+        <th class="center"><span class="pill trad">CK-MPM (Liu 2025)</span></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p class="note">显式 Jelly Falling（1.14M 粒子）实测总时间：MPM 404.1 s / CK-MPM 247.7 s / MPM Lite 215.4 s（相对显式 MPM 1.88×）。</p>
+</section>
+
+</div>
+
+<script>
+"use strict";
+
+// ----------------- 论文真实数据 -----------------
+var PPCS = [8, 12, 16, 20, 24];
+var LITE = [63.5, 68.1, 70.5, 72.8, 77.1];   // MPM Lite 运行时间 (s)
+var TRAD = [300.3, 496.1, 726.7, 954.6, 1225.4]; // 隐式 MPM 运行时间 (s)
+var SPDUP = ["4.7×", "7.3×", "10.3×", "13.1×", "15.9×"];
+
+// ===================== 模块 A：PPC 图 =====================
+var ppcSlider = document.getElementById("ppc");
+var ppcChart = document.getElementById("ppcChart");
+function fitCanvas(cv){
+  var r = cv.getBoundingClientRect();
+  cv.width = r.width * (window.devicePixelRatio||1);
+  cv.height = cv.height * (window.devicePixelRatio||1);
+  var ctx = cv.getContext("2d");
+  ctx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);
+  return ctx;
+}
+function drawPPC(){
+  var idx = parseInt(ppcSlider.value, 10);
+  document.getElementById("ppcVal").textContent = PPCS[idx];
+  document.getElementById("liteT").textContent = LITE[idx].toFixed(1) + " s";
+  document.getElementById("tradT").textContent = TRAD[idx].toFixed(1) + " s";
+  document.getElementById("spd").textContent = SPDUP[idx];
+
+  var ctx = fitCanvas(ppcChart);
+  var W = ppcChart.getBoundingClientRect().width, H = 260;
+  ctx.clearRect(0,0,W,H);
+  var padL=46, padB=30, padT=14, padR=14;
+  var x0=padL, x1=W-padR, y0=H-padB, y1=padT;
+  var maxY = 1300;
+  function X(i){ return x0 + (x1-x0)*i/(PPCS.length-1); }
+  function Y(v){ return y0 + (y1-y0)*v/maxY; }
+  // 网格与轴
+  ctx.strokeStyle="#2a3340"; ctx.fillStyle="#9aa7b4"; ctx.font="11px sans-serif";
+  ctx.lineWidth=1;
+  for(var g=0; g<=maxY; g+=200){
+    ctx.beginPath(); ctx.moveTo(x0,Y(g)); ctx.lineTo(x1,Y(g)); ctx.stroke();
+    ctx.fillText(g+"", 6, Y(g)+3);
+  }
+  for(var i=0;i<PPCS.length;i++){
+    ctx.fillText("PPC "+PPCS[i], X(i)-16, y0+18);
+  }
+  // 传统 MPM 线
+  function line(arr, color){
+    ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.beginPath();
+    for(var i=0;i<arr.length;i++){ var px=X(i),py=Y(arr[i]); i?ctx.lineTo(px,py):ctx.moveTo(px,py);}
+    ctx.stroke();
+    for(var i=0;i<arr.length;i++){ ctx.beginPath(); ctx.fillStyle=color; ctx.arc(X(i),Y(arr[i]),3.5,0,7); ctx.fill(); }
+  }
+  line(TRAD, "#ffb74d");
+  line(LITE, "#4fc3f7");
+  // 高亮当前 PPC 竖线
+  ctx.strokeStyle="rgba(102,187,106,0.6)"; ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(X(idx),y1); ctx.lineTo(X(idx),y0); ctx.stroke(); ctx.setLineDash([]);
+  // 高亮点
+  ctx.fillStyle="#66bb6a"; ctx.beginPath(); ctx.arc(X(idx),Y(TRAD[idx]),5,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(X(idx),Y(LITE[idx]),5,0,7); ctx.fill();
+}
+ppcSlider.addEventListener("input", drawPPC);
+
+// ===================== 模块 B：流水线动画 =====================
+var pipe = document.getElementById("pipe");
+var stage = 0;
+var stageNotes = [
+  "<b>Unload</b>：粒子把质量、动量(公式1-2)、体积V与广延 Kirchhoff 应力含量 V·tau(公式6-7) 卸载到胞心；胞心再以常数权重 w_ic=2^-d 把质量/速度 gather 到节点(公式8-9)。",
+  "<b>Integrate</b>：在节点与胞心上做纯 FEM 时间积分。显式 f_i = -Σ V_c τ_c ∇w_ic(公式12)；隐式从 τ_c 旋转无关重建拉伸 S_c，最小化 惯性+Σ V_c ψ(F_c(v))(公式16)。<b style='color:#ef5350'>粒子全程灰显，完全不被访问</b>——这正是隐式加速的来源。",
+  "<b>Load</b>：节点速度与梯度采样回胞心(公式10-11)，再插值回粒子(公式4-5)；最后平流 x_p += Δt v_p、更新 F_p=(I+Δt G_p)F_p。"
+];
+function drawPipe(){
+  var ctx = fitCanvas(pipe);
+  var W = pipe.getBoundingClientRect().width, H = 300;
+  ctx.clearRect(0,0,W,H);
+  var colX = [W*0.16, W*0.5, W*0.84];
+  var pts = {p:[], c:[], i:[]};
+  var n=4;
+  for(var k=0;k<n;k++){
+    var y = 50 + k*(H-100)/(n-1);
+    pts.p.push({x:colX[0], y:y});
+    pts.i.push({x:colX[2], y:y});
+  }
+  for(var k=0;k<n-1;k++){
+    var y = 50 + (k+0.5)*(H-100)/(n-1);
+    pts.c.push({x:colX[1], y:y});
+  }
+  // 列标题
+  ctx.font="13px sans-serif"; ctx.textAlign="center";
+  ctx.fillStyle="#4fc3f7"; ctx.fillText("Particle  p", colX[0], 24);
+  ctx.fillStyle="#ffb74d"; ctx.fillText("CellCenter  c", colX[1], 24);
+  ctx.fillStyle="#66bb6a"; ctx.fillText("GridNode  i", colX[2], 24);
+  ctx.textAlign="left";
+
+  // 决定哪些连线/节点活跃
+  // stage0 Unload: p->c, c->i (从左到右)
+  // stage1 Integrate: 只 c<->i 活跃, p 灰
+  // stage2 Load: i->c, c->p (从右到左)
+  var pActive = (stage !== 1);
+
+  // 画连线
+  function edge(a,b,active,dir){
+    ctx.strokeStyle = active ? "rgba(102,187,106,0.85)" : "rgba(120,130,140,0.18)";
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    if(active){ // 箭头
+      var mx=(a.x+b.x)/2, my=(a.y+b.y)/2, ang=Math.atan2(b.y-a.y,b.x-a.x);
+      if(dir<0) ang+=Math.PI;
+      ctx.fillStyle="rgba(102,187,106,0.95)";
+      ctx.beginPath();
+      ctx.moveTo(mx+Math.cos(ang)*6, my+Math.sin(ang)*6);
+      ctx.lineTo(mx+Math.cos(ang+2.5)*7, my+Math.sin(ang+2.5)*7);
+      ctx.lineTo(mx+Math.cos(ang-2.5)*7, my+Math.sin(ang-2.5)*7);
+      ctx.fill();
+    }
+  }
+  // p<->c edges
+  for(var a=0;a<pts.p.length;a++) for(var b=0;b<pts.c.length;b++){
+    if(Math.abs(pts.p[a].y - pts.c[b].y) < (H-100)/(n-1)*0.9){
+      var act = (stage===0)||(stage===2);
+      edge(pts.p[a], pts.c[b], act, stage===2 ? -1 : 1);
+    }
+  }
+  // c<->i edges
+  for(var a=0;a<pts.c.length;a++) for(var b=0;b<pts.i.length;b++){
+    if(Math.abs(pts.c[a].y - pts.i[b].y) < (H-100)/(n-1)*0.9){
+      var act = true; var dir=1;
+      if(stage===2) dir=-1;
+      // integrate stage: c<->i 双向闪烁(用实线表示在网格上往返)
+      edge(pts.c[a], pts.i[b], act, dir);
+    }
+  }
+
+  // 画节点
+  function node(p, color, active, r){
+    ctx.beginPath();
+    ctx.fillStyle = active ? color : "rgba(120,130,140,0.30)";
+    ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+  }
+  for(var k=0;k<pts.p.length;k++) node(pts.p[k], "#4fc3f7", pActive, 9);
+  for(var k=0;k<pts.c.length;k++) node(pts.c[k], "#ffb74d", true, 8);
+  for(var k=0;k<pts.i.length;k++) node(pts.i[k], "#66bb6a", true, 8);
+
+  // Integrate 阶段在中间画一个框强调"纯 FEM 不碰粒子"
+  if(stage===1){
+    ctx.strokeStyle="rgba(239,83,80,0.8)"; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+    ctx.strokeRect(colX[1]-30, 36, (colX[2]-colX[1])+60, H-56);
+    ctx.setLineDash([]);
+    ctx.fillStyle="#ef5350"; ctx.font="12px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("纯 FEM 区域 · 不访问粒子", (colX[1]+colX[2])/2, H-12);
+    ctx.textAlign="left";
+  }
+  document.getElementById("stageNote").innerHTML = stageNotes[stage];
+}
+function setStage(s){
+  stage = s;
+  for(var k=0;k<3;k++) document.getElementById("b"+k).className = (k===s)?"on":"";
+  drawPipe();
+}
+document.getElementById("b0").onclick=function(){setStage(0);};
+document.getElementById("b1").onclick=function(){setStage(1);};
+document.getElementById("b2").onclick=function(){setStage(2);};
+
+// ===================== 模块 C：对比矩阵 =====================
+var MATRIX = [
+  ["传输核宽度 / 类型", "紧致线性 Q1（多线性）", "宽支撑 二次/三次 B-spline", "紧致 双网格模板"],
+  ["求积点位置", "固定胞心（与粒子无关）", "移动粒子（粒子即求积）", "移动粒子（粒子即求积）"],
+  ["求解期是否访问粒子", "否（纯网格 FEM）", "是（每次迭代 G2P2G）", "是（每次迭代散射）"],
+  ["边界条件", "干净（节点 Kronecker-delta）", "含糊（B-spline 无 delta 性质）", "含糊（粒子求积）"],
+  ["现成 FEM 求解器", "即插即用（PCG/multigrid/VBD）", "需定制", "需定制"],
+  ["隐式成本随 PPC", "几乎不变（63→77 s）", "近线性增长（300→1225 s）", "随 PPC 增长（保留粒子求积）"]
+];
+(function(){
+  var tb = document.querySelector("#matrix tbody");
+  MATRIX.forEach(function(row, ri){
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td><b>"+row[0]+"</b></td>"+
+      "<td class='center accent'>"+row[1]+"</td>"+
+      "<td class='center accent2'>"+row[2]+"</td>"+
+      "<td class='center accent2'>"+row[3]+"</td>";
+    tr.style.cursor="pointer";
+    tr.onclick=function(){ tr.style.background = tr.style.background?"":"#243"; };
+    if(ri===MATRIX.length-1) tr.style.background="#1b2a1b";
+    tb.appendChild(tr);
+  });
+})();
+
+// ----------------- 初始渲染 + 自适应 -----------------
+function renderAll(){ drawPPC(); drawPipe(); }
+window.addEventListener("resize", function(){
+  // 重置 canvas 高度后重画
+  ppcChart.height = 260; pipe.height = 300;
+  renderAll();
+});
+renderAll();
+</script>
+</body>
+</html>

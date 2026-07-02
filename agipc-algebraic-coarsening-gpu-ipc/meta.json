@@ -1,0 +1,17 @@
+{
+  "title": "AGIPC: Adaptive In-Solve Algebraic Coarsening for GPU IPC",
+  "authors": [
+    "Xuan Wang",
+    "Zhaofeng Luo",
+    "Minchen Li",
+    "Taku Komura",
+    "Kemeng Huang"
+  ],
+  "abstract": "Implicit time integration is key to robustly simulating stiff materials and large deformations, but its performance is often dominated by repeatedly solving large linear systems. We present algebraic adaptive in-solve coarsening, a GPU-oriented method that dynamically reduces DoF within the Newton solve of implicit time integration without explicit topological modification. Starting from a fine mesh, we express adaptivity as a selective edge-collapse process governed by per-edge tags. Collapsible edges are aggregated in parallel using a warp-level hash mapping scheme that groups fine vertices into coarse super-nodes, while protected edges preserve local detail. This defines an implicit coarse mesh whose linear system is assembled algebraically by mapping and reducing fine-scale gradients and Hessians via efficient GPU reduction kernels. We solve the resulting coarse system with a preconditioned conjugate gradient (PCG) method and then prolongate the solution back to the fine mesh. Our approach integrates seamlessly with IPC's barrier energy and exploits GPU parallelism end-to-end. Across a range of challenging scenarios, we achieve up to 3x speedup over a state-of-the-art GPU IPC solver while producing visually indistinguishable results.",
+  "year": 2026,
+  "venue": "SIGGRAPH 2026",
+  "date": "2026-07-19",
+  "tags": ["GPU IPC", "adaptive coarsening"],
+  "githubLinks": ["https://github.com/KemengHuang/Adaptive-GIPC"],
+  "codeLinks": []
+}

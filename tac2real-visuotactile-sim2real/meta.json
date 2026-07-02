@@ -1,0 +1,30 @@
+{
+  "title": "Tac2Real: Reliable and GPU Visuotactile Simulation for Online Reinforcement Learning and Zero-Shot Real-World Deployment",
+  "title_zh": "Tac2Real:面向在线强化学习与零样本真实世界部署的可靠 GPU 视触觉仿真",
+  "authors": [
+    "Ningyu Yan",
+    "Shuai Wang",
+    "Xing Shen",
+    "Hui Wang",
+    "Hanqing Wang",
+    "Yang Xiang",
+    "Jiangmiao Pang"
+  ],
+  "affiliations": [
+    "Shanghai Artificial Intelligence Laboratory",
+    "The Hong Kong University of Science and Technology",
+    "Shanghai Jiao Tong University"
+  ],
+  "venue": "arXiv preprint",
+  "arxiv": "2603.28475v1 [cs.RO]",
+  "year": 2026,
+  "date": "2026-03-30",
+  "projectPage": "https://ningyurichard.github.io/tac2real-project-page/",
+  "abstract": "视触觉传感器对富接触机器人操作任务不可或缺。然而在仿真中(尤其是在线强化学习 RL)进行带触觉反馈的策略学习仍是关键挑战,因为它要求在物理保真度与计算效率之间精细权衡。为此,作者提出 Tac2Real——一个轻量级视触觉仿真框架,旨在支持高效的在线 RL 训练。Tac2Real 将预条件非线性共轭梯度增量势接触(PNCG-IPC)方法与多节点、多 GPU 的高吞吐并行仿真架构结合,能以交互速率生成标记点位移场(marker displacement field)。同时,作者提出系统化方法 TacAlign,缩小结构化与随机两类来源的领域差距,确保可靠的零样本 sim-to-real 迁移。在富接触的插销(peg insertion)任务上评估,零样本迁移在真实世界取得高成功率(91.7%),验证了框架的有效性与鲁棒性。",
+  "tags": ["visuotactile simulation", "sim-to-real RL"],
+  "githubLinks": ["https://github.com/Denys88/rl_games"],
+  "codeLinks": ["https://ningyurichard.github.io/tac2real-project-page/"],
+  "difficulty": "Advanced",
+  "nature": "System design + empirical (robotics / tactile sim-to-real)",
+  "slug": "tac2real-visuotactile-sim2real"
+}

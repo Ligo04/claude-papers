@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界动作模型综述 —— 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2333; --ink:#e6edf3; --muted:#8b949e;
+    --line:#30363d; --acc:#58a6ff; --rd:#f08a5d; --lo:#9d7cff; --vf:#3ddc97;
+    --warn:#f5c542;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.7;font-size:15px}
+  header{padding:28px 22px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#11161f,#0d1117)}
+  h1{margin:0 0 4px;font-size:24px}
+  .sub{color:var(--muted);font-size:13px}
+  .thesis{margin-top:12px;font-size:15px;color:var(--ink);
+    border-left:3px solid var(--acc);padding:6px 12px;background:#0f1620;border-radius:0 6px 6px 0}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px 60px}
+  nav{position:sticky;top:0;z-index:10;background:#0d1117ee;backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);display:flex;gap:4px;flex-wrap:wrap;padding:8px 18px}
+  nav button{background:transparent;color:var(--muted);border:1px solid transparent;
+    padding:6px 11px;border-radius:6px;cursor:pointer;font-size:13px}
+  nav button:hover{color:var(--ink)}
+  nav button.on{color:var(--ink);background:var(--panel);border-color:var(--line)}
+  section{display:none;padding-top:22px}
+  section.on{display:block;animation:f .25s ease}
+  @keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+  h2{font-size:19px;border-bottom:1px solid var(--line);padding-bottom:6px;margin-top:6px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0}
+  .muted{color:var(--muted)}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .p-rd{background:#3a1f12;color:var(--rd)} .p-lo{background:#241a3a;color:var(--lo)}
+  .p-vf{background:#0f2e22;color:var(--vf)}
+  code{background:#0b0f16;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:13px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media(max-width:820px){.grid3{grid-template-columns:1fr}}
+  .axis{margin:14px 0}
+  .axis h4{margin:0 0 6px;font-size:14px}
+  .opts{display:flex;gap:6px;flex-wrap:wrap}
+  .opts button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:7px;padding:7px 10px;cursor:pointer;font-size:13px}
+  .opts button.sel{border-color:var(--acc);background:#15263d;color:#cfe6ff}
+  .tuple{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;background:#0b0f16;
+    border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:10px}
+  .verdict{margin-top:12px;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--panel2)}
+  .bar{height:13px;border-radius:7px;background:#0b0f16;overflow:hidden;border:1px solid var(--line)}
+  .bar > span{display:block;height:100%}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
+  tr:hover td{background:#10151d}
+  .filterbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .filterbar select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:6px 8px;font-size:13px}
+  input[type=range]{width:100%}
+  .slabel{display:flex;justify-content:space-between;font-size:13px;margin-top:10px}
+  .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .kpi .b{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center}
+  .kpi .v{font-size:22px;font-weight:700}
+  .kpi .l{font-size:11px;color:var(--muted)}
+  .ladder div{display:flex;align-items:center;gap:10px;margin:5px 0;font-size:13px}
+  .ladder .nm{width:160px}
+  .tens{border-left:3px solid var(--warn);padding:4px 12px;margin:8px 0;background:#1a1605;border-radius:0 6px 6px 0}
+  .flow{font-family:ui-monospace,monospace;font-size:13px;white-space:pre;overflow-x:auto;
+    background:#0b0f16;border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--muted)}
+  a{color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0">
+    <h1>世界动作模型综述（World Action Models: A Survey）</h1>
+    <div class="sub">Shen, Zhang, Liao, Li, Tan, Wang, Yan, Wang · 新加坡国立大学 ·
+      arXiv:<a href="https://arxiv.org/abs/2606.20781">2606.20781</a>（2026 年 6 月 18 日）</div>
+    <div class="thesis"><b>少做梦，多行动。</b> 最强的 WAM 生成<i>更少</i>的未来，却恰好保留控制所需的部分——
+      每个设计选择都是控制回路内的延迟/内存赌注。</div>
+  </div>
+</header>
+
+<nav>
+  <button class="on" data-s="def">① 定义</button>
+  <button data-s="phil">② 三种哲学</button>
+  <button data-s="tuple">③ 四元组构建器</button>
+  <button data-s="census">④ 普查</button>
+  <button data-s="budget">⑤ 做梦预算</button>
+  <button data-s="props">⑥ 五个属性</button>
+</nav>
+
+<div class="wrap">
+
+<!-- ============ 定义 ============ -->
+<section class="on" id="def">
+  <h2>什么造就一个世界动作模型？</h2>
+  <p class="muted">人们一直混为一谈的三个分布。WAM 是那个把预测的未来留在<i>动作路径</i>中的。点击一行。</p>
+  <div class="grid3" id="defcards"></div>
+  <div class="card">
+    <h4 style="margin-top:0">边界判据（可操作且严格）</h4>
+    <p>一个模型是 WAM <b>当且仅当</b>其预测的未来必须<b>产生、打分、校验或训练</b>动作。这排除了：</p>
+    <ul class="muted">
+      <li>一个带<i>辅助</i>未来损失、但未来头在用于动作前就被丢弃的 VLA；</li>
+      <li>一个<i>仅</i>当作 RL 环境的模拟器；</li>
+      <li>一个冻结的视频生成器（它只固定了基底 Φ + 骨干 B；需要耦合 F + 机制 D 才合格）。</li>
+    </ul>
+    <h4>三种因式分解覆盖每一个 WAM</h4>
+    <div class="flow">预测后行动（级联）：p(o',a|o,l) = p(o'|o,l) · q(a|o,o',l)     UniPi, VLP, AVDC
+对动作打分：        p(o',a|o,l) = q(a|o,l) · p(o'|o,a,l)     候选打分 / 规划
+联合：              p(o',a|o,l)  （一个耦合模型）            GR-1/2, PAD, UWM, WorldVLA</div>
+  </div>
+</section>
+
+<!-- ============ 哲学 ============ -->
+<section id="phil">
+  <h2>三种设计哲学</h2>
+  <p class="muted">决定性问题：<b>动作在推理路径的何处被解码？</b> 互斥、在普查上完备，且与级联-vs-联合<i>可分离</i>。</p>
+  <div class="grid3" id="philcards"></div>
+  <div class="card">
+    <h4 style="margin-top:0">推理数据流（图 2）</h4>
+    <div class="flow" id="philflow"></div>
+    <p class="muted" style="margin-bottom:0">历史漂移（图 3）：Render-and-Decode 最先出现 → Latent-Only 从控制路径去掉像素解码 → Video-Generation-Free 随 LLM/VLM/JEPA 骨干在无视频核的情况下承载预测而到来。</p>
+  </div>
+</section>
+
+<!-- ============ 四元组构建器 ============ -->
+<section id="tuple">
+  <h2>把一个 WAM 构建为四元组 (Φ, F, B, D)</h2>
+  <p class="muted">每个轴选一个值。探索器会推导其哲学、估算控制回路成本，并标记"昂贵的角落"。</p>
+  <div class="card">
+    <div class="axis"><h4>Φ —— 预测基底 <span class="muted">（未来活在哪里）</span></h4><div class="opts" id="ax-sub"></div></div>
+    <div class="axis"><h4>F —— 动作耦合 <span class="muted">（动作如何进出）</span></h4><div class="opts" id="ax-cou"></div></div>
+    <div class="axis"><h4>B —— 架构骨干 <span class="muted">（预测如何产生）</span></h4><div class="opts" id="ax-bac"></div></div>
+    <div class="axis"><h4>D —— 部署机制 <span class="muted">（相对回路何时调用）</span></h4><div class="opts" id="ax-reg"></div></div>
+    <div class="tuple" id="tupleOut"></div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+  <p class="muted">试试论文里的经典放置：<code>WorldVLA</code> =（像素隐, 联合, 自回归, 单步）· <code>FLARE</code> =（特征, 后置头, JEPA, 分块）· <code>UniPi</code> =（解码像素, 后置头, 扩散, 开环）。</p>
+</section>
+
+<!-- ============ 普查 ============ -->
+<section id="census">
+  <h2>WAM 普查</h2>
+  <p class="muted">表 1–2 的一个切片，带论文的四元组。按轴筛选；点表头排序。</p>
+  <div class="filterbar">
+    <select id="f-phil"><option value="">全部哲学</option></select>
+    <select id="f-sub"><option value="">全部基底</option></select>
+    <select id="f-bac"><option value="">全部骨干</option></select>
+    <span class="muted" id="ccount" style="align-self:center"></span>
+  </div>
+  <table id="ctable"><thead><tr>
+    <th data-k="name">WAM</th><th data-k="year">日期</th><th data-k="phil">哲学</th>
+    <th data-k="sub">基底</th><th data-k="cou">耦合</th><th data-k="bac">骨干</th><th data-k="reg">机制</th>
+  </tr></thead><tbody></tbody></table>
+</section>
+
+<!-- ============ 做梦预算 ============ -->
+<section id="budget">
+  <h2>做梦预算：保真度 ↔ 延迟的权衡</h2>
+  <p class="muted">行动者很少消费完整渲染的未来。滑动步骤<b>难度</b>与<b>做梦单位</b>、选择一个基底阶梯，观察成功率 vs 控制回路延迟。（模型同 <code>code/dream_budget_simulator.py</code>。）</p>
+  <div class="card">
+    <div class="slabel"><span>基底阶梯（抽象阶梯）</span><span id="rungName"></span></div>
+    <input type="range" id="rung" min="0" max="4" step="1" value="0">
+    <div class="slabel"><span>步骤难度（该步真正需要的保真度）</span><span id="diffV"></span></div>
+    <input type="range" id="diff" min="0" max="100" step="1" value="80">
+    <div class="slabel"><span>做梦单位（去噪 / rollout 深度）</span><span id="duV"></span></div>
+    <input type="range" id="du" min="1" max="14" step="1" value="6">
+    <div class="kpi">
+      <div class="b"><div class="v" id="kFid">–</div><div class="l">达成的保真度</div></div>
+      <div class="b"><div class="v" id="kLat">–</div><div class="l">延迟（控制周期 100 ms）</div></div>
+      <div class="b"><div class="v" id="kSucc">–</div><div class="l">步骤成功概率</div></div>
+    </div>
+    <div class="verdict" id="budgetMsg"></div>
+  </div>
+  <div class="card">
+    <h4 style="margin-top:0">抽象阶梯（第 5.4 节）</h4>
+    <div class="ladder" id="ladder"></div>
+    <p class="muted" style="margin-bottom:0">每下一级都丢掉控制器从不需要的外观，把容量逼向几何、接触、动力学——代价是一个更难检视的未来。</p>
+  </div>
+</section>
+
+<!-- ============ 属性 ============ -->
+<section id="props">
+  <h2>五个核心属性 —— 竞争压力，而非清单</h2>
+  <p class="muted">点击一个属性，看它要求什么、方法如何应对、代价是什么。</p>
+  <div id="proplist"></div>
+  <div class="card">
+    <h4 style="margin-top:0">它们为何竞争</h4>
+    <div class="tens">更强的动作接口（可交互性）<b>收窄</b>了因果性必须保持无泄漏的通道。</div>
+    <div class="tens">买来持久性的有界内存，正是<b>饿死</b>长程物理合理性的同一预算。</div>
+    <div class="tens">让基底能迁移的抽象（泛化性），正是让其未来<b>难以评测</b>的东西。</div>
+    <p class="muted" style="margin-bottom:0">因此每个 WAM 都是帕累托点。能让这变得科学的缺失度量：<b>accuracy-at-budget</b>——把成功率、延迟、可持续时域、峰值内存、接触敏感失效标签放到一根轴上。</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+// ---------- 数据（取自论文） ----------
+const DEF = [
+ {k:"VLA",  m:"p(a | o, l)", d:"从当下观测行动。无显式未来。RT-2、OpenVLA、π₀。", c:"--muted"},
+ {k:"世界模型 World Model", m:"p(o' | o, a, l)", d:"预测下一个观测；不一定选择动作。PlaNet、Dreamer、V-JEPA、视频生成器。", c:"--acc"},
+ {k:"世界动作模型 WAM", m:"p(o', a | o, l) —— 耦合", d:"把预测的未来留在动作路径中：它必须产生、打分、校验或训练动作。", c:"--vf"},
+];
+const PHIL = [
+ {id:"rd", cls:"p-rd", name:"Render-and-Decode", q:"把生成推到像素",
+  d:"把视频骨干一路跑到像素未来，再解码动作。完整视觉先验、可检视——但视觉合成进了策略的延迟预算。",
+  ex:"UniPi, Gen2Act, DreamGen, GR-1/2, WorldVLA, DreamZero, TesserAct"},
+ {id:"lo", cls:"p-lo", name:"Latent-Only", q:"停在中间表示",
+  d:"保留视频派生的先验，但从控制路径去掉像素解码。动作来自隐变量、去噪特征、光流、掩码或价值图。",
+  ex:"VPP, Genie Envisioner, Fast-WAM, UWM, mimic-video, MWM, AIM"},
+ {id:"vf", cls:"p-vf", name:"Video-Generation-Free", q:"完全没有视频生成器",
+  d:"在 LLM/VLM token 空间、JEPA 嵌入、冻结视觉特征或紧凑非像素基底上的非视频扩散中预测。",
+  ex:"FLARE, DUST, PointWorld, PALM, HiF-VLA, LDA-1B, DexWM, ALAM"},
+];
+const PHILFLOW =
+`(a) Render-and-Decode      观测+指令 → 视频生成模型 → 像素未来 → 动作模块
+(b) Latent-Only           观测+指令 → 视频派生预测器 → 隐/光流/掩码 → 动作模块
+(c) Video-Generation-Free 观测+指令 → 非视频预测器(LLM/VLM/JEPA) → 紧凑未来 → 动作模块`;
+
+const AX = {
+ sub:[["pixel_decoded","像素(解码)"],["pixel_latent","像素(隐)"],["feature","特征"],["geometric","几何"],["affordance","可供性"]],
+ cou:[["post_head","后置预测头"],["rollout","动作条件化 rollout"],["joint","联合生成"]],
+ bac:[["diffusion","扩散"],["autoregressive","自回归"],["hybrid","混合"],["jepa","联合嵌入(JEPA)"],["llm_vlm","LLM / VLM"]],
+ reg:[["open","开环"],["chunked","分块闭环"],["single","单步闭环"],["interactive","交互式"]],
+};
+const LABEL={pixel_decoded:"像素(解码)",pixel_latent:"像素(隐)",feature:"特征",geometric:"几何",affordance:"可供性",
+ post_head:"后置头",rollout:"Rollout",joint:"联合",diffusion:"扩散",autoregressive:"自回归",hybrid:"混合",jepa:"JEPA",llm_vlm:"LLM/VLM",
+ open:"开环",chunked:"分块",single:"单步",interactive:"交互式"};
+
+const CENSUS=[
+ ["UniPi","2023.02","Render-and-Decode","pixel_decoded","post_head","diffusion","open"],
+ ["AVDC","2023.10","Render-and-Decode","pixel_decoded","post_head","diffusion","open"],
+ ["VLP","2023.10","Render-and-Decode","pixel_decoded","post_head","diffusion","chunked"],
+ ["GR-1","2023.12","Render-and-Decode","pixel_latent","joint","autoregressive","single"],
+ ["Gen2Act","2024.09","Render-and-Decode","pixel_decoded","post_head","diffusion","open"],
+ ["GR-2","2024.10","Render-and-Decode","pixel_latent","joint","autoregressive","chunked"],
+ ["PAD","2024.11","Render-and-Decode","pixel_latent","joint","diffusion","single"],
+ ["CoT-VLA","2025.03","Render-and-Decode","feature","post_head","llm_vlm","chunked"],
+ ["TesserAct","2025.04","Render-and-Decode","geometric","post_head","diffusion","open"],
+ ["WorldVLA","2025.06","Render-and-Decode","pixel_latent","joint","autoregressive","single"],
+ ["F1","2025.09","Render-and-Decode","pixel_latent","joint","hybrid","chunked"],
+ ["DreamZero","2025.11","Render-and-Decode","pixel_latent","joint","autoregressive","chunked"],
+ ["VPP","2024.12","Latent-Only","feature","post_head","diffusion","chunked"],
+ ["UWM","2025.04","Latent-Only","pixel_latent","joint","hybrid","chunked"],
+ ["Genie Envisioner","2025.08","Latent-Only","feature","post_head","diffusion","chunked"],
+ ["AIM","2025.10","Latent-Only","affordance","joint","diffusion","chunked"],
+ ["S-VAM","2025.11","Latent-Only","feature","post_head","diffusion","single"],
+ ["MWM","2025.12","Latent-Only","affordance","post_head","diffusion","chunked"],
+ ["Fast-WAM","2025.12","Latent-Only","feature","post_head","diffusion","chunked"],
+ ["τ0-WM","2025.12","Latent-Only","pixel_latent","joint","hybrid","chunked"],
+ ["FLARE","2025.05","Video-Generation-Free","feature","post_head","jepa","chunked"],
+ ["HiF-VLA","2025.09","Video-Generation-Free","geometric","joint","llm_vlm","chunked"],
+ ["PointWorld","2025.10","Video-Generation-Free","geometric","rollout","llm_vlm","chunked"],
+ ["PALM","2025.10","Video-Generation-Free","affordance","post_head","llm_vlm","chunked"],
+ ["LDA-1B","2025.10","Video-Generation-Free","feature","post_head","llm_vlm","chunked"],
+ ["DUST","2025.11","Video-Generation-Free","feature","joint","llm_vlm","chunked"],
+ ["DexWM","2025.11","Video-Generation-Free","feature","rollout","jepa","chunked"],
+ ["ALAM","2025.12","Video-Generation-Free","feature","post_head","llm_vlm","chunked"],
+];
+
+const LADDER=[["完整 RGB",1.00,22],["RGB-D / 法向",0.92,16],["光流 / 3D 光流",0.80,7],["语义掩码",0.70,4.5],["隐 / 特征",0.62,2]];
+
+const PROPS=[
+ {n:"可交互性",d:"在生成过程中接受控制信号，而非仅在开头。",
+  m:"生成中控制旋钮：This&That → ARDuP → CoVAR/VAG → UWM/UVA/F1 → AdaWorld（每个去噪步注入隐动作）。瓶颈通道：AIM 价值图、π0.7 稀疏目标。",
+  c:"越早绑定越不模块化；瓶颈封顶动作能反应的内容。"},
+ {n:"因果性",d:"不让未来泄漏进当下执行的动作。",
+  m:"因果 token 流 + KV 缓存（PhysGen 前瞻多 token）；无泄漏掩码（WorldVLA、CoT-VLA）；动作优先推理/提前退出（UD-VLA 约 4×）；预测与执行重叠（DreamZero、LingBot-VA）。",
+  c:"非因果模型在自己的 rollout 里完美抓取，然后在推理时抓向空气。"},
+ {n:"持久性",d:"在重复动作 + 重规划下保持长程状态（对抗漂移、成本增长、遗忘）。",
+  m:"观测替换/重新接地（DreamZero 7 Hz @14B）；有界内存（DexWM 900 h、Act2Goal 多尺度哈希、MoT 流）。",
+  c:"全历史注意力对抗漂移但成本增长；滑动上下文限成本但遗忘。"},
+ {n:"物理合理性",d:"预测一个身体真能实现的未来。",
+  m:"抽象阶梯（RGB→…→特征）；更丰富模态（OmniVTA 触觉、AdaWorldPolicy 力、DexWM 指级）；本体感受/运动学一致（PAD、Cosmos Policy、DexWM 手部一致性损失）。",
+  c:"一个未来可以看着完美却不可能实现——动量、力、摩擦、关节限位。"},
+ {n:"泛化性",d:"在任务、物体、场景、相机、具身变化下存活——在模型两侧都要。",
+  m:"视频先验迁移（GR-1/2、DreamZero）；基底迁移（光流：Im2Flow2Act；掩码：MWM；特征：FRAPPE/LDA-1B）；动作抽象迁移（LDA-1B、DUST、ALAM）。",
+  c:"比 VLA 或视频泛化更严格；可迁移抽象难以评测。请点名你针对的迁移。"},
+];
+
+// ---------- 渲染：定义 ----------
+const $=s=>document.querySelector(s), ce=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
+DEF.forEach(x=>{const c=ce("div","card");c.innerHTML=
+ `<div class="pill" style="background:var(${x.c});color:#0d1117">${x.k}</div>
+  <div class="tuple" style="margin:8px 0">${x.m}</div><div class="muted">${x.d}</div>`;$("#defcards").appendChild(c);});
+
+// ---------- 渲染：哲学 ----------
+PHIL.forEach(p=>{const c=ce("div","card");c.innerHTML=
+ `<span class="pill ${p.cls}">${p.name}</span><div class="muted" style="margin:6px 0"><i>${p.q}</i></div>
+  <div>${p.d}</div><div class="muted" style="margin-top:8px;font-size:12px">${p.ex}</div>`;$("#philcards").appendChild(c);});
+$("#philflow").textContent=PHILFLOW;
+
+// ---------- 四元组构建器 ----------
+const sel={sub:"pixel_decoded",cou:"post_head",bac:"diffusion",reg:"open"};
+function mkAxis(key,host){AX[key].forEach(([v,lab])=>{const b=ce("button");b.textContent=lab;
+ if(v===sel[key])b.classList.add("sel");
+ b.onclick=()=>{sel[key]=v;[...host.children].forEach(c=>c.classList.remove("sel"));b.classList.add("sel");update();};
+ host.appendChild(b);});}
+mkAxis("sub",$("#ax-sub"));mkAxis("cou",$("#ax-cou"));mkAxis("bac",$("#ax-bac"));mkAxis("reg",$("#ax-reg"));
+
+function derivePhil(s){const video=["diffusion","autoregressive","hybrid"].includes(s.bac);
+ if(!video) return "Video-Generation-Free";
+ if(s.sub==="pixel_decoded") return "Render-and-Decode";
+ if(s.sub==="pixel_latent") return (s.reg==="open"||s.reg==="single")?"Render-and-Decode":"Latent-Only";
+ return "Latent-Only";}
+function cost(s){ // 粗略的控制回路成本指数 0..100
+ let c=0; c+={pixel_decoded:42,pixel_latent:30,geometric:14,affordance:12,feature:8}[s.sub];
+ c+={diffusion:24,autoregressive:18,hybrid:16,jepa:6,llm_vlm:8}[s.bac];
+ c+={joint:14,rollout:18,post_head:8}[s.cou];
+ c+={single:20,interactive:16,chunked:8,open:2}[s.reg]; return Math.min(100,c);}
+function update(){
+ const phil=derivePhil(sel), cls={["Render-and-Decode"]:"p-rd",["Latent-Only"]:"p-lo",["Video-Generation-Free"]:"p-vf"}[phil];
+ $("#tupleOut").innerHTML=`( <b>${LABEL[sel.sub]}</b> , <b>${LABEL[sel.cou]}</b> , <b>${LABEL[sel.bac]}</b> , <b>${LABEL[sel.reg]}</b> )`;
+ const co=cost(sel);
+ const expensive=(sel.sub==="pixel_decoded"&&sel.cou==="joint"&&sel.bac==="diffusion"&&sel.reg==="single");
+ let msg=`<span class="pill ${cls}">${phil}</span> &nbsp; <span class="muted">控制回路成本指数</span>
+   <div class="bar" style="margin:8px 0"><span style="width:${co}%;background:${co>66?'var(--rd)':co>40?'var(--warn)':'var(--vf)'}"></span></div>
+   <span class="muted">${co}/100</span>`;
+ if(expensive) msg+=`<div class="tens" style="margin-top:10px">⚠ <b>昂贵的角落。</b> 解码像素 + 联合生成 + 扩散 + 单步闭环：每个控制步都要完整去噪去渲染像素。论文指出几乎没有方法直接居于此——它们用模拟、离线 rollout 或更小的推理模型换走一个坐标。</div>`;
+ else msg+=`<div class="muted" style="margin-top:10px">${phil==="Video-Generation-Free"?"预测路径中无视频生成器——便宜、紧凑，但没有视觉保真度指标。":phil==="Latent-Only"?"保留视频训练的先验，但在推理时跳过渲染器——领域的务实中间地带。":"在解码动作前渲染像素——可检视，但合成进了延迟预算。"}</div>`;
+ $("#verdict").innerHTML=msg;
+}
+update();
+
+// ---------- 普查 ----------
+function fillSel(id,vals,map){const s=$(id);vals.forEach(v=>{const o=ce("option");o.value=v;o.textContent=map?map(v):v;s.appendChild(o);});}
+fillSel("#f-phil",["Render-and-Decode","Latent-Only","Video-Generation-Free"]);
+fillSel("#f-sub",AX.sub.map(x=>x[0]),v=>LABEL[v]);
+fillSel("#f-bac",AX.bac.map(x=>x[0]),v=>LABEL[v]);
+let sortK="year",sortAsc=true;
+const KIDX={name:0,year:1,phil:2,sub:3,cou:4,bac:5,reg:6};
+function renderCensus(){
+ const fp=$("#f-phil").value,fs=$("#f-sub").value,fb=$("#f-bac").value;
+ let rows=CENSUS.filter(r=>(!fp||r[2]===fp)&&(!fs||r[3]===fs)&&(!fb||r[5]===fb));
+ const i=KIDX[sortK];rows.sort((a,b)=>{const x=a[i],y=b[i];return (x<y?-1:x>y?1:0)*(sortAsc?1:-1);});
+ const tb=$("#ctable tbody");tb.innerHTML="";
+ const pc={["Render-and-Decode"]:"p-rd",["Latent-Only"]:"p-lo",["Video-Generation-Free"]:"p-vf"};
+ rows.forEach(r=>{const tr=ce("tr");
+  tr.innerHTML=`<td><b>${r[0]}</b></td><td class="muted">${r[1]}</td>
+   <td><span class="pill ${pc[r[2]]}" style="font-size:11px">${r[2]}</span></td>
+   <td>${LABEL[r[3]]}</td><td>${LABEL[r[4]]}</td><td>${LABEL[r[5]]}</td><td>${LABEL[r[6]]}</td>`;
+  tb.appendChild(tr);});
+ $("#ccount").textContent=`共 ${CENSUS.length} 个中显示 ${rows.length} 个`;
+}
+["#f-phil","#f-sub","#f-bac"].forEach(s=>$(s).onchange=renderCensus);
+document.querySelectorAll("#ctable th").forEach(th=>th.onclick=()=>{const k=th.dataset.k;
+ if(k===sortK)sortAsc=!sortAsc;else{sortK=k;sortAsc=true;}renderCensus();});
+renderCensus();
+
+// ---------- 做梦预算 ----------
+function sig(x){return 1/(1+Math.exp(-x));}
+function budget(){
+ const ri=+$("#rung").value, diff=+$("#diff").value/100, du=+$("#du").value;
+ const [nm,cap,lpu]=LADDER[ri];
+ const fid=cap*(1-Math.exp(-0.6*du)), lat=lpu*du;
+ let p=sig(8*(fid-diff)); const late=lat>100; if(late)p*=0.3;
+ $("#rungName").textContent=nm; $("#diffV").textContent=diff.toFixed(2); $("#duV").textContent=du;
+ $("#kFid").textContent=fid.toFixed(2);
+ $("#kLat").innerHTML=`${lat.toFixed(0)}<span style="font-size:13px"> ms</span>`;
+ $("#kLat").style.color=late?"var(--rd)":"var(--vf)";
+ $("#kSucc").textContent=p.toFixed(2);
+ $("#kSucc").style.color=p>0.6?"var(--vf)":p>0.35?"var(--warn)":"var(--rd)";
+ let m;
+ if(late) m=`⚠ <b>延迟失效。</b> ${lat.toFixed(0)} ms > 100 ms 控制周期——未来在它本该指导的时刻之后才到（一个因果/延迟失效）。成功率崩塌。`;
+ else if(fid>diff+0.15 && du>6) m=`你在<b>过度做梦</b>：保真度 ${fid.toFixed(2)} 远超该步所需 ${diff.toFixed(2)}。收益递减——减少做梦单位或降一级。<i>少做梦，多行动。</i>`;
+ else if(fid<diff-0.05) m=`<b>做梦不足</b>：保真度 ${fid.toFixed(2)} 低于该步所需 ${diff.toFixed(2)}。为这个接触敏感的步骤升一级或加做梦单位。`;
+ else m=`<b>匹配良好。</b> 刚好够约束动作的未来，且低延迟——正是综述提倡的甜点区。`;
+ $("#budgetMsg").innerHTML=m;
+}
+["rung","diff","du"].forEach(id=>$("#"+id).oninput=budget);
+// 阶梯展示
+LADDER.forEach(([nm,cap,lpu])=>{const d=ce("div");
+ d.innerHTML=`<div class="nm">${nm}</div>
+  <div class="bar" style="flex:1"><span style="width:${cap*100}%;background:var(--acc)"></span></div>
+  <div class="muted" style="width:130px;text-align:right">容量 ${cap.toFixed(2)} · ${lpu} ms/单位</div>`;
+ $("#ladder").appendChild(d);});
+budget();
+
+// ---------- 属性 ----------
+PROPS.forEach(p=>{const c=ce("div","card");
+ c.innerHTML=`<h4 style="margin:0;cursor:pointer">▸ ${p.n} <span class="muted" style="font-weight:400">—— ${p.d}</span></h4>
+  <div style="display:none;margin-top:10px"><div><b>方法如何应对：</b> ${p.m}</div>
+  <div class="tens" style="margin-top:8px"><b>代价 / 张力：</b> ${p.c}</div></div>`;
+ const body=c.querySelector("div"),h=c.querySelector("h4");
+ h.onclick=()=>{const open=body.style.display!=="none";body.style.display=open?"none":"block";h.textContent=(open?"▸ ":"▾ ")+h.textContent.slice(2);};
+ $("#proplist").appendChild(c);});
+
+// ---------- 导航 ----------
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+ document.querySelectorAll("section").forEach(x=>x.classList.remove("on"));
+ b.classList.add("on");$("#"+b.dataset.s).classList.add("on");window.scrollTo(0,0);});
+</script>
+</body>
+</html>
