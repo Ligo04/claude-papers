@@ -1,0 +1,833 @@
+===== PAGE 9 =====
+Affine Body Dynamics:
+Fast, Stable and Intersection-free Simulation of Stiff Materials
+•
+9
+Fig. 7. House of cards. The 10-level stack of cards is initially balanced by frictions among cards. Two falling boxes break the balance and crash the stack. This
+experiment mixes static and dynamic frictions involving 158 bodies. Our method is 103× faster than rigid-IPC.
+ABD
+
+Light
+Medium
+Full
+Fig. 8. ABD vs. Bullet. We compare simulation results using ABD and
+Bullet with varying numbers of bodies and time step sizes. Bullet often
+produces interpenetrations between bodies even under small time steps.
+Interpenetrations becomes increasingly severe with growing body counts
+and/or time step size. On the other hand, ABD remains intersection-free
+across changing parameters and scene complexities. All timing statistics are
+reported in Tab. 1.
+could expose more collisions to Bullet solver, which are otherwise
+missed under a bigger step. In addition, Bullet fails all the friction
+experiments including the screwing bolt, arch, and house of cards
+(Figs. 6 and 7) even with highly conservative time step size (Δ𝑡=
+1/10000 sec).
+The story is similar for the medium/full test: ABD (92 ms in
+medium and 657 ms in full) is slightly slower than Bullet (68 ms in
+medium and 629 ms in full) when Δ𝑡= 1/100 sec2. Yet ABD takes
+the lead under smaller time steps of 1/240 sec and 1/1000 sec. In
+addition, Bullet has significantly more inter-penetration instances
+in the medium/full tests than in the light test, which could end up
+with undesired artifacts in many simulation tasks.
+As discussed, ABD’s collision processing directly handles each
+body’s input surface mesh boundary with all guarantees, including
+non-intersection, applying directly to those meshes. This means
+2Basically, ABD and Bullet have the same FPS in the full test with Δ𝑡= 1/100 sec
+that control of resolution and so quality is available via standard,
+well optimized geometry pipelines, e.g. mesh decimation. Bullet,
+however, requires pre-processing to convert all input meshes body
+into convex decompositions. In turn Bullet will then simulate these
+decomposed, simplified models as proxies, resolving collision han-
+dling on them, for each rigid body’s surface rather than the original
+mesh. Bullet users often use V-HACD [Mamou et al. 2016], an
+automated library for computing convex decomposition, for this
+process. Utilizing libraries like V-HACD, can be a slow and often
+time-consuming iterative process to hand-tune quality parameters
+in order to obtain a reasonable a reasonable geometric approxima-
+tion and resolution. Even so important features can be lost while
+details and symmetries are often unnecessarily broken. As such,
+many advanced users often resort to laborious hand-crafting of
+proxies when capturing important surface features is critical in an
+application (e.g., for design or robotics). Here, we demonstrate a
+comparative example of utilizing detailed, bone dragons in Fig 9
+dropped on a highly featured geometry. After careful hand-tuning
+of V-HACD parameters, we present in Fig 9 right the resulting sim-
+ulation using our best resulting V-HACD proxies. Here we see the
+convex decomposition geometry is still insufficiently detailed to
+capture local collision behavior between sharp asperities and con-
+vexities. In contrast, in Fig 9 left, ABD directly simulates the detailed
+geometry with tight tolerance so that all the original input meshes’
+detailed affordances are kept. In turn we see that this allows the
+dragons’ concavities to tightly entangle and also slide directly onto
+and be caught by the sharp points – all while remaining intersection
+free.
+5.3
+Joint Constraints are Linear for Affine Bodies
+An additional benefit of ABD is convenient constraint handling –
+especially for the those prescribing rotational DOFs. For instance,
+it is common to require multiple objects to obey a given kinematic
+relation following the joint connecting them. Such constraints are
+often nonlinear as they are formulated from rigid body rotational
+DOF. Enforcing them would then require computing the derivatives
+of the rotational DOFs (either via constrained Lagrangian methods
+or generalized coordinates). Here relaxation from rigidity to affinity
+also eases the processing of such constraints.
+It is known that a non-degenerate tetrahedron uniquely defines an
+affine transform. This suggests our generalized coordinate 𝑞can be
+mapped to any linear tetrahedron. From this perspective, an affine
+body simulation can also be viewed as a single-element FEM (with
+
+===== PAGE 10 =====
+10
+•
+Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang
+ABD
+Bullet
+Fig. 9. Bone dragon. In addition to the simulation algorithm, another difference between ABD and Bullet is the collision detection. ABD allows triangle-level
+collision detection to capture local contacts between fine geometries. Bullet is mesh-based and relies on convex decomposition of the model. In some cases,
+the decomposition is not accurate enough to approximate concave shapes. This figure shows one of such examples. Both bone dragons and rock spikes are
+sharp and concave.
+a simplified strain energy). The geometry of this element however,
+can be setup flexibly even its position deviates away significantly
+from the object. Let 𝜙denote the map between 𝑞and this virtual
+tetrahedron such that 𝑞= 𝜙(P). P ∈R3×4 stores the deformed
+vertex positions (i.e., 𝑝1, 𝑝2, 𝑝3, and 𝑝4) of the element. Let the rest
+shape position of the element be ¯P, and one can easily verify that:
+𝜙(P) =
+"
+1
+4
+∑︁
+𝑖
+(𝑝𝑖−¯𝑝𝑖)𝑇, vec𝑇
+P¯P𝑇(¯P¯P𝑇)−1#𝑇
+.
+(13)
+Here, vec(·) denotes the vectorization of a matrix. Since ¯P is given,
+we could use vec(P) as the new generalized coordinate of the sys-
+tem. Clearly 𝜙is a linear function of P. 𝜕𝜙/𝜕𝑝𝑖only depends on ¯P.
+Therefore, the Jacobi of the system remains constant:
+J𝑖= 𝜕𝑥𝑖
+𝜕𝑞·
+𝜕𝜙
+𝜕vec(P) ∈R3×12.
+(14)
+Fig. 10. Constrained simulation. Prescribing rotation freedom in ABD is
+convenient. We visualize the generalized coordinate as a virtual tetrahedron,
+and most rotational constraints are linearized. We show two examples of
+such simulation in this figure. Both pendulum and octopus tentacles are
+made of multiple bodies connected via hinge joints. ABD remains signifi-
+cantly faster than rigid-IPC: ABD achieves a 371× speedup for the pendulum
+and a 28× speedup for the octopus.
+Rotataion axis
+Fig. 12. Convenient con-
+straint handling. An axis
+constraint becomes a lin-
+ear one and can be easily
+enforced in A-IPC frame-
+work.
+In practice, we exploit the fact that
+¯P could be any tetrahedron to manipu-
+late such constraints intuitively. For in-
+stance as shown in Fig. 12, the gear is
+constrained to rotate around a prescribed
+axis (blue dash line). In ABD, we map 𝑞to
+a tetrahedron. Since the tetrahedron can
+be chosen freely, we make sure that one
+of its edges is parallel to the rotation axis.
+After that, the axis constraint can be sim-
+ply posed as a linear equality constraint
+fixing two vertices of the edge (𝑝2 and 𝑝4
+in the figure). Indeed, such formulation
+is over-constraining as it eliminates six
+freedoms instead of two (we should also allow 𝑝2 and 𝑝4 to move
+laterally along the edge). However, such “over-constrainment” still
+gives correct simulation because ABD uses more DOFs to simulate
+a rigid object. Other types constraints can be dealt with in a similar
+way (e.g., the constraint over the rotation angle can be converted to
+a linear shearing constraint).
+Two of such examples are reported in Fig. 10. The pendulum is
+a basic mechanism structure with two rigid links constrained by a
+hinge. The octopus has eight tentacles, and each of it consists of five
+joints. We also compared ABD with rigid-IPC with these models.
+ABD does not only enjoy a more handy formulation but also runs
+significantly faster (371× and 28× speedups for the pendulum and
+octopus respectively). A more challenging experiment is reported
+in Fig. 1, where we simulate a more complex mechanism device of a
+set of 28 gears. Those gears are coupled by tooth contacts and shafts
+(see Fig. 14). There are totally 2, 450K triangles and 3, 090K edges
+on the surface (i.e., those could participate in culling and CCD). A
+component-wise breakdown showing the inter-connectivity of gears
+is given in the right of the figure. As the driving torque is applied at
+one of the gear (the one with red arrow), the entire device moves
+forward. This simulation is very demanding for the robustness of
+the simulation algorithm. Because gear tooth are close to each other,
+highly localized and detailed CCD is massively used. All rigid body
+simulation algorithms we have tested fail in this case including rigid-
+IPC, MuJuCo, and Bullet. As mentioned, Bullet requires building
+a convex proxy for collision processing, which does not capture
+the zigzag geometry at the gear tooth. MuJuCo fails the test even
+under highly conservative settings (e.g., very small time step size).
+Rigid-IPC also fails this experiment: after first few steps, the Newton
+iteration loops infinitely because the cured CCD is unable to find a
+usable TOI (time of impact). ABD manages to simulate this scene
+without any issues. Each frame takes about 12 sec on the CPU. As
+the majority of the computation is at CCD processing, we port our i-
+AABB algorithm to CUDA, and the simulation of the gear set reaches
+an interactive rate (at 5 – 10 FPS).
+5.4
+Hybrid Simulation
+Another benefit of ABD, when viewed as a reduced single-tetrahedron
+FEM, is to simulate models with both rigid and soft components.
+Such objects are vastly available in real world. While existing rigid
+
+===== PAGE 11 =====
+Affine Body Dynamics:
+Fast, Stable and Intersection-free Simulation of Stiff Materials
+•
+11
+Fig. 11. Hybrid simulation. ABD is particularly convenient for simulating hybrid object with both rigid and deformable parts. Both the barbarian ship (225K
+triangles, 341K edges) and helicopter (116K triangles, 176K edges) are such hybrid objects with a rigid main body appended by several deformable parts
+(canvas, rotors, and wheels). We use standard neo-Hookean FEM to simulate deformable parts, which are constrained to the virtual tetrahedron corresponding
+to the rigid body. Due to the involvement of massive DOFs from deformable parts, the simulation uses about 16 sec for one frame under Δ𝑡= 1/100 sec.
+Fig. 13. Huge chain net. When the body count increases, the disadvantage of using redundant DOFs in the simulation may become more obvious. Following
+this thought, we up scale the chain net to have 27, 645 bodies. In this stress test, A-IPC takes about 5 min to simulate one frame on average. The entire
+simulation takes about five days with A-IPC. We are never able to finish this test with rigid-IPC. Based on our observation, A-IPC is at least 2, 000× faster than
+rigid-IPC. This means it will need several years for rigid-IPC to finish this experiment.
+body methods can also be augmented to incorporate such hybrid
+simulations, it is particularly effortless in the framework of ABD.
+We show a simulation of such scene. The barbarian ship has a rigid
+ship body and two deformable canvas. Each ship has 225K surface
+triangles and 341K edges. The helicopter is also hybrid with a rigid
+body, two soft rotors, and four soft wheels. There are 116K triangles
+and 176K edges on each helicopter. After two ships fall into the
+glass tank, five helicopters follow, producing interesting animation
+effects of both rigid and deformable dynamics. Note that the colli-
+sion between rigid and soft bodies can be handled uniformly using
+barrier-based penalties. In such hybrid simulation, the Hessian of
+elastic potential on the deformable components are much smaller (by
+several orders) than the Hessian of the orthogonality potential (𝑉⊥),
+and the positive definiteness of the global system matrix is numeri-
+cally compromised. Therefore, LLT factorization (SimplicialLLT)
+may fail occasionally. In this case, we switch to LDLT Cholesky
+for each Newton solve. A possible remedy for increase numerically
+stability is to use Schur complement like formulation [Peiret et al.
+2019] to somehow decouple DOFs from rigid (affine) and deformable
+components.
+5.5
+Timing and Breakdown
+Detailed time statistics of other the experiments is reported in Tab. 2.
+In all the experiments, we uniformly scale the scene to a 1 × 1 × 1
+box and set ˆ𝑑as 1/1000. In other words, if the size of the model
+is around one meter, the contact accuracy is guaranteed to be less
+than one millimeter, and all the models do not intersect with each
+other at any time during the simulation. We report comparative
+0N
+2,000N
+Fig. 14. Contact forces at teeth. With the assistance of i-AABB, ABD
+efficiently and accurately model the contact forces among gear teeth. This
+figure visualizes the force distribution over the gear teeth.
+timing benchmark of ABD and rigid-IPC under Δ𝑡= 1/100 in most
+experiments. Normally, rigid-IPC is numerically robust under larger
+time steps. However, its performance is highly sensitive to a bigger
+Δ𝑡. This is because the underlying curved CCD quickly becomes
+prohibitive when examining over a wider trajectory gap. Therefore,
+we do not report our speedup over rigid-IPC for any time steps
+bigger than Δ𝑡= 1/100 sec. For chain net example shown in Fig. 4,
+the literal speedup exceeds four orders in general if we set Δ𝑡= 1/25.
+It is not our intention to oversell just by tweaking the time step size.
+The majority portion of our performance improvement is brought
+by relaxing the rigidity constraint. This can be reflected by two
+important metrics from Tab. 2: the iteration count (# Iter.) and
+the time needed for CCD processing (CCD). It is clearly shown
+
+===== PAGE 12 =====
+12
+•
+Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang
+Table 2. Time statistic. Detailed time statistics of our experiments. In most experiments, we tested ABD under three different Δ𝑡settings namely 1/100, 1/50,
+and 1/25. # Bdy (number of bodies), # Tri./Edg. (numbers of triangles and edges), 𝚫𝒕(time step size), # Iter. (average per-frame iteration counts), and Time
+(total time for each frame) are the same measures as in Tab. 1. This table also reports computation time used for Hessian assembly (Hess.), total time used for
+solving the linear system in Newton method at each frame (Sol.), time used for triangle-level CCD (CCD), time used for building the collision pairs (Cons.),
+and other computations (Misc. e.g., variables initialization, convergence check etc. In many examples (except for the last four examples), we give comparative
+timing information of both ABD and rigid-IPC. The GPU FPS is also reported for Δ𝑡= 1/100 ABD simulations.
+Test
+# Bdy
+# Tri./Edg.
+Δ𝑡(sec)
+# Iter.
+Hess. (sec)
+Sol. (ms)
+CCD (sec)
+Cons. (sec)
+Misc. (ms)
+Time (sec)
+Wrecking ball
+(Fig. 3)
+575
+14K/20K
+1/100
+1/50
+1/25
+8.8 | 17.1
+19.4
+42.6
+0.023 | 10.3
+0.067
+0.18
+53 | 47
+160
+444
+0.028 | 4.9
+0.078
+0.23
+0.031 | 2.3
+0.092
+0.027
+8 | 53
+18
+43
+0.14 | 17.6 | 18 FPS
+0.41
+1.1
+Small chain net
+(Fig. 5)
+144
+63K/95K
+1/100
+1/50
+1/25
+2.1 | 4.0
+2.4
+2.8
+0.011 | 0.18
+0.014
+0.018
+6 | 2
+7
+9
+0.016 | 1.1
+0.023
+0.29
+0.017 | 0.73
+0.023
+0.032
+9 | 6
+10
+10
+0.059 | 2.1 | 143 FPS
+0.07
+0.08
+Big chain net
+(Fig. 4)
+673
+445K/297K
+1/100
+1/50
+1/25
+13.5 | 169
+24.9
+26.3
+0.13 | 109
+0.25
+0.27
+241 | 437
+440
+464
+0.41 | 305
+0.82
+0.93
+0.43 | 388
+0.87
+0.96
+62 | 1336
+83
+86
+0.78 | 944 | 5 FPS
+2.4
+2.7
+House of cards
+(Fig. 7)
+158
+336/816
+1/100
+1/50
+1/25
+9.8 | 66.5
+13.3
+25.2
+0.014 | 2.49
+0.024
+0.045
+24 | 41
+37
+64
+0.009 | 5.1
+0.014
+0.035
+0.035 | 1.1
+0.043
+0.074
+4 | 46
+20
+9
+0.086 | 8.9 | 42 FPS
+0.13
+0.24
+Screw
+(Fig. 6, left)
+2
+7.9K/5.2K
+1/100
+1/50
+1/25
+4.1 | 8.2
+3.2
+5.7
+0.0004 | 0.028
+0.0007
+0.001
+0.1 | 0.1
+0.1
+0.1
+0.039 | 2.5
+0.068
+0.11
+0.039 | 0.096
+0.068
+0.12
+9 | 1
+10
+10
+0.087 | 2.6 | 1K FPS
+0.14
+0.23
+Arch
+(Fig. 6, right)
+101
+1.2K/1.8K
+1/100
+1/50
+1/25
+1.9 | 6.2
+3.2
+5.7
+0.002 | 0.13
+0.003
+0.005
+2 | 44
+2
+3
+0.001 | 0.44
+0.001
+0.003
+0.002 | 0.099
+0.003
+0.006
+2 | 3
+2
+3
+0.0087 | 0.67 | 500 FPS
+0.013
+0.022
+Pendulum
+(Fig. 10, left)
+4
+1.3K/2.0K
+1/100
+1/50
+1/25
+4.1 | 4.3
+4.3
+4.7
+0.001 | 0.018
+0.001
+0.001
+0.1 | 0.1
+0.1
+0.1
+0.003 | 2.5
+0.004
+0.005
+0.003 | 0.03
+0.003
+0.004
+1 | 1
+1
+1
+0.007 | 2.6 | 1K FPS
+0.009
+0.01
+Octopus
+(Fig. 10, right)
+41
+33K/49K
+1/100
+1/50
+1/25
+4.6 | 4.3
+5.6
+6.7
+0.012 | 0.071
+0.014
+0.017
+2 | 0.5
+0.2
+0.2
+0.02 | 0.97
+0.03
+0.04
+0.019 | 0.34
+0.025
+0.03
+5 | 3
+6
+6
+0.05 | 1.4 | 333 FPS
+0.07
+0.09
+Hybrid sim.
+(Fig. 11)
+19+8
+1.1M/1.6M
+1/100
+1/50
+1/25
+16.7 | –
+19.3
+25.9
+4.3 | –
+5.8
+7.9
+4600 | –
+5311
+7083
+3.5 | –
+4.8
+7.2
+3.4 | –
+4.5
+6.9
+490 | –
+562
+836
+16.4 | – | 0.4 FPS
+21.3
+30.0
+Gear set
+(Fig. 1)
+28
+2.5M/3.1M
+1/100
+1/50
+1/25
+16.7 | –
+19.3
+25.9
+4.3 | –
+5.8
+7.9
+4 | –
+4
+6
+5.4 | –
+6.3
+9.3
+6.0 | –
+7.9
+11.2
+211 | –
+219
+43
+11.7 | – | 7.3 FPS
+14.5
+20.1
+Bone dragon
+(Fig. 9)
+29
+1.2M/1.7M
+1/100
+6.3
+0.003
+0.2
+2.3
+0.56
+74
+2.8
+Huge chain net
+(Fig. 13)
+27,645
+12M/18M
+1/100
+14.2
+37.2
+87 sec
+95
+94
+7.2 sec
+310
+that as long as the contact frequency in the simulation is intense,
+ABD always requires much fewer iterations to converge than rigid-
+IPC does. This difference is “extremized” in the gear set example
+(Fig. 1), where ABD needs 17 iterations for each time step, and
+rigid-IPC needs infinite iterations. CCD processing is another major
+game changer. As mentioned, rigid-IPC strictly follows the rigidity
+constraint making per-step trajectory curved. This curved trajectory
+is split and converted back to piece-wise line segments again during
+the CCD. This conversion is fully avoided in ABD, and one can
+use any existing CCD algorithm to detect potential intersection
+between primitives and compute TOI. We would like to remind that
+CCD needs to be carried out at each Newton iteration in order to
+make sure the line search does not introduce inter-penetrations.
+Therefore, the performance gap between A-IPC and rigid-IPC is
+further scaled by the iteration count. Together, those two factors
+contribute to 90% of our speedup in complex simulations such as
+the big chain net (Fig. 4), house of cards (Fig. 7) and wrecking
+ball (Fig. 3). In other relatively lighter simulation experiments, our
+improved culling and Hessian assembly become more profitable. Our
+culling is up to to 90% more effective than conventional BVH-based
+strategy for models with complex geometry. It is on average 30%
+more effective for simpler shapes (e.g., the chain net or the octopus).
+In terms of system solve, ABD is typically slower than existing rigid
+body methods due to inflated DOFs. However, this disadvantage
+is invisible because ABD always enjoys a much fewer iterations
+and much faster CCD processing. This is our core inspiration of
+designing ABD.
+We suspect increasing the body count will grant the lead to rigid-
+IPC at a certain point and simulate a huge chain net model with
+27, 645 bodies. The result is opposite – we estimate ABD has a
+∼5, 000× speedup (on CPU). This is just a rough assessment as we
+are never able to finish rigid-IPC in this stress test, which will need
+several years while ABD finishes the simulation in five days.
+6
+CONCLUSION
+We have introduced a new, simple affine dynamics model and a
+carefully customized, easy-to-implement affine IPC algorithm for
+the simulation of extremely stiff materials with fidelity, convergence
+and reliability. The resulting method is highly suited for simulating
+all scenarios and applications where currently rigid body meth-
+ods are now popularly employed without, as we have shown, the
+current limitations that rigid body models impose. Here we have
+
+===== PAGE 13 =====
+Affine Body Dynamics:
+Fast, Stable and Intersection-free Simulation of Stiff Materials
+•
+13
+demonstrated that ABD obtains orders of magnitude speedup over
+state-of-the-art rigid body simulation with comparable guarantees
+of non-intersection and convergence. At the same time we have
+also shown that ABD obtains both comparable (for easy examples)
+and improved (as scene complexity grows) speeds when compared
+with highly optimized rigid body libraries that do not have guaran-
+tees and so suffer from artifacts and all-out failures that limit their
+automated use.
+ABD is custom-suited for parallelization, is also differentiable,
+and automatically and directly simulates all input triangulated ge-
+ometries. We have shown that, when leveraging the GPU, ABD can
+simulate complex contacting systems at interactive rates. With these
+combined properties it is then exciting to consider future applica-
+tions where ABD’s automation, reliability, and differentiability can
+be utilized for computational design, machine learning, and robotics.
+In these cases consistent, artifact-free simulation behavior across
+shape, material and contact variations, without algorithm parameter
+tuning, should accelerate development. We have also shown a few
+initial, proofs-of-concept for extensions of ABD to both complex,
+jointed stiff multibody systems, and to hybrid stiff/flexible multibody
+systems. Here there also clearly remain significant opportunities
+for further development and application. Finally, looking ahead,
+with the popularity and diverse applications of physical modeling
+we hope that ABD will provide the rapidly growing and diverse
+community of simulation users with a reliable, differentiable and
+exceedingly efficient framework suitable to swap in for all rigid
+body-type applications.
+REFERENCES
+Marc Alexa, Daniel Cohen-Or, and David Levin. 2000. As-rigid-as-possible shape
+interpolation. In Proceedings of the 27th annual conference on Computer graphics and
+interactive techniques. 157–164.
+Mihai Anitescu and Florian A Potra. 1997. Formulating dynamic multi-rigid-body con-
+tact problems with friction as solvable linear complementarity problems. Nonlinear
+Dynamics 14, 3 (1997), 231–247.
+David Baraff. 1989. Analytical methods for dynamic simulation of non-penetrating
+rigid bodies. In Proceedings of the 16th annual conference on Computer graphics and
+interactive techniques. 223–232.
+David Baraff. 1991. Coping with friction for non-penetrating rigid body simulation.
+ACM SIGGRAPH computer graphics 25, 4 (1991), 31–41.
+David Baraff. 1994. Fast contact force computation for nonpenetrating rigid bodies.
+In Proceedings of the 21st annual conference on Computer graphics and interactive
+techniques. 23–34.
+David Baraff. 1995. Interactive simulation of solid rigid bodies. IEEE Computer Graphics
+and Applications 15, 3 (1995), 63–75.
+Joachim Baumgarte. 1972. Stabilization of constraints and integrals of motion in
+dynamical systems. Computer methods in applied mechanics and engineering 1, 1
+(1972), 1–16.
+Jan Bender, Kenny Erleben, and Jeff Trinkle. 2014. Interactive simulation of rigid body
+dynamics in computer graphics. In Computer Graphics Forum, Vol. 33. Wiley Online
+Library, 246–270.
+Gino van den Bergen. 1997. Efficient collision detection of complex deformable models
+using AABB trees. Journal of graphics tools 2, 4 (1997), 1–13.
+Javier Bonet and Richard D Wood. 1997. Nonlinear continuum mechanics for finite
+element analysis. Cambridge university press.
+Robert Bridson, Ronald Fedkiw, and John Anderson. 2002. Robust treatment of collisions,
+contact and friction for cloth animation. In Proceedings of the 29th annual conference
+on Computer graphics and interactive techniques. 594–603.
+Tyson Brochu, Essex Edwards, and Robert Bridson. 2012. Efficient geometrically exact
+continuous collision detection. ACM Transactions on Graphics (TOG) 31, 4 (2012),
+1–7.
+Jinhyun Choo, Yidong Zhao, Yupeng Jiang, Minchen Li, Chenfanfu Jiang, and Kenichi
+Soga. 2021.
+A barrier method for frictional contact on embedded interfaces.
+arXiv:2107.05814 [math.NA]
+Michael B Cline and Dinesh K Pai. 2003. Post-stabilization for rigid body simulation
+with contact and constraints. In 2003 IEEE International Conference on Robotics and
+Automation (Cat. No. 03CH37422), Vol. 3. IEEE, 3744–3751.
+Eulalie Coevoet, Otman Benchekroun, and Paul G Kry. 2020. Adaptive merging for
+rigid body simulation. ACM Transactions on Graphics (TOG) 39, 4 (2020), 35–1.
+Erwin Coumans. 2015. Bullet physics simulation. In ACM SIGGRAPH 2015 Courses. 1.
+Dariusz Dereniowski and Marek Kubale. 2003. Cholesky factorization of matrices in
+parallel and ranking of graphs. In International Conference on Parallel Processing and
+Applied Mathematics. Springer, 985–992.
+Evan Drumwright. 2007. A fast and stable penalty method for rigid body simulation.
+IEEE transactions on visualization and computer graphics 14, 1 (2007), 231–240.
+Christian Duriez, Frederic Dubois, Abderrahmane Kheddar, and Claude Andriot. 2005.
+Realistic haptic rendering of interacting deformable objects in virtual environments.
+IEEE transactions on visualization and computer graphics 12, 1 (2005), 36–47.
+Kenny Erleben. 2007.
+Velocity-based shock propagation for multibody dynamics
+animation. ACM Transactions on Graphics (TOG) 26, 2 (2007), 12–es.
+Kenny Erleben. 2017. Rigid body contact problems using proximal operators. In Pro-
+ceedings of the ACM SIGGRAPH/Eurographics Symposium on Computer Animation.
+1–12.
+Yu Fang, Minchen Li, Chenfanfu Jiang, and Danny M. Kaufman. 2021. Guaranteed
+Globally Injective 3D Deformation Processing. ACM Trans. Graph. (SIGGRAPH) 40,
+4, Article 75 (2021).
+Zachary Ferguson, Minchen Li, Teseo Schneider, Francisca Gil-Ureta, Timothy Langlois,
+Chenfanfu Jiang, Denis Zorin, Danny M Kaufman, and Daniele Panozzo. 2021.
+Intersection-free rigid body dynamics. ACM Transactions on Graphics 40, 4 (2021),
+183.
+Susan Fisher and Ming C Lin. 2001. Fast penetration depth estimation for elastic bodies
+using deformed distance fields. In Proceedings 2001 IEEE/RSJ International Conference
+on Intelligent Robots and Systems. Expanding the Societal Role of Robotics in the the
+Next Millennium (Cat. No. 01CH37180), Vol. 1. IEEE, 330–336.
+Stefan Gottschalk, Ming C Lin, and Dinesh Manocha. 1996. OBBTree: A hierarchical
+structure for rapid interference detection. In Proceedings of the 23rd annual conference
+on Computer graphics and interactive techniques. ACM, 171–180.
+Gaël Guennebaud, Benoit Jacob, et al. 2010. Eigen. URl: http://eigen. tuxfamily. org 3
+(2010).
+Ernst Hairer and Gilles Vilmart. 2006. Preprocessed discrete Moser–Veselov algorithm
+for the full dynamics of a rigid body. Journal of Physics A: Mathematical and General
+39, 42 (2006), 13225.
+Shoichi Hasegawa, Nobuaki Fujii, Katsuhito Akahane, Yasuharu Koike, and Makoto
+Sato. 2004. Real-time rigid body simulation for haptic interactions based on contact
+volume of polygonal objects. Transactions of the Society of Instrument and Control
+Engineers 40, 2 (2004), 122–131.
+Kris K Hauser, Chen Shen, and James F O’Brien. 2003. Interactive Deformation Using
+Modal Analysis with Constraints.. In Graphics Interface, Vol. 3. 16–17.
+Philip Martyn Hubbard. 1995. Collision detection for interactive graphics applications.
+IEEE Trans. on Visualization and Computer Graphics 1, 3 (1995), 218–230.
+Takeo Igarashi, Tomer Moscovich, and John F Hughes. 2005. As-rigid-as-possible shape
+manipulation. ACM transactions on Graphics (TOG) 24, 3 (2005), 1134–1141.
+Doug L James and Dinesh K Pai. 2004. BD-tree: output-sensitive collision detection for
+reduced deformable models. ACM Trans. Graph. (TOG) 23, 3 (2004), 393–398.
+Danny M Kaufman, Timothy Edmunds, and Dinesh K Pai. 2005. Fast frictional dynamics
+for rigid bodies. In ACM SIGGRAPH 2005 Papers. 946–956.
+Danny M Kaufman, Shinjiro Sueda, Doug L James, and Dinesh K Pai. 2008. Staggered
+projections for frictional contact in multibody systems. In ACM SIGGRAPH Asia
+2008 papers. 1–11.
+Shankar Krishnan, M Gopi, M Lin, Dinesh Manocha, and A Pattekar. 1998. Rapid and
+accurate contact determination between spline models using ShellTrees. Computer
+Graphics Forum 17, 3 (1998), 315–326.
+Lei Lan, Yin Yang, Danny Kaufman, Junfeng Yao, Minchen Li, and Chenfanfu Jiang.
+2021. Medial IPC: accelerated incremental potential contact with medial elastics.
+ACM Transactions on Graphics (TOG) 40, 4 (2021), 1–16.
+Minchen Li. 2020. Robust and Accurate Simulation of Elastodynamics and Contact. Ph.D.
+Dissertation. University of Pennsylvania.
+Minchen Li, Zachary Ferguson, Teseo Schneider, Timothy Langlois, Denis Zorin, Daniele
+Panozzo, Chenfanfu Jiang, and Danny M Kaufman. 2020. Incremental potential con-
+tact: Intersection-and inversion-free, large-deformation dynamics. ACM transactions
+on graphics (2020).
+Minchen Li, Danny M. Kaufman, and Chenfanfu Jiang. 2021b. Codimensional In-
+cremental Potential Contact. ACM Trans. Graph. (SIGGRAPH) 40, 4, Article 170
+(2021).
+Xuan Li, Yu Fang, Minchen Li, and Chenfanfu Jiang. 2021a. BFEMP: Interpenetration-
+free MPM–FEM coupling with barrier contact. Computer Methods in Applied Me-
+chanics and Engineering (2021), 114350.
+Miles Macklin, Matthias Müller, and Nuttapong Chentanez. 2016. XPBD: position-based
+simulation of compliant constrained dynamics. In Proceedings of the 9th International
+Conference on Motion in Games. 49–54.
+Khaled Mamou, E Lengyel, and AK Peters. 2016. Volumetric hierarchical approximate
+convex decomposition. In Game Engine Gems 3. AK Peters, 141–158.
+
+===== PAGE 14 =====
+14
+•
+Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang
+Hammad Mazhar, Toby Heyn, Dan Negrut, and Alessandro Tasora. 2015. Using Nes-
+terov’s method to accelerate multibody dynamics with friction and contact. ACM
+Transactions on Graphics (TOG) 34, 3 (2015), 1–14.
+Jean J Moreau. 1988. Unilateral contact and dry friction in finite freedom dynamics. In
+Nonsmooth mechanics and Applications. Springer, 1–82.
+Jürgen Moser and Alexander P Veselov. 1991. Discrete versions of some classical
+integrable systems and factorization of matrix polynomials. Communications in
+Mathematical Physics 139, 2 (1991), 217–243.
+Matthias Müller, Bruno Heidelberger, Marcus Hennix, and John Ratcliff. 2007. Position
+based dynamics. Journal of Visual Communication and Image Representation 18, 2
+(2007), 109–118.
+Matthias Müller, Miles Macklin, Nuttapong Chentanez, Stefan Jeschke, and Tae-Yong
+Kim. 2020. Detailed rigid body simulation with extended position based dynamics.
+In Computer Graphics Forum, Vol. 39. Wiley Online Library, 101–112.
+Developer Z Nvidia. 2011. Physx sdk. URL Httpdeveloper Nvidia Comphysx-Downloads
+(2011).
+Miguel A Otaduy, Daniel Germann, Stephane Redon, and Markus Gross. 2007. Adap-
+tive deformations with fast tight bounds. In Proceedings of the 2007 ACM SIG-
+GRAPH/Eurographics symposium on Computer animation. 181–190.
+Mark Pauly, Dinesh K Pai, and Leonidas J Guibas. 2004. Quasi-rigid objects in contact.
+In Proceedings of the 2004 ACM SIGGRAPH/Eurographics symposium on Computer
+animation. 109–119.
+Albert Peiret, Sheldon Andrews, József Kövecses, Paul G Kry, and Marek Teichmann.
+2019. Schur complement-based substructuring of stiff multibody systems with
+contact. ACM Transactions on Graphics (TOG) 38, 5 (2019), 1–17.
+Stephane Redon, Ming C Lin, Dinesh Manocha, and Young J Kim. 2005. Fast continuous
+collision detection for articulated models. (2005).
+Peng Song and Vijay Kumar. 2003. Distributed compliant model for efficient dynamic
+simulation of systems with frictional contacts. In International Design Engineering
+Technical Conferences and Computers and Information in Engineering Conference,
+Vol. 37009. 1009–1018.
+Olga Sorkine and Marc Alexa. 2007. As-rigid-as-possible surface modeling. In Sympo-
+sium on Geometry processing, Vol. 4. 109–116.
+David E Stewart. 2000. Rigid-body dynamics with friction and impact. SIAM review 42,
+1 (2000), 3–39.
+Min Tang, Dinesh Manocha, Miguel A Otaduy, and Ruofeng Tong. 2012. Continuous
+penalty forces. ACM Transactions on Graphics (TOG) 31, 4 (2012), 1–9.
+Min Tang, Ruofeng Tong, Zhendong Wang, and Dinesh Manocha. 2014. Fast and exact
+continuous collision detection with bernstein sign classification. ACM Transactions
+on Graphics (TOG) 33, 6 (2014), 1–8.
+Demetri Terzopoulos, John Platt, Alan Barr, and Kurt Fleischer. 1987. Elastically de-
+formable models. In Proceedings of the 14th annual conference on Computer graphics
+and interactive techniques. 205–214.
+Matthias Teschner, Stefan Kimmerle, Bruno Heidelberger, Gabriel Zachmann, Laks
+Raghupathi, Arnulph Fuhrmann, M-P Cani, François Faure, Nadia Magnenat-
+Thalmann, Wolfgang Strasser, et al. 2005. Collision detection for deformable objects.
+In Computer graphics forum, Vol. 24. Wiley Online Library, 61–81.
+Emanuel Todorov, Tom Erez, and Yuval Tassa. 2012. Mujoco: A physics engine for
+model-based control. In 2012 IEEE/RSJ International Conference on Intelligent Robots
+and Systems. IEEE, 5026–5033.
+Jeffrey C Trinkle, JA Tzitzouris, and Jong-Shi Pang. 2001. Dynamic multi-rigid-body
+systems with concurrent distributed contacts. Philosophical Transactions of the Royal
+Society of London. Series A: Mathematical, Physical and Engineering Sciences 359,
+1789 (2001), 2575–2593.
+Bolun Wang, Zachary Ferguson, Teseo Schneider, Xin Jiang, Marco Attene, and Daniele
+Panozzo. 2021. A Large-scale Benchmark and an Inclusion-based Algorithm for
+Continuous Collision Detection. ACM Transactions on Graphics (TOG) 40, 5 (2021),
+1–16.
+Endong Wang, Qing Zhang, Bo Shen, Guangyong Zhang, Xiaowei Lu, Qing Wu, and
+Yajuan Wang. 2014. Intel math kernel library. In High-Performance Computing on
+the Intel® Xeon Phi™. Springer, 167–188.
+Hongyi Xu, Yili Zhao, and Jernej Barbič. 2014.
+Implicit multibody penalty-
+baseddistributed contact. IEEE transactions on visualization and computer graphics
+20, 9 (2014), 1266–1279.
+Gabriel Zachmann. 2002. Minimal hierarchical collision detection. In ACM symposium
+on Virtual reality software and technology. ACM, 121–128.
+Gabriel Zachmann and Elmar Langetepe. 2003. Geometric data structures for computer
+graphics. Eurographics Assoc.

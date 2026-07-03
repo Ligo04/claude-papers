@@ -1,0 +1,15 @@
+{
+  "title": "Progressive Convex Hull Simplification",
+  "authors": ["Alec Jacobson"],
+  "affiliation": "University of Toronto",
+  "arxiv": "2604.14468v2",
+  "year": 2026,
+  "category": "cs.GR",
+  "abstract": "Convex hulls are useful as tight bounding proxies for a variety of tasks including collision detection, ray intersection, and distance computation. Unfortunately, the complexity of polyhedral convex hulls grows linearly with their input. We consider the problem of conservatively simplifying a convex hull to a specified number of half-spaces while minimizing added volume or surface area. By working in the dual representation, we propose an efficient O(n log n) greedy optimization. In comparisons, we show that existing methods either exhibit poor efficiency, tightness or safety. We demonstrate the success of our method on a variety of input shapes and downstream application domains.",
+  "tags": ["bounding volumes", "dual greedy simplification"],
+  "githubLinks": ["https://github.com/alecjacobson/progressive-convex-hull-simplification"],
+  "codeLinks": ["https://github.com/alecjacobson/progressive-convex-hull-simplification"],
+  "pageCount": 10,
+  "difficulty": "中级(需要计算几何/网格简化背景)",
+  "language": "zh-CN"
+}

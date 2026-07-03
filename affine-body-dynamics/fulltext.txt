@@ -1,0 +1,1271 @@
+
+
+Affine Body Dynamics:
+Fast, Stable and Intersection-free Simulation of Stiff Materials
+LEI LAN,Clemson University
+DANNY M. KAUFMAN,Adobe Research
+MINCHEN LI,UCLA
+CHENFANFU JIANG,UCLA
+YIN YANG,Clemson University
+Fig. 1.Geared system.We propose an affine body dynamics framework (ABD) to efficiently and robustly simulate close-to-rigid contacting objects. ABD
+significantly eases the collision and contact processing costs over rigid body modeling while obtaining intersection-free trajectories leveraging barrier-based
+frictional contact model. Here, in a challenging stress-test benchmark we simulate a complex geared system composed of 28 toothed gears with frictional
+contact resolving all interactions. The combined gear set mesh is comprised of over2.45M surface triangles. A torque applied to the actuated gear (highlighted
+in red arrow) drives the motion of the entire system via contact, with well over a quarter of all surface elements in active contact in every time step. Here we
+find thatall the existing rigid body simulation algorithms, including rigid-IPC, fail to make progress, while ABD robustly simulates the example to completion.
+ABD enables large time step sizes (e.g., withΔ푡=1/50sec) even for such challenging, large displacement (rotation) contact processing. For a time step size of
+1/100sec, ABD simulates each step in less than12sec on anintel i9CPU (multi-threaded), while the simulation runs at an interactive rate on a3090GPU
+(5-10time steps per second).
+Simulating stiff materials in applications where deformations are either not
+significant or else can safely be ignored is a fundamental task across fields.
+Rigid body modeling has thus long remained a critical tool and is, by far,
+the most popular simulation strategy currently employed for modeling stiff
+solids. At the same time, rigid body methods continue to pose a number of
+well known challenges and trade-offs including intersections, instabilities,
+inaccuracies, and/or slow performances that grow with contact-problem
+complexity. In this paper we revisit the stiff body problem and present ABD,
+a simple and highly effective affine body dynamics framework, which sig-
+nificantly improves state-of-the-art for simulating stiff-body dynamics. We
+trace the challenges in the rigid-body methods to the necessity of linearizing
+piecewise-rigid trajectories and subsequent constraints. ABD instead relaxes
+the unnecessary (and unrealistic) constraint that each body’s motion be
+exactly rigid with a stiff orthogonality potential, while preserving the rigid
+body model’s key feature of a small coordinate representation. In doing
+so ABD replaces piecewiselinearizationwith piecewiselineartrajectories.
+Authors’ addresses: Lei Lan, Clemson University, lan6@clemson.edu; Danny M. Kauf-
+man, Adobe Research, dannykaufman@gmail.com; Minchen Li, UCLA, minchernl@
+gmail.com; Chenfanfu Jiang, UCLA, chenfanfu.Jiang@gmail.com; Yin Yang, Clemson
+University, yin5@clemson.edu.
+This, in turn, combines the best of both worlds: compact coordinates ensure
+small, sparse system solves, while piecewise-linear trajectories enable ef-
+ficient and accurate constraint (contact and joint) evaluations. Beginning
+with this simple foundation, ABD preserves all guarantees of the under-
+lying IPC model we build it upon, e.g., solution convergence, guaranteed
+non-intersection, and accurate frictional contact. Over a wide range and
+scale of simulation problems we demonstrate that ABD brings orders of
+magnitude performance gains (two- to three-order on the CPU and an order
+more utilizing the GPU, obtaining10,000×speedups) over prior IPC-based
+methods with a while maintaining simulation quality and nonintersection of
+trajectories. At the same time ABD has comparable or faster timings when
+compared to state-of-the-art rigid body libraries optimized for performance
+without guarantees, and successfully and efficiently solves challenging sim-
+ulation problems where both classes of prior rigid body simulation methods
+fail altogether.
+CCS Concepts:•Computing methodologies→Physical simula-
+tion.
+Additional  Key  Words  and  Phrases:Rigid  body  dynamics,  Reduced
+model, CCD, Barrier function
+Reference Format:
+Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang.
+2022. Affine Body Dynamics: Fast, Stable and Intersection-free Simulation
+of Stiff Materials.  arXiv (February 2022), 14 pages.
+arXiv:2201.10022v2  [cs.GR]  31 Jan 2022
+
+2•Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang
+1    INTRODUCTION
+The simulation of highly stiff and so close-to-rigid materials remains
+a critical task in diverse applications ranging from animation and
+computer vision to robotics and geomechanics. A long-standing and
+natural strategy then is to model these bodies at the limit of stiffness
+and so treat them as exactly rigid. Equipped with just rotational and
+translational degrees of freedom (DOFs) this simplification enables
+the computational efficiency of classic rigid body methods as they
+utilize orders of magnitude fewer DOFs when deformations can be
+excluded.
+At the same time this minimal representation for rigid bodies
+poses several fundamental difficulties of its own in exchange for opti-
+mized system size. The first being that moving from a flat continuum
+model to rigid (SE(3)) coordinates introduces significant nonlineari-
+ties that must be resolved. The second being that infinite stiffness
+implies applied forces, and especially contact responses, are commu-
+nicated instantaneously across the material domain. In combination
+these two issues have long challenged both rigid body models (e.g.,
+Painlevé’s paradox) and the downstream simulation methods de-
+rived from them. State-of-the-art rigid body methods have long
+focused on efficient velocity (twist) level solutions. However, in do-
+ing so, these methods tend to generate undesired positional errors
+in the form of intersections and instabilities.
+To address these issues aposition-levelbarrier method for rigid
+bodies was recently introduced by Ferguson and colleagues [2021].
+Applying the incremental potential contact (IPC) model [Li et al.
+2020] to the rigid body formulation, the resulting rigid-IPC method
+provides robust intersection-free simulation of rigid solids with fric-
+tional contact. However, here a third challenge posed by rigid body
+models limits the efficiency and applicability of rigid-IPC: accurately
+tracing a piecewise-rigid trajectory is much more difficult than for
+a piecewise-linear trajectory. Unfortunately, doing so across numer-
+ous continuous-collision detection (CCD) operations throughout
+computation is a must for the non-intersecting guarantee. Rigid-IPC
+addresses this third challenge by conservatively subdividing rigid
+transformations into piecewise-linear subsequences i.e., the curved
+CCD. While proven to be viable, the expense remains substantial –
+especially as CCD is invoked heavily throughout each simulation
+step. As a result, the overall performance of rigid-IPC is close to
+(and occasionally slower than) comparable (appropriately stiffened)
+fullspace finite element method (FEM) IPC simulations [Li et al.
+2020]. Here the curved CCD in rigid-IPC severely undermines the
+advantage of its small DOF representation.
+Beginning with this analysis, our takeaways are that the key
+advantage of rigid body models isnotthe rigidity assumption but
+rather the compact representation. Indeed, the rigidity assumption
+is neither necessary, efficient, nor particularly accurate since no
+material is perfectly rigid. Following this reasoning, we approach
+the classic stiff-body problem from a different perspective, without
+the dedicated constraint and resultant limitations that the motion
+be exactly rigid. Specifically, we construct an affine-body dynamics
+(ABD) model, directly stiffened to obtain close-to-rigid trajectories
+and augmented with an IPC-type barrier. ABD preserves all guaran-
+tees of the IPC model including solution convergence, guaranteed
+non-intersection, and accurate frictional contact. However, discrete
+steps in ABD are now, as in the FEM case, piecewise linear, enabling
+us to utilize efficient linear CCD routines. Likewise ABD remains
+compact, utilizing 12 DOFs per body – a bit more than rigid bodies
+but still compact enough for efficient system solves. In turn the
+relaxation from the rigidity constraint allows ABD to significantly
+outperform the rigid-IPC method across all benchmarks (ranging
+from two- to three-order speedups for side-by-side comparison on
+the CPU, and an order-of-magnitude further improvement enabled
+by our GPU implementation), and to likewise successfully simulate
+problems where rigid-IPC fails.
+At the same time, by combining compact representation and ef-
+ficient collision processing, ABD also exhibits clear advantages in
+quality, reliability and even performance when compared to off-
+the-shelf rigid body simulation libraries. Here these libraries (we
+useBullet[Coumans 2015] as our baseline for comparison; see
+Section 5 for a discussion of this choice) are often optimized for
+speed over robustness and guarantees. Nevertheless, without re-
+quiring the precomputation of collision proxies (e.g., the convex
+decompositions required byBullet,Mujoco[Todorov et al.2012],
+PhysXandFlex[Nvidia 2011]), ABD remains closely competitive in
+performance on small-scale examples, while obtaining significantly
+faster simulations on larger and/or more challenging scenarios.
+ABD is also able to simulate a wide range of challenging model-
+ing problems where existing rigid body methods and libraries fail
+altogether. As an example, in Fig. 1 we demonstrate a driven me-
+chanical system with all gear-to-gear interactions processed directly
+via frictional contact. As we apply an external torque to the driving
+gear, the entire mechanism moves with well over a quarter of the
+mesh’s2.45M triangles actively in contact during each time step.
+Here we find rigid-IPC (curved CCD failures) andBullet(severe
+intersections) are both unable to simulate this mechanism even
+as we adjust algorithm settings and time step sizes conservatively.
+ABD simulates the scene robustly without algorithm tuning. Under
+a time step ofΔ푡=1/100sec, ABD simulates each step/frame in
+12sec on the CPU (multi-threaded) and reaches an interactive speed
+on the GPU ranging from5to10FPS.
+In a nutshell, ABD provides a new stiff-body simulation frame-
+work suitable for all rigid-body-type modeling problems that offers
+similar (or improved) performance when compared to existing rigid
+body libraries (optimized for performance), while providing guaran-
+tees of non-intersection, accurate contact, and convergent implicit
+solves that they do not. ABD does not require pre-computed con-
+vex part proxies for simulation geometries; frees users from time-
+consuming per-scene parameter sweeps to find parameters that
+work; and ensures successful simulation completion in challenging
+cases where prior methods fail altogether.
+Our technical contribution is simple and highly effective – a re-
+laxation replacing strictly rigid bodies by stiff affine bodies. This
+“trivial” strategy leads to non-trivial improvements on a fundamental
+simulation problem in terms of both efficiency and robustness. Here,
+based our above analysis of prior methods, we see that our resulting
+ABD framework balances tradeoffs between compact representation,
+nonlinearity, rigidity, and reliable guaranteed contact resolution.
+In addition to this high-level idea, we also design a novel collision
+culling algorithm dedicated for our simulation and a corresponding
+parallel matrix assembly strategy. We demonstrate the efficacy and
+
+Affine Body Dynamics:
+Fast, Stable and Intersection-free Simulation of Stiff Materials•3
+efficiency of ABD across extensive benchmark testing and compar-
+isons. Keeping all favored guarantees, the observed speedup over
+the state-of-the-arts is often two- to three-order, i.e., over1,000×
+faster, and reaches10,000×on a GPU. We hope ABD will provide
+the rapidly growing and diverse community of simulation users
+with a reliable and efficient tool suitable to swap in for all rigid
+body-type applications.
+2    RELATED WORK
+A rigid body is an idealization, which simplifies a highly stiff object.
+External stimulus like forces or impulses are propagated almost
+instantaneously across the object eliminating relative deformations.
+This property is normally handledkinematicallyi.e., by directly for-
+mulating rigid body models with SE(3) coordinates. Rigid body mod-
+els have been extensively studied by the graphics community dating
+back to the pioneering work of Baraff [1989]. We refer the reader to
+a comprehensive survey from Bender and colleagues [2014], which
+covers a wide spectrum of classic rigid body simulation techniques.
+The primary focus of rigid body problems is typically at the reso-
+lution of the collision and contact. Intuitively, objects should never
+intersect with each other at any instance during the simulation. En-
+forcing this requirement has traditionally lead to algorithms based
+on linear complementarity programming (LCP) [Baraff 1994, 1995;
+Stewart 2000; Trinkle et al.2001]. One needs to carefully search
+within the combinatorial space for an approximation of a feasible
+configuration, while the interaction among bodies in contact is
+generally based on impulses rather than forces [Baraff 1989]. The
+LCP-based contact problem is known to be NP-Hard due to the inde-
+terminacy of which contacting nodes are contributing the collision
+impulse [Baraff 1991]. Alternate solvers formulated on approxima-
+tions of velocity-level LCPs have also been popular [Anitescu and
+Potra 1997; Erleben 2007; Kaufman et al.2005] for improved solvabil-
+ity. Yet, the resulting system remains non-convex and challenging to
+solve with accuracy for complex scenes. Irrespective of the accuracy
+of the solution, here the required constraint linearization means
+that intersections leading downstream to artifacts like drifting and
+tunneling can and will result. To reduce these artifacts, additional
+constraint stabilizations are often employed [Baumgarte 1972; Cline
+and Pai 2003; Moreau 1988] however this, in turn can introduce new
+instability artifacts like popping. In addition to rigid bodies, LCP
+modles are also widely used for contact modeling among non-rigid
+objects [Duriez et al.2005; Hauser et al.2003; Otaduy et al.2007;
+Pauly et al. 2004; Song and Kumar 2003].
+For  small-scale  problems,  a  direct  LCP  solver  could  be  used.
+When the complexity and the dimensionality increase, iterative
+LCP solvers stand as a more efficient option. Here successful de-
+signs of various iterative methods for LCP-based contacts such as
+Gauss-Seidel [Erleben 2007], PROX (iterative proximal operator) [Er-
+leben 2017], surrogate constraints [Kaufman et al.2005], accelerated
+gradient descent [Mazhar et al.2015], staggered projection [Kauf-
+man et al.2008], and adaptive merging [Coevoet et al.2020] have
+all been applied.
+Penalties are also another popular option widely used to pro-
+cess collisions [Terzopoulos et al.1987; Teschner et al.2005]. In-
+stead of imposing inequality constraints, a penalty method often
+chooses a spring-like repulsion mechanism based on the penetration
+depth between two objects [Drumwright 2007; Fisher and Lin 2001;
+Hasegawa et al.2004]. While computationally simple, the penalty
+method fails for fast-moving models or simulations under large
+time steps and often requires significant manual tuning of stiffness
+parameters per scene. Its stability can be significantly enhanced
+using implicit formulations coupled with CCD [Tang et al.2012;
+Xu et al.2014]. Nevertheless, interpenetration still can and will re-
+sult. This defect limits its wider use beyond graphics, where visual
+plausibility is not the only concern. Recently, Müller and colleagues
+also proposed a position-based rigid body framework [Müller et al.
+2020]. Unlike classic rigid body algorithms, this method uses PBD-
+like constraint projection [Macklin et al.2016; Müller et al.2007] to
+process multiple-body dynamics.
+Collision detection is another important procedure for model-
+ing rigid bodies with contacts. In general, a collision could occur
+between any triangle pair of two objects, and an exhaustive triangle-
+based collision detection is infeasible for high-resolution models.
+To this end, a commonly adopted method is to use some bounding
+volume hierarchy (BVH) [Zachmann and Langetepe 2003] to avoid
+excessive triangle-triangle intersection tests. This pre-screening pro-
+cedure is known as collision culling. Different BV types have been
+explored such as AABB [Bergen 1997], OBB [Gottschalk et al.1996],
+bounding sphere [Hubbard 1995; James and Pai 2004], Boxtree [Zach-
+mann 2002], spherical shell [Krishnan et al.1998] and so on. As
+the geometry of the model does not change in rigid body models,
+BVH updates become particularly convenient – the per-body rigid
+transformation can be directly applied to update the BVH instead
+of re-building it from scratch (as opposite to deformable objects). In
+some existing rigid body packages e.g.,Bulletlibrary [Coumans
+2015], the collision detection does not apply to the surface triangles
+directly but rather to a volumetric proxy of the model, formed of
+convex components – most often obtained by via a convex decom-
+position. While methods likeBulletrequire these convex proxies
+for robust processing this proxy also helps as an acceleration for
+collision detection. In this paper, we provide a new culling method
+to accelerate for collision detection for rigid bodies and ABD. Our
+method leverages the fact that the colliding region between two rigid
+bodies often constitutes a very small fraction of their surfaces. Based
+on this observation, we create a BVH only covering the overlapping
+region of two bodies for a more effective culling.
+Discrete collision detection (DCD) checks for collisions or pene-
+trations at a specific time instance. This method could miss inter-
+penetrations if the detection is not performed frequently enough.
+Alternatively, CCD checks the possible overlap of the trajectories of
+the surface primitives and returns the first time of impact (TOI) [Brid-
+son et al.2002; Redon et al.2005]. The overlap test for triangle-vertex
+and edge-edge becomes a cubic polynomial, and there are several
+root-finding algorithms are available for solving the TOI [Brochu
+et al.2012; Redon et al.2005; Tang et al.2014]. In a recent contribu-
+tion from Wang and colleagues [2021], a more stable root-finding
+algorithm was proposed based on an improved inclusion.
+Lastly in this section, we would like to discuss our most closely
+related work on rigid-IPC from Ferguson and colleagues [2021].
+Rigid-IPC features a new rigid body formulation, where contact
+is modeled with a barrier-based potential i.e., the IPC [Li 2020;
+
+4•Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang
+Li et al.2020] model. Conceptually, IPC is similar to the implicit
+penalty method (e.g., as in [Tang et al.2012]), which produces a
+repulsion force pushing apart two contacting objects. However, due
+to the dedicated design of the barrier function, IPC provides guar-
+anteed intersection-free collision resolution when appropriately
+combined with a CCD-filtered linear search. When compared to
+existing contact handling methods, IPC has demonstrated a superior
+performance – it is significantly faster than LCP-based solutions
+for complicated contacts where LCP-based methods often fail alto-
+gether and much more robust than regular penalty methods with
+user-specified accuracy bounds. This method has been broadly ap-
+plied to elastodynamics simulation [Li et al.2020], codimensional
+models [Li et al.2021b], embedded interfaces [Choo et al.2021],
+FEM-MPM coupling [Li et al.2021a], deformation processing [Fang
+et al.2021], and reduced models [Lan et al.2021]. Rigid-IPC trans-
+plants classic rigid body models to the framework of IPC providing
+significantly improved reliability in contact processing. Unfortu-
+nately, this also comes at a cost – strictly rigidity motion imposes
+significant computational challenges. The trajectory in rigid-IPC
+becomes curved. In order to successfully compute TOI in curved
+CCD, Ferguson and colleagues [2021] subdivide the rigid trajectory
+into piece-wise line segments, which becomes the new bottleneck of
+the simulation. We argue that the success of IPC has already proven
+the feasibility of using smooth approximation to substitute hard
+constraints (even the approximation itself could be stiff ), why not
+use another smooth approximation for the rigidity constraint in
+traditional rigid body modeling? ABD is then devised following this
+intuition. The results are exciting: ABD is three-order faster than
+rigid-IPC. With our novel culling algorithm and parallel Hessian
+assembly, the speedup over rigid-IPC scales even further. Likewise,
+as ABD provides stiff compliance (as in real-world stiff materials)
+tight almost rigid parts robustly fit together where an absolutely
+strict rigidity model can fail. Finally, as in rigid-IPC, ABD provides
+user-controllable solution and contact accuracies with solutions
+always reaching the specified tolerances.
+3    ABD KINEMATICS
+We begin by constructing a flat kinematics via affine coordinates.
+We equip each simulated body푏in our domain with a time-varying
+linear transformA
+푏
+(푡) ∈R
+3×3
+, and a translation푝
+푏
+(푡) ∈R
+3
+. In
+the following we often store per-body configuration in the vector
+form as:푞=
+
+푝
+푇
+,푎
+푇
+1
+,푎
+푇
+2
+,푎
+푇
+3
+
+푇
+∈R
+12
+, with the transformA=
+[푎
+1
+,푎
+2
+,푎
+3
+]
+푇
+, then stored in row order.
+Each material point푘in body푏has a body frame (equivalently
+rest) position
+ ̄
+푥
+푘
+with its corresponding world frame coordinates
+given by the affine map:
+푥
+푘
+=A
+푏
+ ̄
+푥
+푘
++푝
+푏
+=J(
+ ̄
+푥
+푘
+)푞,(1)
+and its velocity,
+¤푥
+푘
+=
+¤
+A
+푏
+ ̄
+푥
+푘
++
+¤
+푝
+푏
+=J(
+ ̄
+푥
+푘
+)¤푞.(2)
+Here note thatJ(
+ ̄
+푥)=[I
+3
+,I
+3
+⊗
+ ̄
+푥]isconstantacross all configuration
+changes, whereI
+3
+is a 3 by 3 identity matrix.
+3.1    Kinetic Energy
+Given a mass density distribution,휌, over the body domain,Ω, the
+kinetic energy of each affine body is then
+1
+2
+∫
+Ω
+휌¤푥
+푇
+¤푥dΩ=
+1
+2
+∫
+Ω
+휌(
+¤
+A
+ ̄
+푥+
+¤
+푝)
+푇
+(
+¤
+A
+ ̄
+푥+
+¤
+푝)dΩ
+=
+1
+2
+¤푞
+푇
+
+∫
+Ω
+휌J(
+ ̄
+푥)
+푇
+J(
+ ̄
+푥)dΩ
+
+¤푞,
+(3)
+with the generalized mass matrix for each affine body defined as:
+M=
+∫
+Ω
+휌J(
+ ̄
+푥)
+푇
+J(
+ ̄
+푥)dΩ.(4)
+Here we note an additional convenience of ABD: for flat affine
+coordinates we obtain a constant mass matrix. In turn this ensures
+that the equations of motion for affine bodies, unlike rigid bodies,do
+notadd nonlinear Coriolis-type forces. Instead, they are embodied
+as generalized internal forces.
+With푉the total potential energy the free ABD is then simply
+the equations of motion:
+M¥푞=−∇푉(푞)+푓,(5)
+where external forces푓
+푘
+∈R
+3
+, applied at material points푘, are
+included as푓=
+Í
+푘
+J(
+ ̄
+푥
+푘
+)
+푇
+푓
+푘
+.
+3.2    Orthogonality Potential
+In place of SE(3) coordinates we rigidify each affine body with a
+stiff orthogonality potential
+푉
+⊥
+(푞)=휅휈∥AA
+푇
+−I
+3
+∥
+2
+퐹
+,(6)
+scaled by the stiffness휅and the body’s volume휈. We apply a large
+stiffness (휅>100GPa) to ensure the deformation on the body is
+sufficiently suppressed and negligible.
+As we relax the rigidity constraint, we instead apply a highly stiff
+penalty term. Generally engineering rule of thumb suggests that stiff
+penalties should be avoided in simulation, as they tend to exacerbate
+the numerical difficulties of computing with nonlinear potentials.
+However, we observe that contact and collision forces (irrespective
+of whether they are treated via constraints, penalties springs, or
+barriers) introduce a much more dominant stiffness to the system. In
+our case this already requires handling system solves with a robust
+Newton-type algorithm so that the overhead of a single, additional
+stiff orthogonality potential per body is indifferent. In practice, as
+we show in Section 5, directly stiffened affine systems significantly
+improve in performance over comparable systems that resolve rigid
+motion explicitly.
+The stiff potential itself provides the effective constitutive model
+for the affine bodies – modulating their collision response upon
+impact (and so intrinsically handling restitution). While푉
+⊥
+is a
+natural choice for close-to-rigid motion [Moser and Veselov 1991],
+it is never exclusively suited. Indeed affine bodies could alternately
+be equipped with the ARAP energy [Alexa et al.2000; Igarashi et al.
+2005; Sorkine and Alexa 2007], i.e.,∥A−R(A)∥
+2
+퐹
+forA=RSbeing
+the polar decomposition, to enforce rigidity, or else neo-Hookean, or
+any number of other rotation-invariant hyperelastic energies [Bonet
+and Wood 1997]. However, we find that the orthogonality potential
+
+Affine Body Dynamics:
+Fast, Stable and Intersection-free Simulation of Stiff Materials•5
+is both effective and efficient.푉
+⊥
+requires no expensive decomposi-
+tions (as opposite to ARAP) – it can be computed as a polynomial
+푉
+⊥
+=휅휈
+©
+­
+«
+∑︁
+(푎
+푖
+·푎
+푖
+−1)
+2
++
+∑︁
+푖≠푗
+(푎
+푖
+·푎
+푗
+)
+2
+ª
+®
+¬
+,(7)
+leading to more efficient evaluations of energy gradient and Hessian:
+휕푉
+⊥
+휕푎
+푖
+=2휅휈
+
+2(푎
+푖
+·푎
+푖
+−1)푎
+푖
++2
+∑︁
+(푎
+푗
+⊗푎
+푗
+)푎
+푖
+
+,
+휕
+2
+푉
+⊥
+휕푎
+2
+푖
+=2휅휈
+
+4푎
+푖
+⊗푎
+푖
++2(∥푎
+푖
+∥
+2
+−1)I
+3
++2
+∑︁
+푎
+푗
+⊗푎
+푗
+
+.
+(8)
+In comparison, energy operations for affine bodies with푉
+⊥
+are over
+43%and178%faster than applying ARAP and neo-Hookean models
+respectively.
+4    AFFINE IPC
+We simulate systems of affine bodies with triangulated boundaries.
+Following Li and colleagues [2020], for each affine body푏∈B, we
+construct a discrete incremental potential (IP),퐸
+푏
+, whose stationary
+points give the unconstrained time step update:
+푞
+푡+1
+푏
+=arg min
+푞
+푏
+퐸
+푏
+(푞
+푏
+),  퐸
+푏
+=
+1
+2
+∥푞
+푏
+−e푞
+푏
+∥
+2
+M
++Δ푡
+2
+푉
+⊥
+(푞
+푏
+).(9)
+Here,Δ푡is the time step size.e푞
+푏
+=푞
+푡
+푏
++Δ푡¤푞
+푡
+푏
++Δ푡
+2
+M
+−1
+푓
+푡+1
+푏
+is a
+known vector depending on the body state from the previous step.
+푓
+푏
+is the per-body external force (i.e., in Eq.(5)). Unlike rigid body
+dynamics
+1
+, flat equations of motion of ABD allows us to directly
+apply IPs for a broad range of standard implicit time integration
+methods [Li et al. 2020, 2021b].
+Setting푞=
+ 
+푞
+푇
+1
+,···,푞
+푇
+|B|
+
+푇
+as the stacked vector of all the bod-
+ies, we construct IPC potentials for contact,푉
+퐶
+(푞), and dissipative
+friction,푉
+퐹
+(푞), to model inter-body contact forces. The contact
+potential
+푉
+퐶
+(푞)=휅
+∑︁
+푖∈C
+퐵
+(
+푑
+푖
+(푞)
+)
+,(10)
+(stiffness휅) resolves contacts between all possible pairings푖∈Cof
+inter-body surface geometry primitives (e.g., edge-edge, vertex-face
+pairs between body meshes – but no self-contact because of body’s
+high stiffness). Here the smoothly clamped logarithmic barrier func-
+tion
+퐵(푑,
+ˆ
+푑)=
+
+
+
+
+
+
+−(푑−
+ˆ
+푑)
+2
+ln
+
+푑
+ˆ
+푑
+
+,0<푑<
+ˆ
+푑
+0푑≥
+ˆ
+푑
+,(11)
+needs to evaluate the unsigned distances for all primitive pairs inC.
+Smooth clamping ensures that proximities beyond
+ˆ
+푑
+can be safely
+culled from evaluation without harming convergence, while surface
+pairs within the small, prescribed contact accuracy
+ˆ
+푑are activated
+to receive contact forces.
+Likewise, the friction potential is defined as:
+푉
+퐹
+(푞)=
+∑︁
+푗∈F
+휇휆
+푗
+푚
+푗
+(푞),(12)
+1
+Rigid body models require Poisson or constrained Lagrangian methods for numerical
+time integration [Hairer and Vilmart 2006].
+whereF⊆Cis the active subset of contact pairs with positive
+contact force magnitude휆
+푗
+=−휅∇
+푞
+퐵
+ 
+푑
+푗
+(푞)
+
+.휇is the coefficient
+of friction, and푚
+푗
+returns a mollified norm of the relative sliding
+velocity, orthogonal to the distance vector, between geometric pairs
+푗. Li and colleagues [2020] demonstrated that푉
+퐹
+provides smooth
+approximation of the nonsmooth Coulomb friction model with user-
+controlled accuracy. In turn, this obtains effective and accurate
+capture of frictional stick and slip behaviors for both maximal and
+reduced body models [Ferguson et al. 2021; Li et al. 2020].
+At each time step we then construct a global IP for the full contact-
+coupled system as:퐸=
+Í
+퐸
+푏
++푉
+퐶
++푉
+퐹
+, and solve for its minimizer
+as the updated system configuration.
+4.1    Affine CCD
+To ensure that every search fulfils the nonintersection guarantee, a
+significant (and for rigid bodies dominant) cost of each time step’s
+Newton solve is the repeated evaluation of CCD for primitive pairs
+inC. Edge-edge or vertex-face pairs are defined on vertices푥
+푗
+∈
+R
+3
+for푗=1to4belonging to one of two bodies inB. At any
+iterationℓof a Newton solve, new positions of these vertices푥
+푗
+are proposed, per participating body푏, asA
+ℓ
+푏
+ ̄
+푥
+푗
++푝
+ℓ
+푏
+, and so we
+search along the direction formed byΔA
+ℓ
+푏
+=A
+ℓ
+푏
+−A
+ℓ−1
+푏
+andΔ푝
+ℓ
+푏
+=
+푝
+ℓ
+푏
+−푝
+ℓ−1
+푏
+. The corresponding trajectories are then just(A
+ℓ−1
+푏
++
+훼Δ
+A
+ℓ
+푏
+)
+ ̄
+푥
+푗
++푝
+ℓ
+푏
++훼Δ푝
+ℓ−1
+푏
+, with훼∈ [0,1]. In other words, we are
+testing displacements (from0to1) alongΔA
+ℓ
+푏
+ ̄
+푥
+푗
++Δ푝
+ℓ
+푏
+starting from
+푥
+ℓ−1
+푗
+=A
+ℓ−1
+푏
+ ̄
+푥
+푗
++푝
+ℓ−1
+푏
+i.e., the previous iteration footstep and so
+can apply standard linear CCD rather than the expensive, curved
+CCD required for rigid-body trajectories. Throughout we employ
+Additive CCD (ACCD) method [Li et al.2021b] for all affine body
+CCD evaluations.
+4.2    Contact Culling via i-AABB
+The IPC framework inverts traditional contact-processing practices
+by integrating collision detection within every iterate, inside each
+nonlinear time step solve (rather than once per time step, after
+completing a solve – as has been a standard practice in rigid body
+pipelines). Above we have already seen the implications of this
+choice on CCD and the advantages for ABD. We next address culling
+of contact pair evaluations and then below, in the following sec-
+tion, an integrated approach to efficiently compute the local energy
+Hessian evaluations and their assembly.
+With the affine bodies’ stiff potentials applied to model close-
+to-rigid motion, we eliminate, as in rigid body models, the need
+for self-collision processing on intra-body surface primitives pairs.
+To further cull inter-body surface pairs from downstream collision
+processing, Rigid body methods commonly employ precomputed
+per-body (or per unique mesh instance) BVH which only requires a
+rigid (or, in our setting, affine) transform to evaluate at each config-
+uration update. To further improve collision detection queries, most
+popular rigid body libraries (e.g.,Bullet,Mujoco,PhysX,Flex) ad-
+ditionally require that all nonconvex surface meshes be replaced by
+approximations – convex decompositions [Mamou et al.2016] so
+that evaluations can utilize convexity assumptions.
+
+6•Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang
+Input geometryA three-level i-AABB
+Full-body BVHs
+Fig. 2.i-AABB.Intersection-AABB (i-AABB) is a simple and more effective
+culling strategy than per-object BVHs traditionally employed for rigid bod-
+ies. In this example, we collide helicopter and ship models with well over
+343K surface triangles for the system. Culling with full body BVHs leads
+to1.3M AABB intersection tests. Instead, we build a shallow, three-level
+i-AABB based on the models’ overlapping AABB volume. With i-AABB, the
+total number of AABB intersection tests reduces to120K,90%fewer than
+regular BVH-based culling.
+In the context of stiff-body models we propose a simple strat-
+egy that significantly enhances contact-pair culling. We start with
+the observation that contact-dense regions between close-to-rigid
+meshes are most often local. Unlike deforming meshes (e.g., consider
+a cloth model), in common, contact-rich configurations we see that
+a large portion of each body’s surface remains free of contacts. A
+BVH evaluation over each body’s full surface is then a bit too ag-
+gressive (and a potentially unnecessarily expensive precomputation
+cost) – especially as we consider higher resolution models and/or
+increasing numbers of bodies.
+We instead begin with a coarse AABB per body, offset to account
+for the small
+ˆ
+푑parameter of the contact accuracy. While clearly not
+providing a tight bound we only need to evaluate potential contacts
+in each pairwise overlap between these initial,intersectingAABB (i-
+AABB) volume. With stiff affine transformations the overlap volume
+of each i-AABB is most often sufficiently small – the total number
+of surface primitives within our i-AABB is often one order smaller
+than that obtained from full-mesh BVH queries. Then, utilizing the
+guarantee that i-AABBs will not intersect one another, this already
+provides effective culling for us to directly proceed with parallel
+(multi-threaded) primitive-pair collision-check evaluations within
+each i-AABB.
+In the most extreme, heavily entangled configurations, e.g., see
+Fig. 2, we find i-AABB volumes can be too conservative for CPU
+implementations. Here we simply build a shallow, three-level AABB
+hierarchy (a binary AABB tree) for each i-AABB. Our observation is
+that for GPU implementations and most (even contact-intense) CPU
+examples the single-level i-AABB is highly effective (and exceed-
+ingly simple to implement). We utilize the i-AABB hierarchies solely
+for CPU examples where dense, entangled contacts are consistently
+encountered, such as the geared system in Fig. 1 and the interlocked
+collision of complex models in Fig. 2. As a representative improve-
+ment we note that in the latter example the ship and the helicopter
+models have227K and116K surface triangles respectively; here the
+three-level hierarchical i-AABB is over90%more efficient in culling
+surface pairs in comparison to per-body BVH.
+4.3    Contact-Aware Hessian Construction
+It is, by far, most efficient to simulate a set of noncontacting affine
+bodies. Along with reduced cost for collision detection, the global
+(system-wide) Hessian for퐸is then simply a12|B|×12|B|block-
+diagonal matrix with just aseparable12×12block for each affine
+body’s mass and orthogonality energy (푉
+⊥
+) contributions. When the
+system includes contacts, however, off-diagonal terms from active,
+inter-body contact and friction potentials necessarily pollute the
+Hessian to account for contact coupling.
+Standard FEM-type evaluation and assembly would suggest it-
+erating across all active contact potentials. However, here the sur-
+face mesh resolution, and so the corresponding number of surface
+pairs forming contact potentials, is generally much larger than the
+number of affine bodies we simulate. Traditional assembly, in this
+contact-oblivious way, is neither necessary nor efficient. We instead
+integrate our Hessian evaluation and assembly with the i-AABB
+hierarchy for contact-aware parallelization in both multi-core CPU
+and GPGPU implementations.
+We start with the easiest part. The global Hessian’s default non-
+zero diagonal blocks are given by a constant mass term and the
+orthogonality potentials’ Hessian (Eq.(8)). This can be computed
+trivially in parallel. Next comes the expensive part. The Hessian of
+the contact potential,푉
+퐶
+, then has an unpredictable pattern which
+varies widely with contact states. Recall that, when bodies푖and푗
+are sufficiently close (≤
+ˆ
+푑), barrier and friction forces between them
+activate, resulting in non-zero contributions to both their respective
+푖-th and푗-th12×12diagonal blocksandto the off-diagonal blocks
+linking the corresponding body coordinates in the Hessian.
+Here we observe that the configuration-varying sparsity of the
+global Hessian is effectively determined by our i-AABB culling. If
+the leaves of the i-AABB tree between bodies푖and푗are empty, they
+certainly do not contact, and the barrier and friction potentials make
+no contribution to the Hessian. Otherwise, we can conservatively
+allocate space for the corresponding12×12off-diagonal blocks
+to store all potential (active contacts are not yet certain) non-zero
+contact Hessian contributions between bodies푖and푗. Thus, utilizing
+the i-AABB structures we apply a two-pass strategy to compute
+and assemble barrier and friction terms for the global Hessian. The
+first pass iterates across all surface primitives pairs within each
+i-AABB; their local Hessians are computed in parallel and cached.
+Here we also account for the Hessian’s symmetry to reduce total
+memory consumption. Our second pass then accumulates the local
+Hessians from the surface pairs. Here, as each culled i-AABB is
+independent and non-intersecting, accumulation is parallelized at
+each corresponding non-zero element of the global Hessian.
+We find that i-AABB Hessian construction is significantly faster
+than default sequential parallelization of Hessian computation (e.g.,
+as applied in rigid-IPC). We observe speedups of up to two orders,
+especially when the contacting system is composed of large numbers
+of bodies. Here, for example, the simulation in Fig. 3 provides a
+representative example, with a188×speedup over contact-oblivious,
+sequential Hessian construction.
+
+Affine Body Dynamics:
+Fast, Stable and Intersection-free Simulation of Stiff Materials•7
+Fig. 3.Wrecking ball.A metal ball linked to a chain of rigid rings hits a stack of560wooden blocks. There are in total575bodies including the ball, rings on
+the chain, and blocks in this example. ABD and rigid-IPC yield nearly identical simulation results but ABD is124×faster than rigid-IPC (both on CPU). The
+time step isΔ=1/100sec. We also tested ABD usingΔ=1/50sec andΔ=1/25sec respectively. The results are similar – all are free of inter-penetration.
+Fig. 4.Big chain net.We increase the resolution of the chain net to16×16and drop a ball to the net. The ball hits the net and bounces back, which leads to
+interesting dynamical responses of the net. While both ABD and rigid-IPC are able to handle this simulation robustly, our method is1,200×faster on average.
+The speedup could reach over10,000×on GPU withCUDA.
+5    EVALUATION
+Our implementation platform is a desktop PC with anintel i9
+11900KCPU (8 cores, 3.5GHZ),64G memory and annVidia 3090
+GPU. All the numerical methods were implemented usingC++on
+CPU, and we choseEigen[Guennebaud et al.2010] as our primary
+linear algebra library, including all sparse linear system solves. Our
+CPU parallelization utilizesintel TBB. We understand that some
+other BLAS libraries may be better optimized for our hardware (e.g.,
+intel MKL[Wang et al.2014]). This choice is to ensure an objective
+comparison with rigid-IPC, whose multi-thread CPU implementa-
+tion is also based onEigenandTBB. We use Cholesky factoriza-
+tion [Dereniowski and Kubale 2003] i.e.,SimplicialLLTroutine
+shipped withEigenas our primary linear solver. In hybrid simula-
+tion problems, we may occasionally resort toSimplicialLDLTin
+case when LLT scheme fails (see more discussions in Section 5.4).
+Fig. 5.Small chain net.We simulate a small-size chain net consisting of
+8by8rings using both ABD and rigid-IPC. The exterior rings are bound
+with a loop of fixed blue rings. In this simple test, ABD is34×faster than
+rigid-IPC on the CPU. An increase of the time step size from1/100sec
+to1/50sec does not noticeably slow down our method (from0.059sec to
+0.065sec per frame), but rigid-IPC will be significantly slower (by350%).
+For benchmarking we focus on rigid-IPC [Ferguson et al.2021]
+as comparison to the “quality-oriented” rigid body simulator with
+comparable guarantees to ABD and, as a representative baseline for
+comparison to state-of-the-art, optimized rigid body libraries we
+useBullet[Coumans 2015]. There are certainly numerous other,
+highly effective rigid body libraries with varying capabilities. How-
+ever, trade-offs with respect toBulletamong alternatives have
+been extensively documented in [Ferguson et al.2021]. In their com-
+prehensive analysis and benchmark testing of rigid body libraries
+Bulletmost consistently succeeds across challenging examples
+and, at the same time, we also note thatBulletis probably the most
+widely deployed rigid body solution.
+5.1    Comparison with Rigid-IPC
+Both ABD and rigid-IPC [Ferguson et al.2021] exploit the IPC [Li
+et al.2020] model for contact processing and friction modeling. Here
+we carefully compare ABD with rigid-IPC across several represen-
+tative simulation scenarios of varying complexities, as illustrated in
+Figs. 3 through 7.
+The snapshots of the first comparison are given in Fig. 3. In this
+test, a heavy ball linked by a chain of metal rings dashes into a stack
+of wooden blocks, which are scattered by the collision. There are in
+total575bodies in this example. Both rigid-IPC and ABD produce
+high-quality simulation results without any inter-penetration. How-
+ever, ABD is124×faster. The performance of ABD is not sensitive to
+the time step size. Doubling or even quadrupling the time step size
+(from1/100sec to1/50sec and1/25sec) lead to similar results and
+performance with ABD. Detailed timing statistics can be found in
+Section 5.5. Similar observations are received in chain net examples.
+For the small chain net case (Fig. 5), we have few bodies, and the
+
+8•Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang
+Fig. 6.Friction test.While ABD and rigid-IPC use the same barrier-based
+friction processing method, ABD is much faster than rigid-IPC under the
+same simulation settings. The screw example (left) is a representative demon-
+stration of dynamic friction/contact. Our speedup is30×. On the other hand,
+the arch example (right) is dominated by static frictions, and ABD is77×
+faster than rigid-IPC.
+relative velocities among bodies are small. In this “entry-level” test,
+ABD offers a34×speedup.
+An “upgraded” experiment is reported in Fig. 4, where the reso-
+lution of the chain net is set to16×16. We also drop a ball, which
+bounces back and forth on the net triggering interesting dynamics.
+The collisions and contacts also become more complicated than the
+plain simple chain net in Fig. 5. The difference between our method
+and rigid-IPC becomes more significant. At some instances when
+sharp collisions occur under high relative velocities, rigid-IPC could
+take multiple hours to simulate one frame (Δ푡=1/100sec). On
+the other hand, our method needs seconds at most. On average,
+ABD is over1,200×faster than rigid-IPC. This speedup exceeds
+4,000×from time to time during the simulation. In ABD, affine
+CCD, i-AABB, as well as the integrated Hessian assembly are all
+parallelization-ready. Therefore, ABD typically receives one more
+orders performance gain onCUDA. That makes ABD over10,000×
+faster than rigid-IPC in the example of Fig. 4.
+The friction handling in ABD and rigid-IPC is similar as both
+follow the variational friction model originally proposed in [Li et al.
+2020]. Nevertheless, ABD still exhibits superior performance in
+simulations dominated by frictions. We hereby report three more
+experiments in Figs. 6 and 7. In those comparisons, both ABD and
+rigid-IPC use the same simulation settings with the time step size of
+1/100sec. The screw example (Fig. 6 left) is relatively simple – the
+surface geometry only has7K triangles and5K edges. We rotate the
+bolt into the nut. On average, rigid-IPC needs2.59sec to simulate
+one step, and our method only needs87ms. The arch (Fig. 6 right)
+consists of100brick blocks. In this example, we mainly have static
+friction to deal with. Rigid-IPC runs faster than the screw case and
+needs0.67sec for simulating one frame. Our method however, only
+uses8.7ms. The card of house example starts with a 10-level stack
+of155cards. The stack is first held up under the frictions between
+cards and gets crashed by two falling boxes. In this example, it takes
+about8.9sec for rigid-IPC to simulate one frame, and ABD needs
+86ms.
+5.2    Comparison withBullet
+Bulletis a widely used rigid body engine known for the simplicity
+and efficiency.Bulletis also based on the classic rigid body model
+formulation. However,Bulletuses the so-called convex collision
+resolution, which approximates the geometry of the body via convex
+decomposition proxies. The collision is resolved using impulse-
+based method at the convex proxies. Therefore, it is not surprising
+to seeBulletfails in simulations under lasting and intense collisions
+and contacts. We have shown that our method is orders of magnitude
+faster than rigid-IPC with further improved robustness. For smaller
+simulation problems, ABD is nearly as efficient asBullet. It quickly
+outperformsBulletfrom almost all perspectives as the complexity
+of the simulation escalates.
+We compare ABD andBulletusing the wrecking ball setup (i.e.,
+see Fig. 3) but under different block counts and time step sizes. In
+this set of comparisons, the ball is no longer attached to the chain as
+in Fig. 3. This is because under high-velocity movements, collision
+resolution inBulletfrequently fails, and the rings on the chain
+would “break out” so that the ball may not hit the stack. The results
+are reported in Fig. 8, where we have three configurations: light,
+medium, and full. The light test only has16blocks on the stack; the
+medium test has142blocks; and the full test is the same as in Fig. 3
+with560blocks.
+Test#Bdy#Tri./Edg.Δ푡(sec)#Iter.Time (ms)
+Light161.2K/796
+1/100
+1/240
+1/1000
+1.9
+1.5
+1.1
+3| 2
+2.2| 1.5
+2| 3
+Medium1423.5K/2.3K
+1/100
+1/240
+1/1000
+7.6
+2.9
+1.3
+92| 68
+41| 58
+19| 82
+Full56211K/7.3K
+1/100
+1/240
+1/1000
+11.0
+4.4
+1.8
+657| 629
+328| 809
+102| 804
+Table 1.ABD vs.Bullettiming.We record timing information of simu-
+lating the wrecking ball scenarios under different block counts and time
+step sizes using ABD andBullet.#Bdyis the number of bodies in the test.
+#Tri./Edg.gives the total numbers of triangles and edges on the surface of
+the models.횫풕is the time step size.#Iter.is the average iteration counts
+in ABD simulation.Timereports the average computation time for each
+frame usingABDandBullet. This timing comparison is reported on a
+single thread implementation.
+The detailed timing comparison is listed in Tab. 1. In order to
+ensure the comparison is fair, we turn off multi-threading in ABD
+andBullet. This is because our method processes collision on
+the surface triangles, which will receive more acceleration under
+parallelization. It is noted that under the light test (Δ푡=1/100sec),
+Bulletis rather efficient and only needs2ms to simulate one frame.
+Our method is slower thanBulletand takes3ms to simulate one
+frame. This difference diminishes under a smaller time step. For
+instance, when the time step size is set as1/240sec, which is the
+default setting inBullet, the difference of per-frame simulation
+time is less than one millisecond (2.2ms for ABD and1.5ms for
+Bullet). If the time step size is more conservatively set to1/1000sec,
+ABD becomes faster thanBulletby a small margin (2ms for ABD
+and3ms forBullet). However,simulations usingBulletin all time
+step sizes have intersections(even withΔ푡=1/1000sec). Our method
+on the other hand is guaranteed to be free of inter-penetration.
+Another interesting observation is per-frame simulation using ABD
+consistently becomes more efficient under smaller time steps, which
+is not the case forBullet. This may be because a smaller time step
+
+Affine Body Dynamics:
+Fast, Stable and Intersection-free Simulation of Stiff Materials•9
+Fig. 7.House of cards.The 10-level stack of cards is initially balanced by frictions among cards. Two falling boxes break the balance and crash the stack. This
+experiment mixes static and dynamic frictions involving158bodies. Our method is103×faster than rigid-IPC.
+ABD
+Light
+Medium
+Full
+Fig. 8.ABD vs.Bullet.We compare simulation results using ABD and
+Bulletwith varying numbers of bodies and time step sizes.Bulletoften
+produces interpenetrations between bodies even under small time steps.
+Interpenetrations becomes increasingly severe with growing body counts
+and/or time step size. On the other hand, ABD remains intersection-free
+across changing parameters and scene complexities. All timing statistics are
+reported in Tab. 1.
+could expose more collisions toBulletsolver, which are otherwise
+missed under a bigger step. In addition,Bulletfails all the friction
+experiments including the screwing bolt, arch, and house of cards
+(Figs. 6 and 7) even with highly conservative time step size (Δ푡=
+1/10000sec).
+The story is similar for the medium/full test: ABD (92ms in
+medium and657ms in full) is slightly slower thanBullet(68ms in
+medium and629ms in full) whenΔ푡=1/100sec
+2
+. Yet ABD takes
+the lead under smaller time steps of1/240sec and1/1000sec. In
+addition,Bullethas significantly more inter-penetration instances
+in the medium/full tests than in the light test, which could end up
+with undesired artifacts in many simulation tasks.
+As discussed, ABD’s collision processing directly handles each
+body’s input surface mesh boundary with all guarantees, including
+non-intersection, applying directly to those meshes. This means
+2
+Basically, ABD andBullethave the same FPS in the full test withΔ푡=1/100sec
+that control of resolution and so quality is available via standard,
+well optimized geometry pipelines, e.g. mesh decimation.Bullet,
+however, requires pre-processing to convert all input meshes body
+into convex decompositions. In turnBulletwill then simulate these
+decomposed, simplified models as proxies, resolving collision han-
+dling on them, for each rigid body’s surface rather than the original
+mesh.Bulletusers often use V-HACD [Mamou et al.2016], an
+automated library for computing convex decomposition, for this
+process. Utilizing libraries like V-HACD, can be a slow and often
+time-consuming iterative process to hand-tune quality parameters
+in order to obtain a reasonable a reasonable geometric approxima-
+tion and resolution. Even so important features can be lost while
+details and symmetries are often unnecessarily broken. As such,
+many advanced users often resort to laborious hand-crafting of
+proxies when capturing important surface features is critical in an
+application (e.g., for design or robotics). Here, we demonstrate a
+comparative example of utilizing detailed, bone dragons in Fig 9
+dropped on a highly featured geometry. After careful hand-tuning
+of V-HACD parameters, we present in Fig 9 right the resulting sim-
+ulation using our best resulting V-HACD proxies. Here we see the
+convex decomposition geometry is still insufficiently detailed to
+capture local collision behavior between sharp asperities and con-
+v... [content truncated]

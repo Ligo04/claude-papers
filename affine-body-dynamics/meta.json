@@ -1,0 +1,22 @@
+{
+  "title": "Affine Body Dynamics: Fast, Stable and Intersection-free Simulation of Stiff Materials",
+  "authors": [
+    "Lei Lan",
+    "Danny M. Kaufman",
+    "Minchen Li",
+    "Chenfanfu Jiang",
+    "Yin Yang"
+  ],
+  "abstract": "ABD 提出仿射体动力学框架:放弃严格刚体约束,用每体 12 自由度仿射坐标加刚硬正交惩罚势模拟近刚体,轨迹变为分段线性从而使用标准线性 CCD,保留 IPC 全部无穿插/收敛保证。相比 rigid-IPC 获得 2-3 个数量级 CPU 加速,GPU 上达 10000x;在 28 齿轮 245 万三角形等所有刚体方法全部失败的场景中稳定完成仿真。",
+  "year": 2022,
+  "venue": "ACM Transactions on Graphics (SIGGRAPH 2022)",
+  "arxiv": "2201.10022",
+  "tags": [
+    "stiff body simulation",
+    "affine relaxation"
+  ],
+  "githubLinks": [],
+  "codeLinks": [],
+  "difficulty": "Intermediate-Advanced",
+  "nature": "方法/系统类(仿真框架)"
+}

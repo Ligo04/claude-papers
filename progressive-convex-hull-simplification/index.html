@@ -1,0 +1,285 @@
+<meta charset="utf-8">
+<title>渐进式凸包简化 · 交互探索</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#16213a; --ink:#e2e8f0; --muted:#94a3b8;
+    --accent:#38bdf8; --accent2:#f97316; --good:#34d399; --bad:#f87171; --line:#334155;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font:15px/1.7 "PingFang SC","Noto Sans CJK SC",system-ui,sans-serif;padding:24px 16px;max-width:1080px;margin:0 auto}
+  h1{font-size:24px;margin-bottom:4px}
+  h2{font-size:18px;margin:28px 0 10px;color:var(--accent)}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .row>.card{flex:1 1 320px;min-width:280px}
+  canvas{width:100%;height:auto;background:var(--panel2);border-radius:8px;display:block}
+  .controls{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  .controls label{font-size:13px;color:var(--muted)}
+  input[type=range]{width:220px;accent-color:var(--accent)}
+  button{background:var(--accent);color:#082f49;border:0;border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;font-size:13px}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+  .stat{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:4px 6px 0 0;font-size:13px}
+  .stat b{font-size:17px;color:var(--accent)}
+  .stat.warn b{color:var(--bad)}
+  .stat.ok b{color:var(--good)}
+  .bar-wrap{margin:6px 0}
+  .bar-label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between}
+  .bar{height:14px;border-radius:7px;background:var(--panel2);overflow:hidden;margin-top:2px}
+  .bar>i{display:block;height:100%;border-radius:7px}
+  .note{font-size:13px;color:var(--muted);margin-top:8px}
+  .pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+  th{color:var(--muted);font-weight:500}
+  .flow{display:flex;gap:8px;flex-wrap:wrap}
+  .flow .step{flex:1 1 150px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px}
+  .flow .step b{color:var(--accent);display:block;margin-bottom:4px}
+  .overflow{overflow-x:auto}
+</style>
+
+<h1>Progressive Convex Hull Simplification</h1>
+<div class="sub">Alec Jacobson · University of Toronto · arXiv 2604.14468v2 [cs.GR] · 2026 ·
+  <span class="pill">对偶表示</span><span class="pill">贪心半空间删除</span><span class="pill">O(n log n)</span><span class="pill">保守外近似</span>
+</div>
+
+<h2>① 核心算法流程(3D 原文 → 本页用 2D 演示)</h2>
+<div class="card"><div class="flow">
+  <div class="step"><b>1. 精确凸包</b>输入点集 → 凸包,每个面即一个半空间(H-表示)</div>
+  <div class="step"><b>2. 对偶化</b>LP 求 Chebyshev 中心 c,面 → 对偶点 φᵢ = −nᵢ/(nᵢ·c+bᵢ)</div>
+  <div class="step"><b>3. 代价入堆</b>删除对偶点 = 删半空间,新增体积(凸"帽")只用一环局部信息算</div>
+  <div class="step"><b>4. 贪心弹堆</b>每次删"新增体积最小"的面,重三角化一环,更新邻居代价</div>
+  <div class="step"><b>5. 输出</b>剩 n 个半空间即停,每步都严格包含原凸包(safe by construction)</div>
+</div></div>
+
+<h2>② 交互演示:拖动滑块做渐进简化</h2>
+<div class="card">
+  <div class="controls">
+    <button id="regen">🎲 重新生成形状</button>
+    <label>目标边数 <b id="tgtLabel" style="color:var(--accent)">8</b></label>
+    <input type="range" id="tgt" min="3" max="30" value="8">
+    <label><input type="checkbox" id="showInner" checked> 对比:删顶点的内近似(CoACD 默认后处理的做法)</label>
+  </div>
+  <div class="row">
+    <div class="card" style="padding:10px">
+      <canvas id="cv" width="640" height="480"></canvas>
+      <div id="stats"></div>
+      <div class="note">灰点=输入点,虚线=精确凸包。<span style="color:var(--accent)">蓝=删半平面(外近似)</span>永远包含输入;<span style="color:var(--accent2)">橙=删顶点(内近似)</span>会让红色输入点泄漏 → 碰撞检测假阴性。这正是论文 Fig.2 中 CoACD 出现缝隙的原因。</div>
+    </div>
+    <div class="card" style="padding:10px">
+      <canvas id="cvDual" width="640" height="360"></canvas>
+      <div class="note"><b style="color:var(--accent)">对偶空间视图</b>(论文 Eq.2 的 2D 版):每条边 → 一个对偶点 φᵢ。简化 = 在对偶点集上"摘点";实心点为幸存者。若删除某点后<b style="color:var(--bad)">对偶原点(+)落到剩余点凸包之外</b>,对应原始交集无界 → 代价 +∞(论文 §4.3)。</div>
+      <canvas id="cvCurve" width="640" height="240" style="margin-top:10px"></canvas>
+      <div class="note">紧度-预算谱(当前形状实算):大部分区间面积增长可忽略,只有极限简化才明显——与论文 Fig.1"18 面 &lt;5% 增长"一致。</div>
+    </div>
+  </div>
+</div>
+
+<h2>③ 论文真实数据:133 个扫描模型,全部简化到 18 面</h2>
+<div class="row">
+  <div class="card">
+    <b style="font-size:14px">中位体积增长(threedscans.com,Fig.8)</b>
+    <div class="note" style="margin:2px 0 8px">本文在 <b>133/133</b> 个模型上体积都最小</div>
+    <div id="volBars"></div>
+  </div>
+  <div class="card">
+    <b style="font-size:14px">随机线求交假阳率(8 面,Fig.13)</b>
+    <div class="note" style="margin:2px 0 8px">最小化表面积 ⇔ 最小化假阳率:FP → 1 − area(A)/area(B)</div>
+    <div id="fpBars"></div>
+  </div>
+</div>
+<div class="row">
+  <div class="card">
+    <b style="font-size:14px">茶壶 → 12 面体积(Fig.3)</b>
+    <div id="teapotBars"></div>
+  </div>
+  <div class="card">
+    <b style="font-size:14px">点云 → 6 面 Hausdorff 距离(Fig.4)</b>
+    <div id="hdBars"></div>
+  </div>
+  <div class="card">
+    <b style="font-size:14px">性能(Apple M4, Fig.7)</b>
+    <div class="stat"><b>81 ms</b><br>中位简化耗时</div>
+    <div class="stat"><b>&lt; 1 s</b><br>全部 133 模型</div>
+    <div class="stat"><b>32%</b><br>相对初始凸包耗时</div>
+    <div class="stat"><b>O(n log n)</b><br>实测紧贴</div>
+    <div class="note">极限对比(Fig.1):6 面简化凸包 <b>1.61×</b> vs 定向包围盒 OBB <b>1.72×</b> —— 6 块任意朝向的"玻璃"打败最优盒子。</div>
+  </div>
+</div>
+
+<h2>④ 局限:贪心的对称性陷阱(Fig.17)</h2>
+<div class="card overflow">
+  <table>
+    <tr><th>二十面体 → 4 面,1000 次随机旋转</th><th>出现频率</th><th>说明</th></tr>
+    <tr><td>正四面体(全局最优)</td><td><b style="color:var(--good)">0.6%</b></td><td>需要早期一连串协调的对称破缺选择,单步贪心无此视野</td></tr>
+    <tr><td>不规则四面体(更大)</td><td><b style="color:var(--bad)">95.4%</b></td><td>最常见结局</td></tr>
+    <tr><td>停在 6 面菱面体</td><td><b>1.2%</b></td><td>"死路":它是 6 面全局最优,但再删任何面都是无穷体积,永远到不了 4 面</td></tr>
+  </table>
+  <div class="note">子集选择 NP-hard [KRB21],所有实用方法都是启发式;作者建议未来尝试 beam search 或非选择式 polish。</div>
+</div>
+
+<script>
+"use strict";
+/* ---------- 2D 几何核心:与论文 §4 对应的贪心半平面删除 ---------- */
+const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+function convexHull(pts){ // Andrew 单调链,返回逆时针顶点
+  const p=[...pts].sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const half=arr=>{const h=[];for(const q of arr){while(h.length>=2&&cross(h[h.length-2],h[h.length-1],q)<=0)h.pop();h.push(q);}return h;};
+  const lo=half(p),hi=half([...p].reverse());
+  return lo.slice(0,-1).concat(hi.slice(0,-1));
+}
+function toHalfplanes(v){ // 逆时针多边形 → 半平面 (n,b),内部 n·x+b<=0
+  const H=[];for(let i=0;i<v.length;i++){const a=v[i],b=v[(i+1)%v.length];
+    let n=[b[1]-a[1],a[0]-b[0]];const L=Math.hypot(...n);n=[n[0]/L,n[1]/L];
+    H.push({n,b:-(n[0]*a[0]+n[1]*a[1])});}return H;}
+const isect=(h1,h2)=>{const d=h1.n[0]*h2.n[1]-h1.n[1]*h2.n[0];
+  if(Math.abs(d)<1e-12)return null;
+  return [(-h1.b*h2.n[1]+h2.b*h1.n[1])/d,(-h2.b*h1.n[0]+h1.b*h2.n[0])/d];};
+const polyArea=v=>{let s=0;for(let i=0;i<v.length;i++){const a=v[i],b=v[(i+1)%v.length];s+=a[0]*b[1]-b[0]*a[1];}return Math.abs(s)/2;};
+
+/* 贪心删半平面:2D 里"帽"是三角形,代价=帽面积;邻线发散→+∞(论文 §4.3) */
+function simplifyHalfplanes(H0,target){
+  const H=H0.map(h=>({...h}));const m=H.length;
+  const prev=[...Array(m)].map((_,i)=>(i-1+m)%m),next=[...Array(m)].map((_,i)=>(i+1)%m);
+  const alive=Array(m).fill(true);let count=m;
+  const cost=i=>{const p=prev[i],q=next[i];
+    const vp=isect(H[p],H[i]),vq=isect(H[i],H[q]),vn=isect(H[p],H[q]);
+    if(!vp||!vq||!vn)return Infinity;
+    if(H[i].n[0]*vn[0]+H[i].n[1]*vn[1]+H[i].b<=1e-12)return Infinity; // 新顶点须在被删边外侧
+    return polyArea([vp,vn,vq]);};
+  const order=[]; // 记录删除顺序,便于任意 target 复现
+  while(count>3){
+    let best=-1,bc=Infinity;
+    for(let i=0;i<m;i++)if(alive[i]){const c=cost(i);if(c<bc){bc=c;best=i;}}
+    if(best<0||!isFinite(bc))break; // 全部 +∞:死路,提前停(Fig.17)
+    alive[best]=false;count--;order.push(best);
+    next[prev[best]]=next[best];prev[next[best]]=prev[best];
+  }
+  // 回放到 target 条边
+  const alive2=Array(m).fill(true);let c2=m;
+  for(const i of order){if(c2<=target)break;alive2[i]=false;c2--;}
+  const start=alive2.indexOf(true);const nx=[...Array(m)].map((_,i)=>(i+1)%m);
+  // 重建 next 链
+  const nxt=[];let last=-1,first=-1;
+  for(let i=0;i<m;i++)if(alive2[i]){if(first<0)first=i;if(last>=0)nxt[last]=i;last=i;}
+  nxt[last]=first;
+  const verts=[];let i=first;
+  do{verts.push(isect(H[i],H[nxt[i]]));i=nxt[i];}while(i!==first);
+  return {verts,alive:alive2,edges:c2};
+}
+/* 对照:贪心删顶点(内近似) */
+function dropVertices(v0,target){
+  let v=v0.map(p=>[...p]);
+  while(v.length>target){let bi=0,ba=Infinity;
+    for(let i=0;i<v.length;i++){const a=polyArea([v[(i-1+v.length)%v.length],v[i],v[(i+1)%v.length]]);
+      if(a<ba){ba=a;bi=i;}}
+    v.splice(bi,1);}
+  return v;}
+
+/* ---------- 状态与绘制 ---------- */
+let cloud=[],hull=[],H=[],area0=1;
+function regen(){
+  cloud=[];const k=2+Math.floor(Math.random()*3),ph=Math.random()*6.28,ecc=1.2+Math.random()*.6;
+  for(let i=0;i<240;i++){const t=Math.random()*6.283;
+    const r=1+.22*Math.cos(k*t+ph)+(Math.random()-.5)*.09;
+    cloud.push([ecc*r*Math.cos(t),r*Math.sin(t)]);}
+  hull=convexHull(cloud);H=toHalfplanes(hull);area0=polyArea(hull);
+  const tgt=document.getElementById('tgt');tgt.max=hull.length;if(+tgt.value>hull.length)tgt.value=hull.length;
+  draw();}
+function fit(ctx,pts,pad){ // 世界坐标 → 画布仿射
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const W=ctx.canvas.width,Hh=ctx.canvas.height;
+  const s=Math.min((W-2*pad)/(x1-x0),(Hh-2*pad)/(y1-y0));
+  return p=>[pad+(p[0]-x0)*s+(W-2*pad-(x1-x0)*s)/2, Hh-pad-(p[1]-y0)*s-(Hh-2*pad-(y1-y0)*s)/2];}
+function poly(ctx,pts,T,close=true){ctx.beginPath();pts.forEach((p,i)=>{const q=T(p);i?ctx.lineTo(...q):ctx.moveTo(...q);});if(close)ctx.closePath();}
+
+function draw(){
+  const target=+document.getElementById('tgt').value;
+  document.getElementById('tgtLabel').textContent=target;
+  const outer=simplifyHalfplanes(H,target);
+  const ratio=polyArea(outer.verts)/area0;
+  const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const T=fit(ctx,[...cloud,...outer.verts],28);
+  // 输入点
+  ctx.fillStyle='#64748b';for(const p of cloud){const q=T(p);ctx.fillRect(q[0]-1.4,q[1]-1.4,2.8,2.8);}
+  // 外近似
+  poly(ctx,outer.verts,T);ctx.fillStyle='rgba(56,189,248,.16)';ctx.fill();
+  ctx.strokeStyle='#38bdf8';ctx.lineWidth=2.4;ctx.stroke();
+  // 内近似对比
+  let leak=0,innerV=null;
+  if(document.getElementById('showInner').checked){
+    innerV=dropVertices(hull,Math.min(target,hull.length));
+    const Hi=toHalfplanes(innerV);
+    for(const p of cloud)if(Hi.some(h=>h.n[0]*p[0]+h.n[1]*p[1]+h.b>1e-9))leak++;
+    poly(ctx,innerV,T);ctx.fillStyle='rgba(249,115,22,.15)';ctx.fill();
+    ctx.strokeStyle='#f97316';ctx.setLineDash([6,4]);ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);
+    // 泄漏点标红
+    ctx.fillStyle='#f87171';
+    for(const p of cloud)if(Hi.some(h=>h.n[0]*p[0]+h.n[1]*p[1]+h.b>1e-9)){const q=T(p);ctx.beginPath();ctx.arc(q[0],q[1],2.6,0,6.283);ctx.fill();}
+  }
+  // 精确凸包虚线
+  poly(ctx,hull,T);ctx.strokeStyle='#cbd5e1';ctx.setLineDash([4,4]);ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);
+  // 统计卡片
+  const st=document.getElementById('stats');
+  st.innerHTML=`<span class="stat">精确凸包 <b>${hull.length}</b> 边</span>
+    <span class="stat">简化到 <b>${outer.edges}</b> 边</span>
+    <span class="stat ok">外近似面积 <b>${ratio.toFixed(3)}×</b> 包含保证</span>`+
+    (innerV?`<span class="stat warn">内近似泄漏 <b>${(100*leak/cloud.length).toFixed(0)}%</b> 输入点</span>`:'')+
+    (outer.edges>target?`<span class="stat warn">提前停止:剩余候选全为 +∞(死路)</span>`:'');
+  drawDual(outer.alive);drawCurve();
+}
+function drawDual(alive){
+  const cv=document.getElementById('cvDual'),ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // 质心作对偶中心(论文用 Chebyshev 中心,原理相同、更抗数值)
+  const c=hull.reduce((s,p)=>[s[0]+p[0],s[1]+p[1]],[0,0]).map(x=>x/hull.length);
+  const phi=H.map(h=>{const d=h.n[0]*c[0]+h.n[1]*c[1]+h.b;return [-h.n[0]/d,-h.n[1]/d];});
+  const T=fit(ctx,[...phi,[0,0]],30);
+  ctx.strokeStyle='#334155';phi.forEach((p,i)=>{if(!alive[i])return;const q=T(p),o=T([0,0]);
+    ctx.beginPath();ctx.moveTo(...o);ctx.lineTo(...q);ctx.globalAlpha=.25;ctx.stroke();ctx.globalAlpha=1;});
+  phi.forEach((p,i)=>{const q=T(p);ctx.beginPath();ctx.arc(q[0],q[1],alive[i]?6:3.5,0,6.283);
+    ctx.fillStyle=alive[i]?'#38bdf8':'#475569';ctx.fill();});
+  const o=T([0,0]);ctx.strokeStyle='#f87171';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(o[0]-7,o[1]);ctx.lineTo(o[0]+7,o[1]);ctx.moveTo(o[0],o[1]-7);ctx.lineTo(o[0],o[1]+7);ctx.stroke();
+  ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';ctx.fillText('对偶原点(须留在幸存点凸包内,否则原始交集无界)',o[0]+12,o[1]-8);
+}
+function drawCurve(){
+  const cv=document.getElementById('cvCurve'),ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const m=hull.length,data=[];
+  for(let t=m;t>=3;t--){const r=polyArea(simplifyHalfplanes(H,t).verts)/area0;data.push([t,r]);}
+  const rmax=Math.max(1.02,...data.map(d=>d[1]));
+  const X=t=>40+(m-t)/(m-3)*(cv.width-60), Y=r=>cv.height-26-(r-1)/(rmax-1)*(cv.height-50);
+  ctx.strokeStyle='#334155';ctx.beginPath();ctx.moveTo(40,Y(1));ctx.lineTo(cv.width-20,Y(1));ctx.stroke();
+  ctx.strokeStyle='#38bdf8';ctx.lineWidth=2;ctx.beginPath();
+  data.forEach((d,i)=>{i?ctx.lineTo(X(d[0]),Y(d[1])):ctx.moveTo(X(d[0]),Y(d[1]));});ctx.stroke();
+  const cur=+document.getElementById('tgt').value;
+  const cd=data.find(d=>d[0]===Math.max(3,Math.min(cur,m)));
+  if(cd){ctx.fillStyle='#f97316';ctx.beginPath();ctx.arc(X(cd[0]),Y(cd[1]),5,0,6.283);ctx.fill();
+    ctx.fillStyle='#e2e8f0';ctx.font='12px sans-serif';ctx.fillText(`${cd[0]} 边:${cd[1].toFixed(3)}×`,X(cd[0])+8,Y(cd[1])-8);}
+  ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';
+  ctx.fillText('← 全部边',36,cv.height-8);ctx.fillText('3 边 →',cv.width-56,cv.height-8);
+  ctx.fillText('1.0×',8,Y(1)+4);ctx.fillText(rmax.toFixed(2)+'×',8,Y(rmax)+4);
+}
+/* ---------- 论文真实数据条形图(数据全部来自原文,未虚构) ---------- */
+function bars(el,rows,unit,goodLow){
+  const max=Math.max(...rows.map(r=>r[1]));
+  document.getElementById(el).innerHTML=rows.map(([name,v],i)=>{
+    const best=i===0; // 各表首行均为本文
+    return `<div class="bar-wrap"><div class="bar-label"><span>${name}</span><span style="color:${best?'var(--good)':'var(--muted)'}">${v}${unit}</span></div>
+    <div class="bar"><i style="width:${(goodLow? v/max : v/max)*100}%;background:${best?'linear-gradient(90deg,#34d399,#38bdf8)':'#475569'}"></i></div></div>`;}).join('');
+}
+bars('volBars',[['本文(Ours)',1.02],['Bloom [Blo11] 简化后外推(次优)',1.09],['k-DOP(Fig.1 的 6 面场景为 1.72×)',1.72]],'×',true);
+document.getElementById('volBars').insertAdjacentHTML('beforeend',
+  '<div class="note">论文未给出 [STL*25]/[MCK13]/[TLG17] 的精确中位数,定性排序为:本文 &lt; Blo11 &lt; STL*25 ≈ MCK13 &lt; k-DOP &lt; TLG17(Fig.8 violin 图)。</div>');
+bars('fpBars',[['本文(Ours)',18],['Bloom [Blo11]',32],['Müller [MCK13]',38],['Tan [TLG17]',44]],'%',true);
+bars('teapotBars',[['本文(Ours)',1.16],['GH97 直跑对偶包(消融)',1.21],['Tan [TLG17]',1.40],['Bloom [Blo11]',1.44]],'×',true);
+bars('hdBars',[['本文(Ours)',2.09],['Schott [STL*25]',3.41],['Müller [MCK13]',3.53],['GH97(对偶)',7.42]],'×',true);
+
+document.getElementById('regen').onclick=regen;
+document.getElementById('tgt').oninput=draw;
+document.getElementById('showInner').onchange=draw;
+regen();
+</script>

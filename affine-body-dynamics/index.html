@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABD 交互式探索器 — Affine Body Dynamics</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#181c26; --panel2:#1f2433; --ink:#e8eaf0; --muted:#9aa3b5;
+    --accent:#5eb1ff; --accent2:#ffb454; --good:#4ade80; --bad:#f87171; --line:#2a3145;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.65}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 20px 80px}
+  header{padding:36px 0 20px;border-bottom:1px solid var(--line);margin-bottom:28px}
+  h1{font-size:1.7rem;margin-bottom:8px}
+  h1 .en{color:var(--muted);font-size:1rem;font-weight:400;display:block;margin-top:4px}
+  .meta{color:var(--muted);font-size:.9rem}
+  .tag{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:2px 10px;font-size:.8rem;margin-right:6px;color:var(--accent)}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:26px}
+  h2{font-size:1.2rem;margin-bottom:6px;color:var(--accent)}
+  h2 .n{color:var(--muted);font-weight:400;margin-right:6px}
+  .sub{color:var(--muted);font-size:.9rem;margin-bottom:16px}
+  .row{display:flex;gap:20px;flex-wrap:wrap}
+  .col{flex:1;min-width:300px}
+  canvas{background:var(--panel2);border:1px solid var(--line);border-radius:8px;max-width:100%}
+  .ctrl{margin:10px 0;font-size:.9rem}
+  .ctrl label{display:flex;align-items:center;gap:10px}
+  .ctrl input[type=range]{flex:1;accent-color:var(--accent)}
+  .val{color:var(--accent2);font-family:ui-monospace,monospace;min-width:76px;text-align:right}
+  .note{background:var(--panel2);border-left:3px solid var(--accent);padding:10px 14px;border-radius:6px;font-size:.88rem;color:var(--muted);margin-top:12px}
+  .note b{color:var(--ink)}
+  .btns{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.85rem}
+  .btn.active{background:var(--accent);color:#0b1020;border-color:var(--accent);font-weight:600}
+  .mono{font-family:ui-monospace,monospace}
+  .stat{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+  .stat .card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;flex:1;min-width:130px}
+  .card .k{color:var(--muted);font-size:.75rem}
+  .card .v{font-size:1.15rem;font-family:ui-monospace,monospace;color:var(--accent2)}
+  .tablebox{overflow-x:auto;margin-top:12px}
+  table{border-collapse:collapse;width:100%;font-size:.85rem;min-width:640px}
+  th,td{border:1px solid var(--line);padding:6px 10px;text-align:right}
+  th{background:var(--panel2);color:var(--accent);text-align:center}
+  td:first-child{text-align:left;color:var(--ink)}
+  td{color:var(--muted)}
+  td.hl{color:var(--good);font-weight:600}
+  .pipe{display:flex;flex-direction:column;gap:0;margin-top:14px}
+  .pstep{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 16px;font-size:.9rem}
+  .pstep b{color:var(--accent)}
+  .pstep .why{color:var(--muted);font-size:.82rem;margin-top:2px}
+  .parrow{text-align:center;color:var(--muted);padding:1px 0;font-size:.9rem}
+  .loop{border:1px dashed var(--accent2);border-radius:10px;padding:10px;margin:4px 0}
+  .loop>.ltitle{color:var(--accent2);font-size:.8rem;margin-bottom:6px}
+  footer{color:var(--muted);font-size:.8rem;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Affine Body Dynamics 交互式探索器
+    <span class="en">Fast, Stable and Intersection-free Simulation of Stiff Materials — SIGGRAPH 2022</span>
+  </h1>
+  <div class="meta">Lan · Kaufman · Li · Jiang · Yang &nbsp;|&nbsp; arXiv:2201.10022 &nbsp;
+    <span class="tag">stiff body simulation</span><span class="tag">affine relaxation</span>
+  </div>
+</header>
+
+<!-- ================= 1. 轨迹对比 ================= -->
+<section>
+  <h2><span class="n">①</span>核心思想:刚性轨迹是弯的,仿射轨迹是直的</h2>
+  <div class="sub">rigid-IPC 的每步是旋转(顶点走<b style="color:var(--bad)">弧线</b>),CCD 只能保守细分弧线(curved CCD,瓶颈);
+  ABD 的 Newton 每次迭代沿 ΔA·x̄+Δp 搜索,顶点走<b style="color:var(--good)">直线</b>,直接用标准线性 CCD。拖动滑块观察单步旋转角越大,弧线与直线差异越大、curved CCD 需要的细分段数越多。</div>
+  <div class="row">
+    <div class="col">
+      <canvas id="cvTraj" width="480" height="340"></canvas>
+    </div>
+    <div class="col">
+      <div class="ctrl"><label>单步旋转角 θ <input type="range" id="sAng" min="5" max="120" value="60"><span class="val" id="vAng">60°</span></label></div>
+      <div class="ctrl"><label>curved CCD 细分容差 <input type="range" id="sTol" min="1" max="20" value="8"><span class="val" id="vTol">—</span></label></div>
+      <div class="stat">
+        <div class="card"><div class="k">刚体轨迹(弧线)需要的线段细分数</div><div class="v" id="stSeg">—</div></div>
+        <div class="card"><div class="k">仿射轨迹需要的 CCD 调用</div><div class="v" style="color:var(--good)">1 次线性 CCD</div></div>
+      </div>
+      <div class="note"><b>为什么这是瓶颈:</b>CCD 在 Newton <b>每次迭代</b>的 line search 中都要执行。gear set 例子中 rigid-IPC 的 curved CCD 找不到可用 TOI,Newton 直接死循环;ABD 用 17 次迭代/步稳定完成。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. 正交势 ================= -->
+<section>
+  <h2><span class="n">②</span>正交势 V⊥ = κν‖AAᵀ−I‖²_F:用软惩罚替代硬刚性</h2>
+  <div class="sub">拖动拉伸/剪切,观察方块形变与能量;拖动 κ 观察同样形变下能量如何被放大——κ&gt;100 GPa 时任何可见形变的能量代价都是天文数字,物体"自动"近刚性。纯旋转永远在零能量谷(旋转不变性)。</div>
+  <div class="row">
+    <div class="col">
+      <canvas id="cvOrtho" width="480" height="300"></canvas>
+    </div>
+    <div class="col">
+      <div class="ctrl"><label>旋转 θ <input type="range" id="oRot" min="-90" max="90" value="20"><span class="val" id="ovRot">20°</span></label></div>
+      <div class="ctrl"><label>拉伸 s <input type="range" id="oStr" min="70" max="130" value="100"><span class="val" id="ovStr">1.00</span></label></div>
+      <div class="ctrl"><label>剪切 γ <input type="range" id="oShr" min="-40" max="40" value="0"><span class="val" id="ovShr">0.00</span></label></div>
+      <div class="ctrl"><label>log₁₀ κ (Pa) <input type="range" id="oKap" min="6" max="12" value="11"><span class="val" id="ovKap">10¹¹</span></label></div>
+      <div class="stat">
+        <div class="card"><div class="k">‖AAᵀ−I‖²_F(形变度量)</div><div class="v" id="stFrob">0</div></div>
+        <div class="card"><div class="k">V⊥ = κν‖AAᵀ−I‖²_F(ν=1m³)</div><div class="v" id="stV">0 J</div></div>
+      </div>
+      <div class="note"><b>论文的反直觉论证:</b>stiff penalty 通常是数值毒药,但接触 barrier 已经把系统刚度推到必须用鲁棒 Newton 的程度——每体多一个 stiff 势的边际代价≈0。且 V⊥ 是纯多项式(无极分解),能量运算比 ARAP 快 <b>43%</b>、比 neo-Hookean 快 <b>178%</b>。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. 性能仪表盘 ================= -->
+<section>
+  <h2><span class="n">③</span>性能仪表盘:vs rigid-IPC 实测加速比(论文真实数据)</h2>
+  <div class="sub">对数坐标。悬停/点击查看场景细节。所有数据出自论文 §5 与 Tab.2(Δt = 1/100 s,i9-11900K,RTX 3090)。</div>
+  <div class="btns">
+    <button class="btn active" id="bCPU">CPU(多线程)</button>
+    <button class="btn" id="bGPU">GPU 亮点(CUDA)</button>
+  </div>
+  <canvas id="cvPerf" width="1040" height="330"></canvas>
+  <div class="note" id="perfNote"><b>点击柱形</b>查看该实验的规模与说明。</div>
+  <div class="tablebox">
+    <table id="tbTiming">
+      <thead><tr><th>实验</th><th>#体</th><th>#三角形</th><th>ABD 每帧</th><th>rigid-IPC 每帧</th><th>加速比</th><th>GPU FPS</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 4. Δt 敏感性 ================= -->
+<section>
+  <h2><span class="n">④</span>时间步长敏感性:ABD 对 Δt 几乎无感,对手不是</h2>
+  <div class="sub">选择 Δt 查看 Tab.2 中 ABD 的每帧耗时变化;rigid-IPC 的 curved CCD 随步长增大迅速恶化(小链网:步长 1/100→1/50,rigid-IPC 慢 350%,ABD 仅 0.059→0.065 s),Bullet 则在所有步长下都有穿插。</div>
+  <div class="btns">
+    <button class="btn active" data-dt="0">Δt = 1/100 s</button>
+    <button class="btn" data-dt="1">Δt = 1/50 s</button>
+    <button class="btn" data-dt="2">Δt = 1/25 s</button>
+  </div>
+  <div class="tablebox">
+    <table id="tbDt">
+      <thead><tr><th>实验</th><th>平均迭代数</th><th>Hessian 装配</th><th>线性求解</th><th>CCD</th><th>建接触对</th><th>每帧总时间</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="note"><b>加速来源分解(§5.5):</b>复杂场景 90% 的加速来自「迭代数更少 × 每次迭代的 CCD 更便宜」这个乘法效应;轻量场景中 i-AABB 剔除(复杂几何省 90% 测试,简单形状平均 30%)与并行 Hessian 装配(最高 188×)贡献更大。ABD 因 12 DOF 求解略慢于刚体 6 DOF,但被前两者完全掩盖。</div>
+</section>
+
+<!-- ================= 5. 单步管线 ================= -->
+<section>
+  <h2><span class="n">⑤</span>一个时间步的完整管线</h2>
+  <div class="pipe">
+    <div class="pstep"><b>1. 构造增量势 IP</b> — E = Σ_b [ ½‖q_b−q̃_b‖²_M + Δt²V⊥(q_b) ] + V_C(接触 barrier) + V_F(变分摩擦)<div class="why">常数质量矩阵 ⇒ 无 Coriolis 力,q̃ 由上一步状态显式给出</div></div>
+    <div class="parrow">↓</div>
+    <div class="loop"><div class="ltitle">Newton 迭代循环(直至收敛)</div>
+      <div class="pstep"><b>2. i-AABB 剔除</b> — 仅在两体 AABB 交叠区(offset d̂)内建三级浅树,确定候选接触对<div class="why">同时免费给出全局 Hessian 的 12×12 块稀疏模式</div></div>
+      <div class="parrow">↓</div>
+      <div class="pstep"><b>3. 两遍并行 Hessian 装配</b> — 先并行算各 pair 局部 Hessian 并缓存,再按非零元并行累加<div class="why">i-AABB 互不相交 ⇒ 累加可无锁并行;比顺序装配最高快 188×</div></div>
+      <div class="parrow">↓</div>
+      <div class="pstep"><b>4. 求解 12|B|×12|B| 系统</b> — Eigen SimplicialLLT(混合仿真正定性受损时切 LDLT)得到 Δq</div>
+      <div class="parrow">↓</div>
+      <div class="pstep"><b>5. CCD 过滤 line search</b> — 顶点位移 ΔA·x̄+Δp 为线性轨迹 ⇒ 标准 ACCD 求 TOI,截断步长保证无穿插<div class="why">这是与 rigid-IPC 的分水岭:那里是 curved CCD,这里是普通线性 CCD</div></div>
+    </div>
+    <div class="parrow">↓</div>
+    <div class="pstep"><b>6. 更新速度、进入下一步</b> — 全程保持:无穿插、收敛到用户容差、精确摩擦</div>
+  </div>
+</section>
+
+<footer>数据来源:Lan et al., "Affine Body Dynamics", ACM TOG 41(4), SIGGRAPH 2022(arXiv:2201.10022)。本页所有数字均取自论文原文,无虚构。</footer>
+</div>
+
+<script>
+/* ---------- ① 轨迹对比 ---------- */
+const cvT = document.getElementById('cvTraj'), ctT = cvT.getContext('2d');
+const sAng = document.getElementById('sAng'), sTol = document.getElementById('sTol');
+function drawTraj(){
+  const th = sAng.value*Math.PI/180, tol = sTol.value/1000; // 容差:弦高比例
+  ctT.clearRect(0,0,cvT.width,cvT.height);
+  const cx=240, cy=190, R=120;
+  // 旋转中心
+  ctT.fillStyle='#9aa3b5'; ctT.beginPath(); ctT.arc(cx,cy,3,0,7); ctT.fill();
+  ctT.font='12px sans-serif'; ctT.fillText('旋转中心',cx+8,cy+4);
+  // 起点/终点方块(用一个顶点代表)
+  const p0=[cx+R,cy], p1=[cx+R*Math.cos(th),cy-R*Math.sin(th)];
+  // 弧线(刚体轨迹)
+  ctT.strokeStyle='#f87171'; ctT.lineWidth=2.5; ctT.beginPath();
+  ctT.arc(cx,cy,R,0,-th,true); ctT.stroke();
+  // curved CCD 细分:弦高 <= tol*R 所需段数 n: sagitta = R(1-cos(th/2n)) <= tol*R
+  let n=1; while(R*(1-Math.cos(th/(2*n))) > tol*R && n<500) n++;
+  // 画细分弦
+  ctT.strokeStyle='rgba(248,113,113,.45)'; ctT.lineWidth=1;
+  ctT.beginPath();
+  for(let i=0;i<=n;i++){const a=-th*i/n; const x=cx+R*Math.cos(a), y=cy+R*Math.sin(a); i?ctT.lineTo(x,y):ctT.moveTo(x,y);}
+  ctT.stroke();
+  // 直线(仿射轨迹)
+  ctT.strokeStyle='#4ade80'; ctT.lineWidth=2.5;
+  ctT.beginPath(); ctT.moveTo(p0[0],p0[1]); ctT.lineTo(p1[0],p1[1]); ctT.stroke();
+  // 端点方块
+  function box(p,ang,color){ctT.save();ctT.translate(p[0],p[1]);ctT.rotate(-ang);ctT.strokeStyle=color;ctT.lineWidth=2;ctT.strokeRect(-14,-14,28,28);ctT.restore();}
+  box(p0,0,'#9aa3b5'); box(p1,th,'#e8eaf0');
+  // 图例
+  ctT.fillStyle='#f87171'; ctT.fillText('刚体:弧线轨迹 → curved CCD(细分为 '+n+' 段弦)',16,22);
+  ctT.fillStyle='#4ade80'; ctT.fillText('仿射:线性轨迹 → 1 次标准线性 CCD',16,40);
+  document.getElementById('vAng').textContent=sAng.value+'°';
+  document.getElementById('vTol').textContent=(sTol.value/10)+'%弦高';
+  document.getElementById('stSeg').textContent=n+' 段';
+}
+sAng.oninput=drawTraj; sTol.oninput=drawTraj; drawTraj();
+
+/* ---------- ② 正交势 ---------- */
+const cvO=document.getElementById('cvOrtho'), ctO=cvO.getContext('2d');
+const oRot=document.getElementById('oRot'), oStr=document.getElementById('oStr'), oShr=document.getElementById('oShr'), oKap=document.getElementById('oKap');
+function fmtE(v){
+  if(v===0) return '0 J';
+  const e=Math.floor(Math.log10(v));
+  return (v/10**e).toFixed(2)+'×10'+String(e).replace(/-?\d/g,d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]??d)+' J';
+}
+function drawOrtho(){
+  const th=oRot.value*Math.PI/180, s=oStr.value/100, g=oShr.value/100, kap=10**oKap.value;
+  // A = R(θ)·[[s,γ],[0,1/ s^0? ]] 简化:S=[[s,g],[0,1]]
+  const c=Math.cos(th), si=Math.sin(th);
+  const A=[[c*s - si*0, c*g - si*1],[si*s + c*0, si*g + c*1]];
+  // AAᵀ − I  Frobenius²(2D 类比)
+  const AAT=[[A[0][0]**2+A[0][1]**2, A[0][0]*A[1][0]+A[0][1]*A[1][1]],
+             [A[0][0]*A[1][0]+A[0][1]*A[1][1], A[1][0]**2+A[1][1]**2]];
+  const F=(AAT[0][0]-1)**2 + 2*AAT[0][1]**2 + (AAT[1][1]-1)**2;
+  const V=kap*F;
+  ctO.clearRect(0,0,cvO.width,cvO.height);
+  const cx=240,cy=150,L=70;
+  // 参考方块
+  ctO.strokeStyle='rgba(154,163,181,.5)'; ctO.setLineDash([5,4]); ctO.lineWidth=1.5;
+  ctO.strokeRect(cx-L,cy-L,2*L,2*L); ctO.setLineDash([]);
+  // 变形方块:顶点 (±1,±1) 经 A 映射
+  const pts=[[-1,-1],[1,-1],[1,1],[-1,1]].map(p=>[cx+L*(A[0][0]*p[0]+A[0][1]*p[1]), cy-L*(A[1][0]*p[0]+A[1][1]*p[1])]);
+  // 能量越高越红
+  const heat=Math.min(1,F*8);
+  ctO.strokeStyle=`rgb(${94+heat*154},${177-heat*100},${255-heat*140})`;
+  ctO.lineWidth=3; ctO.beginPath();
+  pts.forEach((p,i)=>i?ctO.lineTo(p[0],p[1]):ctO.moveTo(p[0],p[1])); ctO.closePath(); ctO.stroke();
+  ctO.fillStyle='#9aa3b5'; ctO.font='12px sans-serif';
+  ctO.fillText('虚线=静止形状;实线=A 变换后(颜色随形变能量变红)',16,22);
+  ctO.fillText('纯旋转 ⇒ AAᵀ=I ⇒ V⊥=0(零能量谷)',16,40);
+  document.getElementById('ovRot').textContent=oRot.value+'°';
+  document.getElementById('ovStr').textContent=s.toFixed(2);
+  document.getElementById('ovShr').textContent=g.toFixed(2);
+  document.getElementById('ovKap').textContent='10'+String(oKap.value).replace(/\d/g,d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]);
+  document.getElementById('stFrob').textContent=F<1e-6?F.toExponential(1):F.toFixed(4);
+  document.getElementById('stV').textContent=fmtE(V);
+}
+[oRot,oStr,oShr,oKap].forEach(e=>e.oninput=drawOrtho); drawOrtho();
+
+/* ---------- ③ 性能仪表盘 ---------- */
+const PERF=[
+  {name:'摆锤 Pendulum', bdy:4, tri:'1.3K', abd:'7 ms', rip:'2.6 s', x:371, gpu:1000, note:'两连杆铰链关节;关节约束在 ABD 中线性化,371× 加速'},
+  {name:'大链网 Big chain net', bdy:673, tri:'445K', abd:'0.78 s', rip:'944 s', x:1200, gpu:5, note:'16×16 链网+落球;尖锐碰撞时 rigid-IPC 单帧需数小时,峰值加速超 4000×,GPU 上超 10000×'},
+  {name:'纸牌屋 House of cards', bdy:158, tri:'336', abd:'86 ms', rip:'8.9 s', x:103, gpu:42, note:'10 层 155 张卡,静+动摩擦混合;两落箱压塌'},
+  {name:'碎石球 Wrecking ball', bdy:575, tri:'14K', abd:'0.14 s', rip:'17.6 s', x:124, gpu:18, note:'链条铁球撞 560 块木块;Δt 1/100→1/25 性能几乎不变'},
+  {name:'石拱 Arch(静摩擦)', bdy:101, tri:'1.2K', abd:'8.7 ms', rip:'0.67 s', x:77, gpu:500, note:'100 块砖靠静摩擦稳定;Bullet 即使 Δt=1/10000 也失败'},
+  {name:'小链网 Small chain net', bdy:144, tri:'63K', abd:'59 ms', rip:'2.1 s', x:34, gpu:143, note:'8×8 入门级;Δt 加倍 ABD 几乎不变,rigid-IPC 慢 350%'},
+  {name:'螺栓 Screw(动摩擦)', bdy:2, tri:'7.9K', abd:'87 ms', rip:'2.59 s', x:30, gpu:1000, note:'螺栓旋入螺母,动摩擦主导'},
+  {name:'章鱼 Octopus', bdy:41, tri:'33K', abd:'50 ms', rip:'1.4 s', x:28, gpu:333, note:'8 触手×5 铰链关节'},
+];
+const GPUX=[
+  {name:'大链网(GPU)', x:10000, note:'CUDA 上超过 10000× vs rigid-IPC CPU'},
+  {name:'齿轮组 28 gears', x:0, gpu:'5–10 FPS', note:'2.45M 三角形,>1/4 表面元每步活跃接触;rigid-IPC/Bullet/MuJoCo 全部失败,ABD CPU 12 s/步,GPU 交互级'},
+  {name:'巨型链网 27,645 体', x:5000, note:'12M 三角形;CPU 5 min/帧、全仿真 5 天;rigid-IPC 估计需数年(≥2000–5000×)'},
+];
+const cvP=document.getElementById('cvPerf'), ctP=cvP.getContext('2d');
+let mode='cpu', bars=[];
+function drawPerf(){
+  ctP.clearRect(0,0,cvP.width,cvP.height);
+  const data = mode==='cpu' ? PERF : PERF.map(d=>({name:d.name.split(' ')[0], x:d.gpu, note:'GPU '+d.gpu+' FPS(Δt=1/100)— '+d.note, isfps:true}));
+  const W=cvP.width, H=cvP.height, padL=60, padB=56, padT=18;
+  const n=data.length, bw=(W-padL-30)/n;
+  const maxLog = mode==='cpu' ? Math.log10(1500) : Math.log10(1200);
+  bars=[];
+  // 轴
+  ctP.strokeStyle='#2a3145'; ctP.fillStyle='#9aa3b5'; ctP.font='11px sans-serif';
+  for(let e=0;e<=3;e++){
+    const y=H-padB-(e/maxLog)*(H-padB-padT)*Math.log10(10);
+    const yy=H-padB-(Math.log10(10**e)/maxLog)*(H-padB-padT);
+    ctP.beginPath();ctP.moveTo(padL,yy);ctP.lineTo(W-10,yy);ctP.stroke();
+    ctP.fillText((10**e).toLocaleString()+(mode==='cpu'?'×':' FPS'),8,yy+4);
+  }
+  data.forEach((d,i)=>{
+    const v=Math.max(d.x,1), h=(Math.log10(v)/maxLog)*(H-padB-padT);
+    const x=padL+i*bw+bw*0.15, y=H-padB-h, w=bw*0.7;
+    const grad=ctP.createLinearGradient(0,y,0,H-padB);
+    grad.addColorStop(0, mode==='cpu'?'#5eb1ff':'#ffb454'); grad.addColorStop(1,'#26406b');
+    ctP.fillStyle=grad; ctP.fillRect(x,y,w,h);
+    ctP.fillStyle='#e8eaf0'; ctP.font='bold 12px sans-serif'; ctP.textAlign='center';
+    ctP.fillText(d.x.toLocaleString()+(mode==='cpu'?'×':''),x+w/2,y-6);
+    ctP.fillStyle='#9aa3b5'; ctP.font='11px sans-serif';
+    const label=d.name.length>9?d.name.slice(0,9):d.name;
+    ctP.save();ctP.translate(x+w/2,H-padB+14);ctP.rotate(-0.25);ctP.fillText(label,0,0);ctP.restore();
+    ctP.textAlign='left';
+    bars.push({x,y:padT,w,h:H-padB-padT,d});
+  });
+}
+cvP.addEventListener('click',ev=>{
+  const r=cvP.getBoundingClientRect();
+  const mx=(ev.clientX-r.left)*cvP.width/r.width, my=(ev.clientY-r.top)*cvP.height/r.height;
+  const b=bars.find(b=>mx>=b.x&&mx<=b.x+b.w);
+  if(b){
+    const d=b.d;
+    document.getElementById('perfNote').innerHTML='<b>'+d.name+'</b> — '+(d.bdy?d.bdy+' 体,'+d.tri+' 三角形;ABD '+d.abd+'/帧 vs rigid-IPC '+d.rip+'/帧。':'')+(d.note||'');
+  }
+});
+document.getElementById('bCPU').onclick=e=>{mode='cpu';document.getElementById('bCPU').classList.add('active');document.getElementById('bGPU').classList.remove('active');drawPerf();};
+document.getElementById('bGPU').onclick=e=>{mode='gpu';document.getElementById('bGPU').classList.add('active');document.getElementById('bCPU').classList.remove('active');drawPerf();};
+drawPerf();
+// 静态时间表
+const tb=document.querySelector('#tbTiming tbody');
+PERF.forEach(d=>{
+  tb.insertAdjacentHTML('beforeend',`<tr><td>${d.name}</td><td>${d.bdy}</td><td>${d.tri}</td><td class="hl">${d.abd}</td><td>${d.rip}</td><td class="hl">${d.x.toLocaleString()}×</td><td>${d.gpu} FPS</td></tr>`);
+});
+tb.insertAdjacentHTML('beforeend',`<tr><td>齿轮组 Gear set</td><td>28</td><td>2.45M</td><td class="hl">12 s</td><td>失败(死循环)</td><td class="hl">∞</td><td>5–10 FPS</td></tr>`);
+tb.insertAdjacentHTML('beforeend',`<tr><td>巨型链网 Huge net</td><td>27,645</td><td>12M</td><td class="hl">310 s</td><td>估计需数年</td><td class="hl">≥2,000×</td><td>—</td></tr>`);
+
+/* ---------- ④ Δt 敏感性(Tab.2 真实数据) ---------- */
+const DT=[ // [实验, [三档 Δt 的 {it,hess,sol,ccd,cons,time}]]
+  {name:'碎石球(575 体)',rows:[
+    {it:'8.8',hess:'0.023 s',sol:'53 ms',ccd:'0.028 s',cons:'0.031 s',time:'0.14 s'},
+    {it:'17.1',hess:'0.067 s',sol:'160 ms',ccd:'0.078 s',cons:'0.092 s',time:'0.41 s'},
+    {it:'19.4',hess:'0.18 s',sol:'444 ms',ccd:'0.23 s',cons:'0.027 s',time:'1.1 s'}]},
+  {name:'小链网(144 体)',rows:[
+    {it:'2.1',hess:'0.011 s',sol:'6 ms',ccd:'0.016 s',cons:'0.017 s',time:'0.059 s'},
+    {it:'2.4',hess:'0.014 s',sol:'7 ms',ccd:'0.023 s',cons:'0.023 s',time:'0.07 s'},
+    {it:'2.8',hess:'0.018 s',sol:'9 ms',ccd:'0.29 s',cons:'0.032 s',time:'0.08 s'}]},
+  {name:'大链网(673 体)',rows:[
+    {it:'13.5',hess:'0.13 s',sol:'241 ms',ccd:'0.41 s',cons:'0.43 s',time:'0.78 s'},
+    {it:'24.9',hess:'0.25 s',sol:'440 ms',ccd:'0.82 s',cons:'0.87 s',time:'2.4 s'},
+    {it:'26.3',hess:'0.27 s',sol:'464 ms',ccd:'0.93 s',cons:'0.96 s',time:'2.7 s'}]},
+  {name:'纸牌屋(158 体)',rows:[
+    {it:'9.8',hess:'0.014 s',sol:'24 ms',ccd:'0.009 s',cons:'0.035 s',time:'0.086 s'},
+    {it:'13.3',hess:'0.024 s',sol:'37 ms',ccd:'0.014 s',cons:'0.043 s',time:'0.13 s'},
+    {it:'25.2',hess:'0.045 s',sol:'64 ms',ccd:'0.035 s',cons:'0.074 s',time:'0.24 s'}]},
+  {name:'齿轮组(28 体,2.45M tri)',rows:[
+    {it:'16.7',hess:'4.3 s',sol:'4 ms',ccd:'5.4 s',cons:'6.0 s',time:'11.7 s'},
+    {it:'19.3',hess:'5.8 s',sol:'4 ms',ccd:'6.3 s',cons:'7.9 s',time:'14.5 s'},
+    {it:'25.9',hess:'7.9 s',sol:'6 ms',ccd:'9.3 s',cons:'11.2 s',time:'20.1 s'}]},
+];
+let dtIdx=0;
+function drawDt(){
+  const tb2=document.querySelector('#tbDt tbody'); tb2.innerHTML='';
+  DT.forEach(d=>{
+    const r=d.rows[dtIdx];
+    tb2.insertAdjacentHTML('beforeend',`<tr><td>${d.name}</td><td>${r.it}</td><td>${r.hess}</td><td>${r.sol}</td><td>${r.ccd}</td><td>${r.cons}</td><td class="hl">${r.time}</td></tr>`);
+  });
+}
+document.querySelectorAll('[data-dt]').forEach(b=>b.onclick=()=>{
+  dtIdx=+b.dataset.dt;
+  document.querySelectorAll('[data-dt]').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); drawDt();
+});
+drawDt();
+</script>
+</body>
+</html>
