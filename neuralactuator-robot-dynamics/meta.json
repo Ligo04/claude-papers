@@ -1,0 +1,29 @@
+{
+  "title": "NeuralActuator: Neural Actuation Modeling for Robot Dynamics and External Force Perception",
+  "authors": [
+    "Zhiyang Dou",
+    "John U. Onyemelukwe",
+    "Hangxing Zhang",
+    "Heng Zhang",
+    "Minghao Guo",
+    "Yunsheng Tian",
+    "Michal Piotr Lipiec",
+    "Joshua Jacob",
+    "Chao Liu",
+    "Peter Yichen Chen",
+    "Yuri Ivanov",
+    "Wojciech Matusik"
+  ],
+  "abstract": "Differentiable simulators have advanced policy learning and model-based control across diverse robotic tasks. To date, actuator dynamics remain underexplored and can be a major source of sim-to-real error, especially on low-cost platforms where the linear current-to-joint-torque approximation becomes unreliable. We present NeuralActuator, a neural actuator model that jointly predicts (i) a simulator-equivalent generalized-effort surrogate for trajectory propagation, (ii) external forces together with a contact-probability gate for sensorless force perception, and (iii) a motor-condition score. We introduce a twin-arm teleoperation system yielding the Neural Actuation Dataset (NAD). The torque-surrogate head is trained through differentiable simulation from pose trajectories without direct generalized-effort labels. Validated across OpenManipulator-X, SO-101, and Franka Emika Panda.",
+  "githubLinks": [],
+  "codeLinks": [],
+  "pageCount": 26,
+  "tags": [
+    "actuator modeling",
+    "differentiable simulation"
+  ],
+  "arxivId": "2607.11734",
+  "year": 2026,
+  "date": "2026-07-13",
+  "projectPage": "https://frank-zy-dou.github.io/projects/NeuralActuator/index.html"
+}

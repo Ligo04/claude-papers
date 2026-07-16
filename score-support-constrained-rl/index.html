@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCORE 交互式探索器 — 支撑集约束 RL</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2333; --ink:#e6edf3; --muted:#8b949e;
+    --line:#30363d; --accent:#58a6ff; --good:#3fb950; --bad:#f85149; --warn:#d29922;
+    --supp:#a371f7; --dist:#e3b341; --unc:#f85149;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f8fa; --panel:#fff; --panel2:#eef1f5; --ink:#1f2328; --muted:#59636e;
+      --line:#d0d7de; --accent:#0969da; --good:#1a7f37; --bad:#cf222e; --warn:#9a6700;
+      --supp:#8250df; --dist:#9a6700; --unc:#cf222e; }
+  }
+  :root[data-theme="dark"]{ --bg:#0d1117; --panel:#161b22; --panel2:#1c2333; --ink:#e6edf3;
+    --muted:#8b949e; --line:#30363d; --accent:#58a6ff; --good:#3fb950; --bad:#f85149; --warn:#d29922;}
+  :root[data-theme="light"]{ --bg:#f6f8fa; --panel:#fff; --panel2:#eef1f5; --ink:#1f2328;
+    --muted:#59636e; --line:#d0d7de; --accent:#0969da; --good:#1a7f37; --bad:#cf222e; --warn:#9a6700;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.65;padding:0 0 60px}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+  header{padding:38px 20px 26px;border-bottom:1px solid var(--line);background:
+    linear-gradient(160deg,var(--panel2),var(--panel));margin-bottom:8px}
+  h1{margin:0 0 6px;font-size:26px;letter-spacing:.3px}
+  h1 .tag{color:var(--supp)}
+  .sub{color:var(--muted);font-size:14px;margin:0}
+  .meta{color:var(--muted);font-size:12.5px;margin-top:12px}
+  .meta a{color:var(--accent);text-decoration:none}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:22px;margin:20px 0}
+  h2{font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+  h2 .n{font-size:12px;background:var(--supp);color:#fff;border-radius:6px;
+    padding:2px 8px;font-weight:700}
+  .lead{color:var(--muted);font-size:13.5px;margin:6px 0 18px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{background:var(--panel2);color:var(--ink);border:0;padding:9px 15px;
+    cursor:pointer;font-size:13.5px;font-weight:600;transition:.15s}
+  .seg button.active{background:var(--supp);color:#fff}
+  .seg button:not(.active):hover{background:var(--line)}
+  canvas{width:100%;display:block;background:transparent;border-radius:8px}
+  .cvwrap{overflow-x:auto}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  @media(max-width:640px){.row{grid-template-columns:1fr}}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .stat .lab{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .stat .val{font-size:24px;font-weight:800}
+  .stat.good .val{color:var(--good)} .stat.bad .val{color:var(--bad)}
+  .expl{background:var(--panel2);border-left:3px solid var(--supp);border-radius:0 8px 8px 0;
+    padding:12px 15px;margin-top:14px;font-size:13.5px;color:var(--ink)}
+  .expl b{color:var(--supp)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  th,td{padding:9px 10px;text-align:center;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12.5px}
+  td:first-child,th:first-child{text-align:left}
+  .bar{height:22px;border-radius:5px;background:var(--panel2);position:relative;overflow:hidden}
+  .bar>span{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transition:width .5s}
+  .barlab{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:3px}
+  .abl{margin:16px 0}
+  .abl .name{font-size:13.5px;font-weight:600;margin-bottom:8px}
+  .dual{display:flex;gap:6px;align-items:center;font-size:12px}
+  .pill{border-radius:20px;padding:3px 11px;font-weight:700;font-size:12px}
+  .pill.b{background:rgba(139,148,158,.2);color:var(--muted)}
+  .pill.s{background:var(--supp);color:#fff}
+  .arrow{color:var(--muted)}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin-top:10px}
+  .step{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:13px}
+  .step .k{font-size:11px;color:var(--supp);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .step .t{font-weight:700;font-size:14px;margin:4px 0}
+  .step .d{font-size:12px;color:var(--muted)}
+  .frozen{border-color:var(--supp);box-shadow:inset 0 0 0 1px var(--supp)}
+  .themebtn{position:fixed;top:14px;right:14px;z-index:9;background:var(--panel);
+    border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 11px;cursor:pointer;font-size:13px}
+  .foot{color:var(--muted);font-size:12px;text-align:center;margin-top:28px}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12.5px}
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn">◐ 主题</button>
+<header>
+  <div class="wrap">
+    <h1><span class="tag">SCORE</span> · 支撑集约束 RL 交互式探索器</h1>
+    <p class="sub">无需真实世界经验，在仿真里提升真机灵巧操作策略 · Support-Constrained Off-Domain REinforcement</p>
+    <p class="meta">Raymond Yu*, William Huey*, Mustafa Mukadam, Anusha Nagabandi, Abhishek Gupta ·
+      UW / Amazon FAR · arXiv:2606.27475v1 ·
+      <a href="https://weirdlabuw.github.io/score/" target="_blank">项目主页</a></p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ 1. 三范式交互对比 ============ -->
+<section>
+  <h2><span class="n">1</span> 三种约束范式：为什么支撑集约束能两全？</h2>
+  <p class="lead">切换约束类型，观察"提升后策略"的动作分布（下方直方图）如何在
+    <b style="color:var(--good)">好模式(快·可迁移)</b>、
+    <b style="color:var(--warn)">次优模式(慢)</b> 与
+    <b style="color:var(--bad)">仿真漏洞 a_hack(真机=0)</b> 之间分配概率，
+    以及由此得到的仿真回报 vs 真机回报。</p>
+  <div class="controls">
+    <div class="seg" id="paradigm">
+      <button data-p="unc">无约束 RL</button>
+      <button data-p="dist">分布约束</button>
+      <button data-p="supp" class="active">支撑集约束 (SCORE)</button>
+    </div>
+    <div class="seg" id="epsseg" style="display:none">
+      <button data-e="tight" class="active">紧约束 ε小</button>
+      <button data-e="loose">松约束 ε大</button>
+    </div>
+  </div>
+  <div class="cvwrap"><canvas id="cv1" width="940" height="300"></canvas></div>
+  <div class="row">
+    <div class="stat" id="s-sim"><div class="lab">平均仿真回报 J_sim</div><div class="val">–</div></div>
+    <div class="stat" id="s-real"><div class="lab">平均真机回报 J_real（越高越好）</div><div class="val">–</div></div>
+  </div>
+  <div class="expl" id="expl1"></div>
+</section>
+
+<!-- ============ 2. 主结果 ============ -->
+<section>
+  <h2><span class="n">2</span> 主结果：8 个真机灵巧操作任务</h2>
+  <p class="lead">Franka FR3 + LEAP Hand。点击任务查看各方法真机成功率对比（真实数据）。</p>
+  <div class="controls">
+    <div class="seg" id="taskseg"></div>
+  </div>
+  <div id="taskbars"></div>
+  <div class="row" style="margin-top:16px">
+    <div class="stat good"><div class="lab">平均成功率提升</div><div class="val">37.8%→89.9%</div></div>
+    <div class="stat good"><div class="lab">平均执行加速（vs Base）</div><div class="val">−36.8%</div></div>
+  </div>
+  <div class="expl">最佳基线仅 <b>59.5%</b>；<b>Residual-RL</b> 只加速 19.0%（只能局部扰动，无法切换到 base 的更快模式）。
+    <b>FPO</b>（无约束）仿真高分但真机因 reward hacking 崩溃（如 Soccer Push 学会用手砸桌子夹球）。</div>
+</section>
+
+<!-- ============ 3. 数据覆盖度消融 ============ -->
+<section>
+  <h2><span class="n">3</span> 覆盖度 &gt; 最优性：失败/次优数据反而是宝藏</h2>
+  <p class="lead">这些数据<b>不改善基座策略本身</b>，却<b>扩大了支撑集</b>，让 SCORE 能放大更多行为。
+    每行对比 <span class="pill b">Base</span> 与 <span class="pill s">SCORE</span> 的成功率。</p>
+  <div id="ablations"></div>
+  <div class="expl">核心机制：retry/play 数据给 A_base(o) 增加了"恢复动作""左侧动作"等罕见选项，
+    SCORE 在仿真里学会<b>稳定触发</b>它们。跨物体：bottle 先验含捏取→可放大(22→67)，cup 先验无捏取→失败。</div>
+</section>
+
+<!-- ============ 4. 多任务表 ============ -->
+<section>
+  <h2><span class="n">4</span> 多任务先验：跨任务复用支撑集</h2>
+  <p class="lead">单一多任务(MT) base 逊于单任务(ST) base，但 steer 后恢复强性能，并跨任务复用覆盖（真机成功率 %）。</p>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th>任务</th><th>ST Base</th><th>MT Base</th><th>ST SCORE</th><th>MT SCORE</th></tr></thead>
+    <tbody id="mttable"></tbody>
+  </table>
+  </div>
+  <div class="expl">最后一行 Cube Pinch 在更宽的 Bottle-Grasp reset 下：单任务 SCORE 仅 55%，
+    <b>多任务 SCORE 达 95%</b> —— 多任务先验扩大了共享支撑集，复用了其它任务的抓取覆盖。</div>
+</section>
+
+<!-- ============ 5. Pipeline ============ -->
+<section>
+  <h2><span class="n">5</span> Real → Sim → Real 流程</h2>
+  <p class="lead">紫色框 = 冻结不训练。RL 全部作用在 <code>π_steer(z|o)</code> 上，<code>π_base</code> 权重从不更新。</p>
+  <div class="flow">
+    <div class="step"><div class="k">Real→Sim</div><div class="t">① 训 flow 基座</div>
+      <div class="d">真实演示 D_real → flow matching 策略 π_base(a|o)，学多模态行为</div></div>
+    <div class="step"><div class="k">Real→Sim</div><div class="t">② 建仿真环境</div>
+      <div class="d">真实扫描 → 仿真 + 域随机化 + 人工失败注入</div></div>
+    <div class="step frozen"><div class="k">Sim · 冻结</div><div class="t">③ π_base 冻结</div>
+      <div class="d">动作 a=π_base(o,z) 恒 ∈ A_base(o)：支撑集约束由结构自动保证</div></div>
+    <div class="step"><div class="k">Sim · 训练</div><div class="t">④ 学 π_steer</div>
+      <div class="d">PPO + 稀疏奖励 + 非对称 actor-critic（critic 用特权状态）</div></div>
+    <div class="step"><div class="k">Sim→Real</div><div class="t">⑤ 直接部署</div>
+      <div class="d">a=π_base(o,z)+a_r 上真机，免蒸馏、免微调</div></div>
+  </div>
+</section>
+
+<div class="foot">数据均取自论文 arXiv:2606.27475v1。交互可视化用于教学，玩具例子的数值为示意性再现。</div>
+</div>
+
+<script>
+// ---------- 主题切换 ----------
+const rootEl=document.documentElement;
+document.getElementById('themebtn').onclick=()=>{
+  const cur=rootEl.getAttribute('data-theme')
+    || (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  const nxt=cur==='dark'?'light':'dark';
+  rootEl.setAttribute('data-theme',nxt);
+  drawParadigm();
+};
+function css(v){return getComputedStyle(rootEl).getPropertyValue(v).trim();}
+
+// ---------- 1. 三范式可视化 ----------
+// 三个模式中心（动作轴 -1.5..3.2）：好(1.0,r=1.0)、次优(-0.5,r=0.55)、漏洞(2.8,r_sim高/r_real=0)
+const MODES=[
+  {name:'好模式(快)',x:1.0,rReal:1.0,rSim:1.0,col:()=>css('--good')},
+  {name:'次优(慢)', x:-0.5,rReal:0.55,rSim:0.55,col:()=>css('--warn')},
+];
+const HACK={x:2.8,rSim:2.0,rReal:0.0,col:()=>css('--bad')};
+let state={p:'supp',e:'tight'};
+
+// 每种范式给出 [好, 次优, 漏洞] 三处的概率质量
+function distFor(){
+  if(state.p==='unc') return {good:0,slow:0,hack:1.0};
+  if(state.p==='supp') return {good:1.0,slow:0,hack:0}; // 支撑集内全压好模式，绝不碰漏洞
+  // 分布约束：必须保持接近 base 的模式比例(各半)，只能小幅上调好模式
+  if(state.e==='tight') return {good:0.55,slow:0.42,hack:0.03};
+  return {good:0.48,slow:0.30,hack:0.22}; // 松约束开始碰漏洞
+}
+function returns(d){
+  const jSim=d.good*MODES[0].rSim+d.slow*MODES[1].rSim+d.hack*HACK.rSim;
+  const jReal=d.good*MODES[0].rReal+d.slow*MODES[1].rReal+d.hack*HACK.rReal;
+  return {jSim,jReal};
+}
+const EXPL={
+  unc:'<b>无约束 RL</b>：只 max 仿真回报 → 全部概率跑到仿真漏洞 a_hack（仿真 2.0 满分），但真机回报 = 0。这就是 reward hacking / reality gap。',
+  dist_tight:'<b>分布约束(紧)</b>：D(π,π_base)&lt;ε 迫使策略保持接近 base 的<b>分布形状</b>(好/次优各半)，只能小幅上调好模式 → 被<b>次优慢模式拖住</b>，真机提升有限。',
+  dist_loose:'<b>分布约束(松)</b>：放开约束后能更偏好好模式，但也开始<b>碰到漏洞 a_hack</b> → 真机回报反而下滑。提升与迁移<b>不可兼得</b>。',
+  supp:'<b>支撑集约束 (SCORE)</b>：只要求动作 ∈ π_base 可生成集合（好/次优），<b>概率可任意重分配</b> → 全压好模式、抛弃次优、<b>永不碰漏洞</b>(漏洞∉支撑集) → 仿真与真机双高！',
+};
+function drawParadigm(){
+  const cv=document.getElementById('cv1'),g=cv.getContext('2d');
+  const W=cv.width,H=cv.height;g.clearRect(0,0,W,H);
+  const padL=50,padR=20,padB=54,padT=20,plotW=W-padL-padR,plotH=H-padB-padT;
+  const xmin=-1.7,xmax=3.4;
+  const X=a=>padL+(a-xmin)/(xmax-xmin)*plotW;
+  const Y=v=>padT+plotH-v*plotH; // v in 0..1 (归一到最大回报~2 → 用0.5缩放)
+  // 坐标轴
+  g.strokeStyle=css('--line');g.lineWidth=1;
+  g.beginPath();g.moveTo(padL,padT);g.lineTo(padL,padT+plotH);g.lineTo(W-padR,padT+plotH);g.stroke();
+  g.fillStyle=css('--muted');g.font='12px sans-serif';g.textAlign='center';
+  g.fillText('动作 a  →',padL+plotW/2,H-8);
+  g.save();g.translate(14,padT+plotH/2);g.rotate(-Math.PI/2);g.fillText('策略动作密度',0,0);g.restore();
+  // 回报地形（真机）：好峰、次优峰、漏洞处真机=0
+  g.strokeStyle=css('--accent');g.globalAlpha=.35;g.lineWidth=2;g.beginPath();
+  for(let px=0;px<=plotW;px+=3){
+    const a=xmin+px/plotW*(xmax-xmin);
+    let r=0; MODES.forEach(m=>{r=Math.max(r,m.rReal*Math.exp(-0.5*Math.pow((a-m.x)/0.18,2)));});
+    const y=padT+plotH-(r/2)*plotH;
+    px===0?g.moveTo(padL+px,y):g.lineTo(padL+px,y);
+  }
+  g.stroke();g.globalAlpha=1;
+  g.textAlign='left';g.fillStyle=css('--accent');g.globalAlpha=.7;
+  g.fillText('— 真机回报地形',padL+8,padT+12);g.globalAlpha=1;
+  // 漏洞标记
+  g.strokeStyle=css('--bad');g.setLineDash([4,4]);g.beginPath();
+  g.moveTo(X(HACK.x),padT);g.lineTo(X(HACK.x),padT+plotH);g.stroke();g.setLineDash([]);
+  g.fillStyle=css('--bad');g.textAlign='center';g.fillText('a_hack',X(HACK.x),padT+plotH+18);
+  // 画三个概率柱（好/次优/漏洞）
+  const d=distFor();
+  const bars=[
+    {x:MODES[0].x,p:d.good,col:MODES[0].col()},
+    {x:MODES[1].x,p:d.slow,col:MODES[1].col()},
+    {x:HACK.x,p:d.hack,col:HACK.col()},
+  ];
+  const bw=34;
+  bars.forEach(b=>{
+    const h=b.p*plotH;const bx=X(b.x)-bw/2;
+    g.fillStyle=b.col;g.globalAlpha=.85;
+    g.fillRect(bx,padT+plotH-h,bw,h);g.globalAlpha=1;
+    g.fillStyle=css('--ink');g.font='bold 12px sans-serif';g.textAlign='center';
+    if(b.p>0.01)g.fillText((b.p*100).toFixed(0)+'%',X(b.x),padT+plotH-h-6);
+  });
+  // 模式标签
+  g.fillStyle=css('--muted');g.font='11px sans-serif';
+  g.fillText('好(快)',X(MODES[0].x),padT+plotH+18);
+  g.fillText('次优(慢)',X(MODES[1].x),padT+plotH+18);
+  // 更新数值
+  const {jSim,jReal}=returns(d);
+  const sSim=document.querySelector('#s-sim .val'),sReal=document.querySelector('#s-real .val');
+  sSim.textContent=jSim.toFixed(2);sReal.textContent=jReal.toFixed(2);
+  document.getElementById('s-real').className='stat '+(jReal>=0.9?'good':jReal<=0.2?'bad':'');
+  const key=state.p==='dist'?('dist_'+state.e):state.p;
+  document.getElementById('expl1').innerHTML=EXPL[key];
+}
+document.querySelectorAll('#paradigm button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#paradigm button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');state.p=b.dataset.p;
+  document.getElementById('epsseg').style.display=state.p==='dist'?'inline-flex':'none';
+  drawParadigm();
+});
+document.querySelectorAll('#epsseg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#epsseg button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');state.e=b.dataset.e;drawParadigm();
+});
+
+// ---------- 2. 主结果任务条 ----------
+// 真实数据：base -> SCORE（论文正文给出的具体任务）
+const TASKS={
+  'Ball Pour':{base:11,score:89,resid:null},
+  'Credit Card Pick':{base:10,score:80,resid:null},
+  'Cube Pinch':{base:30,score:100,resid:null},
+  'Bottle Grasp':{base:90,score:100,resid:null},
+  '8任务平均':{base:37.8,score:89.9,best:59.5},
+};
+const METHOD_COL={base:'--muted',score:'--supp',best:'--dist'};
+function renderTask(name){
+  const t=TASKS[name];const el=document.getElementById('taskbars');
+  const rows=[['Base 基座',t.base,'--muted'],['SCORE',t.score,'--supp']];
+  if(t.best!=null)rows.splice(1,0,['最佳基线',t.best,'--dist']);
+  el.innerHTML=rows.map(([lab,v,c])=>`
+    <div class="abl">
+      <div class="barlab"><span>${lab}</span><span>${v}%</span></div>
+      <div class="bar"><span style="width:${v}%;background:${css(c)}"></span></div>
+    </div>`).join('');
+}
+const ts=document.getElementById('taskseg');
+Object.keys(TASKS).forEach((k,i)=>{
+  const b=document.createElement('button');b.textContent=k;if(i===0)b.classList.add('active');
+  b.onclick=()=>{ts.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');renderTask(k);};
+  ts.appendChild(b);
+});
+
+// ---------- 3. 覆盖度消融 ----------
+const ABL=[
+  {name:'Cube Pinch + retry 数据（故意失误后恢复）',base:40,score:100},
+  {name:'Play 数据（左侧次优交互，无成功抓取）',base:30,score:64},
+  {name:'跨物体：bottle 先验 → 抓胡萝卜（含捏取模式）',base:22,score:67},
+  {name:'Distractor 干扰物（视觉泛化受限）',base:0,score:56},
+];
+document.getElementById('ablations').innerHTML=ABL.map(a=>`
+  <div class="abl">
+    <div class="name">${a.name}</div>
+    <div class="barlab"><span><span class="pill b">Base</span></span><span>${a.base}%</span></div>
+    <div class="bar" style="margin-bottom:6px"><span style="width:${a.base}%;background:${css('--muted')}"></span></div>
+    <div class="barlab"><span><span class="pill s">SCORE</span></span><span>${a.score}%</span></div>
+    <div class="bar"><span style="width:${a.score}%;background:${css('--supp')}"></span></div>
+  </div>`).join('');
+
+// ---------- 4. 多任务表 ----------
+const MT=[
+  ['Bottle Grasp',90,60,100,100],
+  ['Cube Pinch',30,25,100,100],
+  ['Credit Card',10,10,80,75],
+  ['Cube (BG reset)',10,10,55,95],
+];
+document.getElementById('mttable').innerHTML=MT.map(r=>`
+  <tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td>
+  <td style="color:var(--supp);font-weight:700">${r[3]}</td>
+  <td style="color:var(--supp);font-weight:700">${r[4]}</td></tr>`).join('');
+
+// init
+renderTask('Ball Pour');
+drawParadigm();
+window.addEventListener('resize',drawParadigm);
+</script>
+</body>
+</html>

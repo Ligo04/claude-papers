@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoboDojo 交互式论文导览</title>
+<style>
+:root{
+  --bg:#f6f7fb; --card:#ffffff; --ink:#1a1d29; --sub:#5b6270; --line:#e4e7ef;
+  --accent:#4f46e5; --accent2:#0ea5e9; --good:#16a34a; --warn:#f59e0b; --bad:#dc2626;
+  --human:#0891b2; --bar:#6366f1; --shadow:0 1px 3px rgba(20,25,45,.08),0 8px 24px rgba(20,25,45,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0e1016;--card:#171a24;--ink:#e8eaf0;--sub:#9aa2b4;--line:#262b39;
+    --accent:#818cf8;--accent2:#38bdf8;--human:#22d3ee;--bar:#818cf8;--shadow:0 1px 3px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);}
+}
+:root[data-theme="dark"]{--bg:#0e1016;--card:#171a24;--ink:#e8eaf0;--sub:#9aa2b4;--line:#262b39;
+  --accent:#818cf8;--accent2:#38bdf8;--human:#22d3ee;--bar:#818cf8;--shadow:0 1px 3px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);}
+:root[data-theme="light"]{--bg:#f6f7fb;--card:#ffffff;--ink:#1a1d29;--sub:#5b6270;--line:#e4e7ef;
+  --accent:#4f46e5;--accent2:#0ea5e9;--human:#0891b2;--bar:#6366f1;--shadow:0 1px 3px rgba(20,25,45,.08),0 8px 24px rgba(20,25,45,.06);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 18px 80px}
+header.hero{text-align:center;padding:36px 16px 28px}
+.badge{display:inline-block;font-size:12px;letter-spacing:.5px;color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 12%,transparent);padding:4px 12px;border-radius:999px;margin-bottom:14px;font-weight:600}
+h1{font-size:clamp(24px,4.4vw,38px);margin:.1em 0 .2em;line-height:1.2}
+.sub{color:var(--sub);max-width:720px;margin:8px auto 0;font-size:15px}
+.meta{color:var(--sub);font-size:13px;margin-top:14px}
+.meta a{color:var(--accent2);text-decoration:none}
+.themebtn{position:fixed;top:14px;right:14px;z-index:20;background:var(--card);border:1px solid var(--line);
+  color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;box-shadow:var(--shadow)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:26px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+.kpi .n{font-size:26px;font-weight:700;color:var(--accent)}
+.kpi .l{font-size:12.5px;color:var(--sub);margin-top:2px}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:20px 0;box-shadow:var(--shadow)}
+h2{font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+h2 .dot{width:9px;height:9px;border-radius:3px;background:var(--accent)}
+.hint{color:var(--sub);font-size:13.5px;margin:2px 0 16px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{border:1px solid var(--line);background:transparent;color:var(--sub);padding:7px 14px;border-radius:999px;
+  cursor:pointer;font-size:13px;font-weight:600;transition:.15s}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tab:hover:not(.active){border-color:var(--accent);color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+.tblwrap{overflow-x:auto}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--sub);font-weight:600;cursor:pointer;user-select:none}
+th:hover{color:var(--ink)}
+td.num{font-variant-numeric:tabular-nums;text-align:right}
+tr.human td{background:color-mix(in srgb,var(--human) 12%,transparent);font-weight:600}
+.rank{color:var(--sub);width:26px}
+.barcell{position:relative}
+.barfill{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--bar) 22%,transparent);z-index:0;border-radius:0 4px 4px 0}
+.barcell span{position:relative;z-index:1}
+.gold{color:#d97706;font-weight:700}
+.silver{color:#78859c;font-weight:700}
+/* parallel demo */
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.pgrid{grid-template-columns:1fr}.pgrid2{grid-template-columns:1fr!important}}
+.pcard{border:1px solid var(--line);border-radius:12px;padding:14px;background:color-mix(in srgb,var(--bg) 40%,transparent)}
+.pcard h4{margin:0 0 8px;font-size:14px}
+.envgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0}
+.env{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;border:1px solid var(--line)}
+.ctrl{display:flex;align-items:center;gap:12px;margin:14px 0 6px;flex-wrap:wrap}
+input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+.val{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);min-width:60px}
+.thrbar{height:26px;border-radius:7px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;padding:0 10px;color:#fff;font-size:12.5px;font-weight:600;transition:width .4s ease;min-width:60px}
+.thrrow{margin:10px 0}
+.thrrow .lab{font-size:12.5px;color:var(--sub);margin-bottom:4px}
+/* radar */
+.radarwrap{display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center}
+svg{max-width:100%;height:auto}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin-top:10px;justify-content:center}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.picker{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;justify-content:center}
+.chip{border:1px solid var(--line);background:transparent;color:var(--sub);padding:5px 11px;border-radius:999px;cursor:pointer;font-size:12.5px;font-weight:600}
+.chip.on{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--ink);border-color:var(--accent)}
+.note{font-size:12.5px;color:var(--sub);background:color-mix(in srgb,var(--warn) 10%,transparent);
+  border-left:3px solid var(--warn);padding:9px 12px;border-radius:0 8px 8px 0;margin-top:14px}
+.dimcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:8px}
+.dc{border:1px solid var(--line);border-radius:12px;padding:14px}
+.dc .t{font-weight:700;font-size:14px;margin-bottom:3px}
+.dc .c{font-size:11.5px;color:#fff;padding:2px 8px;border-radius:999px;display:inline-block;margin-bottom:8px}
+.dc .d{font-size:12.5px;color:var(--sub)}
+.foot{text-align:center;color:var(--sub);font-size:12.5px;margin-top:30px}
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn">🌓 主题</button>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">arXiv 2607.04434v1 · cs.RO · 2026</span>
+  <h1>RoboDojo 交互式导览</h1>
+  <div class="sub">统一的 <b>Sim-and-Real</b> 通用机器人操作策略评测基准 —— 42 仿真任务 / 5 能力维度 + 18 真机任务 / 3 本体，异构并行仿真 + 可复现远程真机平台 + 统一策略框架。</div>
+  <div class="meta">MMLab@HKU · UC Berkeley · THU · PKU · Stanford · MIT ...　|　<a href="http://robodojo-benchmark.com/">robodojo-benchmark.com</a></div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">42+18</div><div class="l">仿真 + 真机任务</div></div>
+  <div class="kpi"><div class="n">30</div><div class="l">已集成评测策略</div></div>
+  <div class="kpi"><div class="n">1.94×</div><div class="l">异构并行加速</div></div>
+  <div class="kpi"><div class="n">13.07</div><div class="l">仿真榜首 vs Human 80.42</div></div>
+</div>
+
+<!-- 1. 系统三大件 -->
+<section>
+  <h2><span class="dot"></span>系统三大件：集成一次，处处评测</h2>
+  <p class="hint">RoboDojo 把「策略」通过 XPolicyLab 统一接口接入一次，即可在仿真快速迭代、再最小改动部署到标准化真机评测，形成诊断→改进闭环。</p>
+  <div class="pgrid pgrid2" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="pcard"><h4>🖥️ 仿真平台</h4><div class="d" style="font-size:12.5px;color:var(--sub)">基于 Isaac Sim / Isaac Lab；YAML 配置驱动；物理接地资产库；<b>异构并行</b>；cuRobo v2 自动合成 + VR 遥操作采数。42 任务 / 5 维度 / 2100 episodes。</div></div>
+    <div class="pcard"><h4>🤖 RoboDojo-RealEval</h4><div class="d" style="font-size:12.5px;color:var(--sub)">标准化硬件（1.5×1.5m，1 head + 2 wrist cam，固定夹具与光源）+ 触摸屏软件 + 布局叠加复位 + 云端远程评测。18 任务 / 3 本体。</div></div>
+    <div class="pcard"><h4>🔌 XPolicyLab</h4><div class="d" style="font-size:12.5px;color:var(--sub)">统一策略接口（观测更新/动作预测/reset/批量查询）。集成 30 策略，标准化数据/训练/部署/评测流程，保留各自内部架构。</div></div>
+  </div>
+</section>
+
+<!-- 2. 能力维度 -->
+<section>
+  <h2><span class="dot"></span>五大能力维度：从「聚合成功率」到「结构化诊断」</h2>
+  <p class="hint">仿真任务按 5 个正交能力维度组织，跳出「换物体/布局/语言」的表面变化，诊断策略在不同挑战上的短板。总分取 5 维度<b>均值</b>而非全任务平均，防止任务多的维度主导。</p>
+  <div class="dimcards" id="dimcards"></div>
+</section>
+
+<!-- 3. 榜单 -->
+<section>
+  <h2><span class="dot"></span>公开榜单（2026-07-03 快照）</h2>
+  <p class="hint">点击表头可排序。切换仿真 / 真机榜；仿真榜可切换查看不同能力维度的 score/success-rate。灰条长度 = 相对当前列最高分。Human 参考行不参与排名。</p>
+  <div class="tabs" id="boardtabs">
+    <button class="tab active" data-board="sim">仿真榜（Average）</button>
+    <button class="tab" data-board="real">真机榜（Overall Avg）</button>
+  </div>
+  <div class="tabs" id="dimtabs">
+    <button class="tab active" data-dim="Average">Average</button>
+    <button class="tab" data-dim="Generalization">泛化</button>
+    <button class="tab" data-dim="Precision">精度</button>
+    <button class="tab" data-dim="LongHorizon">长程</button>
+    <button class="tab" data-dim="Memory">记忆</button>
+    <button class="tab" data-dim="Open">开放</button>
+  </div>
+  <div class="tblwrap"><table id="board"></table></div>
+  <div class="note" id="boardnote"></div>
+</section>
+
+<!-- 4. 异构并行 -->
+<section>
+  <h2><span class="dot"></span>异构并行仿真：兼顾提速与多样性</h2>
+  <p class="hint">标准向量化仿真用<b>同构克隆</b>环境（同一场景模板，仅位姿/种子不同）。RoboDojo 让每个并行环境<b>独立采样场景配置</b>（不同物体类别、杂物数、铰接结构、任务布局），在共享向量化接口下步进——既提速又保留评测所需的场景多样性。</p>
+  <div class="ctrl">
+    <span style="font-size:13px;color:var(--sub)">并行环境数</span>
+    <input type="range" id="nenv" min="4" max="20" step="1" value="10">
+    <span class="val" id="nenvv">10</span>
+  </div>
+  <div class="pgrid">
+    <div class="pcard">
+      <h4>同构克隆（Homogeneous）</h4>
+      <div class="envgrid" id="homo"></div>
+      <div style="font-size:12.5px;color:var(--sub)">场景多样性覆盖：<b id="homodiv">1</b> 种模板</div>
+    </div>
+    <div class="pcard">
+      <h4>异构并行（Heterogeneous）</h4>
+      <div class="envgrid" id="hetero"></div>
+      <div style="font-size:12.5px;color:var(--sub)">场景多样性覆盖：<b id="heterodiv">10</b> 种独立配置</div>
+    </div>
+  </div>
+  <div class="thrrow"><div class="lab">吞吐（零动作 rollout，8×RTX 4090，论文实测）</div>
+    <div class="thrbar" id="thr-het" style="width:100%">异构 77.4 interactions/s</div></div>
+  <div class="thrrow">
+    <div class="thrbar" id="thr-hom" style="width:52%;background:linear-gradient(90deg,#94a3b8,#64748b)">同构 40.0 interactions/s</div></div>
+  <div class="note">含 π0.5 远程推理时：异构 64.0 vs 非异构 → <b>1.63×</b>；零动作下 <b>1.94×</b>。异构并行是本论文最硬的系统贡献。</div>
+</section>
+
+<!-- 5. 与 Human 的差距 -->
+<section>
+  <h2><span class="dot"></span>与人类专家的鸿沟：benchmark 揭示了什么</h2>
+  <p class="hint">选择要对比的策略，观察它们在 5 维度上与 Human Expert（>1000 小时遥操作）的差距。<b>Open（开放语义）几乎全崩、Precision（精度）是普遍瓶颈</b>——这正是 RoboDojo 想暴露的方向。</p>
+  <div class="picker" id="radarpick"></div>
+  <div class="radarwrap"><svg id="radar" viewBox="0 0 420 360" width="420" height="360"></svg></div>
+  <div class="legend" id="radarlegend"></div>
+</section>
+
+<div class="foot">
+  数据来自 RoboDojo 论文（arXiv 2607.04434v1）Table 1 / Table 4 及正文，快照 2026-07-03。<br>
+  本页为学习用交互导览，非官方产物 · 由 claude-paper:study 生成 🐾
+</div>
+</div>
+
+<script>
+// ============ 真实数据（严格来自 FACTS） ============
+const DIMS=[
+  {key:"Generalization",zh:"泛化",n:12,color:"#6366f1",desc:"对未见背景/光照/杂物(最多25个)/目标物的鲁棒性",human:[90.05,87.83]},
+  {key:"Precision",zh:"精度",n:8,color:"#0ea5e9",desc:"细粒度定位、平滑运动、接触稳定控制（插管入孔）",human:[68.06,64.00]},
+  {key:"LongHorizon",zh:"长程",n:8,color:"#16a34a",desc:"推断任务结构、维持进度、完成全部子步骤",human:[83.63,74.25]},
+  {key:"Memory",zh:"记忆",n:6,color:"#f59e0b",desc:"部分可观测、非马尔可夫、关键帧记忆",human:[75.25,74.33]},
+  {key:"Open",zh:"开放",n:8,color:"#dc2626",desc:"未见任务规约、技能重组、语言迁移（不含训练数据）",human:[85.13,79.75]},
+];
+// 仿真榜: [name, Average(score,sr), Gen, Prec, LH, Mem, Open]  每维 [score, sr]
+const SIM=[
+["Hy-Embodied-0.5-VLA",[13.07,8.80],[11.77,8.39],[13.81,8.00],[25.74,14.92],[13.37,12.11],[0.65,0.58]],
+["Spatial Forcing",[12.38,8.04],[14.12,9.33],[17.33,10.58],[23.26,14.58],[5.43,4.11],[1.78,1.58]],
+["π0.5",[11.41,6.91],[13.37,8.17],[12.40,5.50],[23.54,14.67],[5.78,4.56],[1.98,1.67]],
+["X-VLA",[10.13,6.52],[10.48,6.78],[18.32,12.00],[16.53,9.75],[4.76,3.56],[0.55,0.50]],
+["X-WAM",[7.69,3.83],[7.39,3.33],[6.72,1.83],[17.47,9.08],[6.32,4.67],[0.57,0.25]],
+["Xiaomi-Robotics-0",[6.93,4.18],[7.43,5.56],[8.42,4.58],[13.51,6.92],[5.07,3.67],[0.22,0.17]],
+["StarVLA-α",[6.40,3.24],[3.93,2.33],[9.90,4.33],[14.15,6.50],[3.34,2.44],[0.68,0.58]],
+["GigaWorld-Policy",[6.20,3.27],[5.34,2.89],[6.15,1.83],[15.51,8.92],[3.46,2.22],[0.54,0.50]],
+["GalaxeaVLA (G0)",[5.82,2.96],[4.53,2.83],[8.10,3.83],[12.60,5.58],[3.17,1.89],[0.70,0.67]],
+["LingBot-VLA",[5.50,2.96],[6.71,4.28],[5.33,1.83],[10.89,5.25],[3.82,2.78],[0.72,0.67]],
+["EventVLA",[4.97,2.81],[3.94,1.94],[10.13,5.75],[5.05,0.83],[4.92,4.78],[0.80,0.75]],
+["AHA-WAM",[4.82,2.39],[5.79,3.28],[5.86,2.42],[8.61,2.67],[2.97,2.78],[0.88,0.83]],
+["ABot-M0",[3.67,1.73],[5.73,3.50],[5.50,1.75],[3.96,0.50],[2.44,2.22],[0.72,0.67]],
+["Fast-WAM",[3.48,2.03],[2.34,1.11],[1.96,0.00],[9.14,5.17],[3.55,3.44],[0.42,0.42]],
+["π0",[3.48,1.53],[3.94,2.56],[3.56,0.75],[6.19,2.00],[3.47,2.11],[0.25,0.25]],
+["GR00T-N1.7",[2.85,1.31],[2.16,1.22],[2.54,0.67],[8.30,3.58],[1.06,0.89],[0.18,0.17]],
+["InternVLA-A1",[2.48,1.08],[2.87,1.83],[3.00,0.92],[4.79,1.17],[1.58,1.33],[0.17,0.17]],
+["SmolVLA (Single)",[1.83,0.85],[1.69,1.22],[2.87,0.33],[1.22,0.25],[3.35,2.44],[0.00,0.00]],
+["LDA-1B",[1.58,0.51],[0.71,0.17],[3.21,0.50],[1.92,0.08],[2.08,1.78],[0.00,0.00]],
+["MolmoAct2",[1.02,0.38],[0.39,0.06],[0.45,0.00],[2.32,0.00],[1.02,1.00],[0.91,0.83]],
+];
+const SIM_HUMAN=["Human Expert (Teleop)",[80.42,76.03],[90.05,87.83],[68.06,64.00],[83.63,74.25],[75.25,74.33],[85.13,79.75]];
+// 真机榜: [name, overall(score,sr)]
+const REAL=[
+["π0.5",[22.9,12.8]],["InternVLA-A1",[12.0,7.2]],["GalaxeaVLA (G0)",[9.0,4.4]],
+["Xiaomi-Robotics-0",[7.9,3.9]],["X-VLA",[7.6,3.3]],["GR00T-N1.7",[5.9,1.7]],
+["π0",[5.8,1.7]],["StarVLA-α",[4.1,1.7]],["Spirit v1.5",[1.6,0.6]],
+];
+const DIMIDX={Average:1,Generalization:2,Precision:3,LongHorizon:4,Memory:5,Open:6};
+
+// ============ 维度卡片 ============
+document.getElementById("dimcards").innerHTML=DIMS.map(d=>
+  `<div class="dc"><div class="t">${d.zh} · ${d.key}</div>
+   <span class="c" style="background:${d.color}">${d.n} 任务</span>
+   <div class="d">${d.desc}</div></div>`).join("");
+
+// ============ 榜单 ============
+let curBoard="sim",curDim="Average",sortDesc=true;
+function renderBoard(){
+  const tb=document.getElementById("board");
+  const dimTabs=document.getElementById("dimtabs");
+  dimTabs.style.display=curBoard==="sim"?"flex":"none";
+  let rows,head;
+  if(curBoard==="sim"){
+    const di=DIMIDX[curDim];
+    rows=SIM.map(r=>({name:r[0],score:r[di][0],sr:r[di][1]}));
+    rows.sort((a,b)=>sortDesc?b.score-a.score:a.score-b.score);
+    const max=Math.max(...rows.map(r=>r.score));
+    const hd=SIM_HUMAN[di];
+    head=`<tr><th class="rank">#</th><th>策略</th><th class="num" data-sort="score">Score ▾</th><th class="num" data-sort="sr">成功率 %</th></tr>`;
+    let body=rows.map((r,i)=>{
+      const w=(r.score/max*100).toFixed(0);
+      const rk=i===0?'<span class="gold">①</span>':i===1?'<span class="silver">②</span>':(i+1);
+      return `<tr><td class="rank">${rk}</td><td>${r.name}</td>
+        <td class="num barcell"><div class="barfill" style="width:${w}%"></div><span>${r.score.toFixed(2)}</span></td>
+        <td class="num">${r.sr.toFixed(2)}%</td></tr>`;
+    }).join("");
+    body+=`<tr class="human"><td class="rank">★</td><td>${SIM_HUMAN[0]}</td>
+        <td class="num">${hd[0].toFixed(2)}</td><td class="num">${hd[1].toFixed(2)}%</td></tr>`;
+    tb.innerHTML=head+body;
+    document.getElementById("boardnote").innerHTML=
+      curDim==="Open"?"⚠️ Open 维度全员近乎崩溃（榜首 π0.5 仅 1.98 分），开放语义操作基本未解——这是最难的 split。"
+      :curDim==="Precision"?"⚠️ 精度是普遍瓶颈：接触感知控制有限、off-trajectory 恢复弱，EE 与关节空间接口都不稳。"
+      :`当前维度：${curDim}。注意顶尖策略分数仍远低于 Human（${hd[0].toFixed(1)} 分），揭示离均衡通用操作的巨大差距。`;
+  }else{
+    rows=REAL.map(r=>({name:r[0],score:r[1][0],sr:r[1][1]}));
+    rows.sort((a,b)=>sortDesc?b.score-a.score:a.score-b.score);
+    const max=Math.max(...rows.map(r=>r.score));
+    head=`<tr><th class="rank">#</th><th>策略</th><th class="num">Overall Score</th><th class="num">成功率 %</th></tr>`;
+    tb.innerHTML=head+rows.map((r,i)=>{
+      const w=(r.score/max*100).toFixed(0);
+      const rk=i===0?'<span class="gold">①</span>':i===1?'<span class="silver">②</span>':(i+1);
+      return `<tr><td class="rank">${rk}</td><td>${r.name}</td>
+        <td class="num barcell"><div class="barfill" style="width:${w}%"></div><span>${r.score.toFixed(1)}</span></td>
+        <td class="num">${r.sr.toFixed(1)}%</td></tr>`;
+    }).join("");
+    document.getElementById("boardnote").innerHTML=
+      "真机榜 π0.5 领先（22.9 分/12.8%），但整体仍低——真机部署不可靠，部分进度极少转化为完成。Piper X 本体对多数策略近乎 0。";
+  }
+}
+document.querySelectorAll("#boardtabs .tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll("#boardtabs .tab").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");curBoard=t.dataset.board;renderBoard();
+});
+document.querySelectorAll("#dimtabs .tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll("#dimtabs .tab").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");curDim=t.dataset.dim;renderBoard();
+});
+document.getElementById("board").addEventListener("click",e=>{
+  if(e.target.dataset&&e.target.dataset.sort!==undefined){sortDesc=!sortDesc;renderBoard();}
+});
+renderBoard();
+
+// ============ 异构并行可视化 ============
+const shapes=["🟦","🟥","🟩","🟨","🟪","🟧","⬛","🔶","🔷","🔺","🔻","⭐","🥫","🧩","🔩","🥚","📦","🍶","🔑","🎳"];
+function renderParallel(){
+  const n=+document.getElementById("nenv").value;
+  document.getElementById("nenvv").textContent=n;
+  const homo=document.getElementById("homo"),het=document.getElementById("hetero");
+  homo.innerHTML="";het.innerHTML="";
+  for(let i=0;i<n;i++){
+    const a=document.createElement("div");a.className="env";
+    a.style.background="color-mix(in srgb,#64748b 14%,transparent)";
+    a.textContent="🟦"; // 同一模板
+    homo.appendChild(a);
+    const b=document.createElement("div");b.className="env";
+    b.style.background="color-mix(in srgb,var(--accent) 12%,transparent)";
+    b.textContent=shapes[i%shapes.length]; // 各不相同
+    het.appendChild(b);
+  }
+  document.getElementById("homodiv").textContent="1";
+  document.getElementById("heterodiv").textContent=n;
+}
+document.getElementById("nenv").oninput=renderParallel;
+renderParallel();
+
+// ============ 雷达图 ============
+const RADAR_POOL=[SIM[0],SIM[2],SIM[3]]; // Hy-Embodied, π0.5, X-VLA
+const RCOLORS=["#6366f1","#0ea5e9","#16a34a"];
+let radarSel=[0,1]; // 默认选 Hy-Embodied + π0.5
+function buildPicker(){
+  const p=document.getElementById("radarpick");
+  p.innerHTML=RADAR_POOL.map((r,i)=>
+    `<button class="chip ${radarSel.includes(i)?'on':''}" data-i="${i}">${r[0]}</button>`).join("");
+  p.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+    const i=+c.dataset.i;
+    if(radarSel.includes(i)){if(radarSel.length>1)radarSel=radarSel.filter(x=>x!==i);}
+    else radarSel.push(i);
+    buildPicker();drawRadar();
+  });
+}
+function drawRadar(){
+  const cx=210,cy=185,R=120,N=5;
+  const svg=document.getElementById("radar");
+  const ink=getComputedStyle(document.body).getPropertyValue("--sub");
+  const line=getComputedStyle(document.body).getPropertyValue("--line");
+  let s="";
+  // 网格（按 score，最大 ~90 归一）
+  const MAXV=90;
+  for(let g=1;g<=4;g++){
+    const rr=R*g/4;let pts="";
+    for(let k=0;k<N;k++){const ang=-Math.PI/2+k*2*Math.PI/N;
+      pts+=`${cx+rr*Math.cos(ang)},${cy+rr*Math.sin(ang)} `;}
+    s+=`<polygon points="${pts}" fill="none" stroke="${line}" stroke-width="1"/>`;
+  }
+  // 轴 + 标签
+  DIMS.forEach((d,k)=>{
+    const ang=-Math.PI/2+k*2*Math.PI/N;
+    const x=cx+R*Math.cos(ang),y=cy+R*Math.sin(ang);
+    s+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${line}" stroke-width="1"/>`;
+    const lx=cx+(R+26)*Math.cos(ang),ly=cy+(R+26)*Math.sin(ang);
+    s+=`<text x="${lx}" y="${ly}" fill="${ink}" font-size="11" text-anchor="middle" dominant-baseline="middle">${d.zh}</text>`;
+  });
+  // Human 参考（虚线）
+  const drawPoly=(vals,color,fill,dash)=>{
+    let pts="";
+    vals.forEach((v,k)=>{const ang=-Math.PI/2+k*2*Math.PI/N;
+      const rr=R*Math.min(v/MAXV,1);
+      pts+=`${cx+rr*Math.cos(ang)},${cy+rr*Math.sin(ang)} `;});
+    s+=`<polygon points="${pts}" fill="${fill}" stroke="${color}" stroke-width="2" ${dash?'stroke-dasharray="5 4"':''}/>`;
+  };
+  const humanVals=DIMS.map(d=>d.human[0]);
+  drawPoly(humanVals,getComputedStyle(document.body).getPropertyValue("--human"),"none",true);
+  radarSel.forEach(i=>{
+    const r=RADAR_POOL[i];
+    const vals=[r[2][0],r[3][0],r[4][0],r[5][0],r[6][0]]; // Gen,Prec,LH,Mem,Open scores
+    const c=RCOLORS[i];
+    drawPoly(vals,c,`color-mix(in srgb,${c} 18%,transparent)`,false);
+  });
+  svg.innerHTML=s;
+  // legend
+  let lg=`<span><i style="background:var(--human)"></i>Human Expert（参考·虚线）</span>`;
+  radarSel.forEach(i=>lg+=`<span><i style="background:${RCOLORS[i]}"></i>${RADAR_POOL[i][0]}</span>`);
+  document.getElementById("radarlegend").innerHTML=lg;
+}
+buildPicker();drawRadar();
+
+// ============ 主题切换 ============
+const tb=document.getElementById("themebtn");
+tb.onclick=()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const mqDark=window.matchMedia("(prefers-color-scheme:dark)").matches;
+  let next;
+  if(cur)next=cur==="dark"?"light":"dark";
+  else next=mqDark?"light":"dark";
+  document.documentElement.setAttribute("data-theme",next);
+  drawRadar();
+};
+</script>
+</body>
+</html>

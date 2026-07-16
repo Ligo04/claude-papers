@@ -1,0 +1,20 @@
+{
+  "id": "abc-scalable-behavior-cloning",
+  "title": "ABC: Scalable Behavior Cloning with Open Data, Training, and Evaluation",
+  "slug": "abc-scalable-behavior-cloning",
+  "authors": [
+    "Arthur Allshire", "Himanshu Gaurav Singh", "Ritvik Singh", "Adam Rashid",
+    "Hongsuk Choi", "David McAllister", "Justin Yu", "Pieter Abbeel",
+    "Phillip Isola", "Jitendra Malik", "Guanya Shi", "Angjoo Kanazawa"
+  ],
+  "arxiv": "2606.27375v1",
+  "arxiv_url": "https://arxiv.org/abs/2606.27375",
+  "year": 2026,
+  "date": "2026-06-25",
+  "abstract": "ABC is a fully open-source stack for manipulation with behavior cloning. At its core is ABC-130K: the largest open-source teleoperation dataset to date, featuring 3,553 hours of bimanual data across 134,806 episodes and 195 tasks, collected on an $8,000 YAM station. It further open-sources the hardware setup, training infrastructure (ABC-Models: DiT and VLA policies), and simulation pipeline (ABC-Sim: 400 hours of sim-teleop data across 10 tasks). A co-training recipe produces correlated simulation and real-world evaluation (Pearson r=0.85-0.91), offering a reliable proxy for ablating model-design decisions before costly real-world evaluation. Resulting policies execute dexterous tasks such as box folding and extracting credit cards from wallets.",
+  "tags": ["behavior cloning", "teleoperation dataset"],
+  "githubLinks": [],
+  "codeLinks": ["https://abc.bot"],
+  "difficulty": "Intermediate",
+  "nature": "System design + Empirical (open-source stack: data + models + sim + eval)"
+}

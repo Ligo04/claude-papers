@@ -1,0 +1,25 @@
+{
+  "title": "Support-Constrained RL Enables Real-World Policy Improvement without Real-World Experience",
+  "slug": "score-support-constrained-rl",
+  "arxivId": "2606.27475v1",
+  "authors": [
+    "Raymond Yu",
+    "William Huey",
+    "Mustafa Mukadam",
+    "Anusha Nagabandi",
+    "Abhishek Gupta"
+  ],
+  "affiliations": ["University of Washington", "Amazon FAR"],
+  "year": 2026,
+  "date": "2026-06-25",
+  "venue": "arXiv preprint (cs.RO)",
+  "abstract": "Robots trained on real world data tend to be imprecise, slow, and brittle to perturbations. Improving these policies with RL often requires expensive real-world training. Performing policy improvement in simulation is cheaper, but unconstrained RL exploits contact and dynamics mismatches, producing unsafe behaviors that do not transfer. Common regularization overconstrains to an imperfect behavior prior. SCORE (Support-Constrained Off-Domain REinforcement) is a real-to-sim-to-real framework that constrains RL in simulation to the SUPPORT of a generative policy pretrained on real data, instantiated via flow steering. Across eight real-world dexterous multi-fingered manipulation tasks, SCORE improves average success from 37.8% to 89.9% (best baseline 59.5%) and reaches success in 36.8% fewer steps.",
+  "keywords": ["Reinforcement Learning", "Sim-to-Real", "Dexterous Manipulation"],
+  "tags": ["dexterous manipulation", "flow steering"],
+  "projectPage": "https://weirdlabuw.github.io/score/",
+  "githubLinks": [],
+  "codeLinks": ["https://weirdlabuw.github.io/score/"],
+  "difficulty": "Advanced",
+  "nature": ["System design", "Algorithm framework"],
+  "pageCount": 35
+}

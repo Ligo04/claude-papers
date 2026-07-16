@@ -1,0 +1,14 @@
+{
+  "title": "A Careful Examination of Large Behavior Models for Multitask Dexterous Manipulation",
+  "slug": "careful-examination-lbm",
+  "authors": ["TRI LBM Team (Toyota Research Institute)"],
+  "abstract": "机器人操作近年进展迅猛，模仿学习策略已能完成灵巧且难以建模的任务。与此同时，数据与模型规模的扩展催生了强大的语言与视觉基础模型，激发了构建通用机器人基础模型的大规模努力。然而，对这些模型真实世界性能的有意义评估仍是难题，既拖慢了发展速度，也阻碍了对当前能力的细致理解。本文通过将 Diffusion Policy 范式扩展到一个仿真与真实机器人数据的语料库上，严格评估被称为大行为模型（LBM）的多任务机器人操作策略。我们提出并验证了一套能以统计置信度严格分析这些模型能力的评估流水线，在受控环境下通过盲测、随机化试验与单任务基线对比，涵盖仿真与真实实验。我们发现：多任务预训练使策略更成功、更鲁棒，并能用远少于单任务基线的数据更快地教会复杂新任务；且性能随预训练规模与多样性增长可预测地提升。",
+  "year": 2025,
+  "date": "2025-07-07",
+  "tags": ["dexterous manipulation", "policy evaluation"],
+  "githubLinks": ["https://github.com/RoboVerseOrg/RoboVerse"],
+  "codeLinks": ["https://toyotaresearchinstitute.github.io/lbm1/"],
+  "arxiv": "2507.05331v1",
+  "difficulty": "Advanced",
+  "nature": ["Empirical-heavy", "Evaluation methodology", "System design"]
+}

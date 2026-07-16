@@ -1,0 +1,20 @@
+{
+  "id": "robodojo-sim-and-real-benchmark",
+  "title": "RoboDojo: A Unified Sim-and-Real Benchmark for Comprehensive Evaluation of Generalist Robot Manipulation Policies",
+  "slug": "robodojo-sim-and-real-benchmark",
+  "authors": [
+    "Tianxing Chen", "Yue Chen", "Zixuan Li", "Junyuan Tang", "Kailun Su",
+    "Weijie Wan", "Baijun Chen", "Haoran Lu", "Mingyu Ding", "Wenbo Ding",
+    "Ping Luo", "Masayoshi Tomizuka"
+  ],
+  "arxiv": "2607.04434v1",
+  "arxiv_url": "https://arxiv.org/abs/2607.04434",
+  "year": 2026,
+  "date": "2026-07-05",
+  "abstract": "Generalist robot manipulation policies have made substantial progress, yet existing benchmarks remain limited in their ability to systematically and comprehensively evaluate policy capabilities. RoboDojo is a unified sim-and-real benchmark with 42 simulation tasks (five capability dimensions: Generalization, Memory, Precision, Long-Horizon, Open) and 18 real-world tasks (three embodiments: ARX X5, Piper, Piper X). It implements heterogeneous parallel simulation in Isaac Sim, provides RoboDojo-RealEval for reproducible remote real-world evaluation, and XPolicyLab as a unified policy integration infrastructure. 30 policies are integrated and evaluated, establishing a public leaderboard.",
+  "tags": ["robot manipulation", "sim-and-real benchmark"],
+  "githubLinks": ["https://github.com/isaac-sim/IsaacSim", "https://github.com/thu-ml/RDT2"],
+  "codeLinks": ["http://robodojo-benchmark.com/", "https://XPolicyLab.github.io"],
+  "difficulty": "Intermediate",
+  "nature": "System design + Empirical benchmark"
+}

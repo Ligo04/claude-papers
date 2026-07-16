@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LBM 严谨评估 · 交互式探索器</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#171b22; --panel2:#1e242e; --text:#e6edf3; --muted:#9aa7b4;
+    --accent:#4dd0c7; --accent2:#f2a65a; --maroon:#d16b6b; --teal:#4dd0c7; --line:#2b333f;
+    --good:#5cc98a; --bad:#e06c75; --grid:#252c36;
+  }
+  [data-theme="light"]{
+    --bg:#f6f8fa; --panel:#ffffff; --panel2:#eef1f5; --text:#1a1f26; --muted:#5b6672;
+    --accent:#1a9e94; --accent2:#c67a2e; --maroon:#b34a4a; --teal:#1a9e94; --line:#d8dee6;
+    --good:#2e9e5b; --bad:#c0392b; --grid:#e4e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 80px}
+  header{text-align:center;padding:28px 0 10px}
+  h1{font-size:clamp(20px,4vw,30px);margin:0 0 6px;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:14px}
+  .badge{display:inline-block;background:var(--panel2);color:var(--accent);
+    border:1px solid var(--line);border-radius:999px;padding:2px 12px;font-size:12px;margin:4px 4px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin:18px 0;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .card h2{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:8px}
+  .card .desc{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+  .row{display:flex;flex-wrap:wrap;gap:16px}
+  .stat{flex:1 1 150px;background:var(--panel2);border-radius:10px;padding:14px 16px;border:1px solid var(--line)}
+  .stat .num{font-size:26px;font-weight:700;color:var(--accent)}
+  .stat .lbl{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .ctrl{display:flex;align-items:center;gap:12px;margin:10px 0;flex-wrap:wrap}
+  .ctrl label{min-width:130px;font-size:13.5px;color:var(--muted)}
+  input[type=range]{flex:1;min-width:160px;accent-color:var(--accent)}
+  .val{font-variant-numeric:tabular-nums;min-width:64px;text-align:right;color:var(--text);font-weight:600}
+  canvas{max-width:100%;display:block}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:center}
+  th{color:var(--muted);font-weight:600}
+  td.k{text-align:left;color:var(--text)}
+  .scroll{overflow-x:auto}
+  .toggle{position:fixed;top:14px;right:14px;background:var(--panel);border:1px solid var(--line);
+    color:var(--text);border-radius:999px;padding:7px 14px;cursor:pointer;font-size:13px;z-index:10}
+  .note{background:var(--panel2);border-left:3px solid var(--accent2);padding:10px 14px;
+    border-radius:6px;font-size:13px;color:var(--muted);margin-top:12px}
+  .pill{font-size:12px;padding:2px 9px;border-radius:6px;font-weight:600}
+  .pA{background:rgba(93,201,138,.18);color:var(--good)}
+  .pB{background:rgba(242,166,90,.18);color:var(--accent2)}
+  .pC{background:rgba(224,108,117,.18);color:var(--bad)}
+  .arch{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre;
+    color:var(--text);background:var(--panel2);border-radius:8px;padding:14px;overflow-x:auto}
+  .big{font-size:15px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<button class="toggle" onclick="toggleTheme()">🌗 主题</button>
+<div class="wrap">
+<header>
+  <h1>大行为模型 (LBM) 的严谨评估</h1>
+  <div class="sub">A Careful Examination of Large Behavior Models for Multitask Dexterous Manipulation<br>
+  TRI LBM Team · arXiv:2507.05331 · 2025</div>
+  <div style="margin-top:10px">
+    <span class="badge">dexterous manipulation</span>
+    <span class="badge">policy evaluation</span>
+    <span class="badge">Diffusion Transformer</span>
+  </div>
+</header>
+
+<!-- 关键数字 -->
+<div class="card">
+  <h2>📊 一眼看懂规模</h2>
+  <p class="desc">这篇论文的分量来自它的实证规模——这是它敢下统计结论的底气。</p>
+  <div class="row">
+    <div class="stat"><div class="num">~1695h</div><div class="lbl">预训练数据 (Ramen 混合集)</div></div>
+    <div class="stat"><div class="num">532</div><div class="lbl">TRI-Ramen 任务数 (64,262 demos)</div></div>
+    <div class="stat"><div class="num">~1800</div><div class="lbl">真机盲测 A/B rollout</div></div>
+    <div class="stat"><div class="num">47,000+</div><div class="lbl">仿真 rollout</div></div>
+    <div class="stat"><div class="num">3–5×</div><div class="lbl">预训练带来的数据效率</div></div>
+  </div>
+</div>
+
+<!-- 交互1：贝叶斯后验 -->
+<div class="card">
+  <h2>🎲 交互 1：为什么"一个成功率数字"不够？</h2>
+  <p class="desc">论文用<b>贝叶斯 Beta 后验</b>（均匀先验）表达成功率的不确定性。拖动滑块：改变 rollout 次数与成功数，
+  看后验分布如何收窄/移动。这就是论文里"小提琴图"的数学内核。</p>
+  <div class="ctrl">
+    <label>rollout 总次数 n</label>
+    <input id="s_n" type="range" min="5" max="200" value="50" step="5" oninput="drawBeta()">
+    <span class="val" id="v_n">50</span>
+  </div>
+  <div class="ctrl">
+    <label>成功次数 s</label>
+    <input id="s_s" type="range" min="0" max="200" value="30" step="1" oninput="drawBeta()">
+    <span class="val" id="v_s">30</span>
+  </div>
+  <canvas id="cv_beta" width="1000" height="320"></canvas>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--teal)"></span>后验 Beta(1+s, 1+n−s)</span>
+    <span><span class="dot" style="background:var(--accent2)"></span>后验均值</span>
+    <span id="beta_ci"></span>
+  </div>
+  <div class="note" id="beta_note"></div>
+</div>
+
+<!-- 交互2：策略比较 CLD -->
+<div class="card">
+  <h2>🔤 交互 2：两个策略"真的"有差别吗？(CLD 显著性)</h2>
+  <p class="desc">论文用<b>成对假设检验 + Compact Letter Display</b> 判定显著性：不共享字母 = 95% 置信下显著不同。
+  调节两个策略各自的成功数（各 50 次 rollout），看它们能否被统计分开。</p>
+  <div class="ctrl">
+    <label><span class="dot" style="background:var(--maroon)"></span>微调 LBM 成功数</label>
+    <input id="c_a" type="range" min="0" max="50" value="33" oninput="drawCLD()">
+    <span class="val" id="v_ca">33/50</span>
+  </div>
+  <div class="ctrl">
+    <label><span class="dot" style="background:var(--muted)"></span>单任务基线 成功数</label>
+    <input id="c_b" type="range" min="0" max="50" value="25" oninput="drawCLD()">
+    <span class="val" id="v_cb">25/50</span>
+  </div>
+  <canvas id="cv_cld" width="1000" height="230"></canvas>
+  <div class="note" id="cld_note"></div>
+</div>
+
+<!-- 交互3：数据效率 -->
+<div class="card">
+  <h2>📉 交互 3：数据效率——预训练省下多少数据？</h2>
+  <p class="desc">核心卖点：微调 LBM 用<b>一小部分</b>任务数据就能追平/超越从零训练的单任务基线。
+  拖动"任务数据比例"，看两条曲线的差距（示意曲线，锚定论文真实结论：仿真 &lt;30% 即追平，真机 SetBreakfastTable 仅 15% 即超越全量基线）。</p>
+  <div class="ctrl">
+    <label>任务专用数据比例</label>
+    <input id="d_frac" type="range" min="5" max="100" value="30" step="5" oninput="drawEff()">
+    <span class="val" id="v_frac">30%</span>
+  </div>
+  <canvas id="cv_eff" width="1000" height="320"></canvas>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--maroon)"></span>微调 LBM (Task Completion)</span>
+    <span><span class="dot" style="background:var(--muted)"></span>单任务基线 (从零训练)</span>
+  </div>
+  <div class="note" id="eff_note"></div>
+</div>
+
+<!-- 分布偏移放大 -->
+<div class="card">
+  <h2>🌪️ 分布偏移放大了预训练的价值</h2>
+  <p class="desc">全文最有力的因果线索：预训练的好处在"训练分布之外"才充分显现。下面是仿真 seen 任务中
+  <b>微调 LBM 统计显著优于单任务</b>的任务数占比。</p>
+  <div class="row">
+    <div class="stat" style="flex:1 1 220px">
+      <div class="lbl" style="margin-bottom:6px">Nominal（正常条件）</div>
+      <div class="num" style="color:var(--muted)">3 / 16</div>
+      <canvas id="bar_nom" width="300" height="26"></canvas>
+    </div>
+    <div class="stat" style="flex:1 1 220px">
+      <div class="lbl" style="margin-bottom:6px">Distribution Shift（分布偏移）</div>
+      <div class="num" style="color:var(--good)">10 / 16</div>
+      <canvas id="bar_shift" width="300" height="26"></canvas>
+    </div>
+  </div>
+  <div class="note">分布偏移在真实部署中<b>不可避免</b>，却常被实证机器人工作省略——省略它等于隐藏了 LBM 最大的卖点。</div>
+</div>
+
+<!-- 架构 -->
+<div class="card">
+  <h2>🏗️ 策略架构 (Diffusion Transformer)</h2>
+  <p class="desc">论文<b>固定</b>这个架构，只研究"多任务预训练"变量。10 Hz 部署，预测 16 步动作但只执行前 8 步后重规划。</p>
+  <div class="arch">  6× RGB ──► CLIP ViT-B/16 (CLS, 微调) ─┐
+  语言指令 ──► CLIP text (冻结)+投影层 ──┤
+  本体(EE位姿/夹爪宽度) ────────────────┼─► concat ─► 条件特征 (dim 6732)
+  扩散步 k ──► 正弦编码 + 2层MLP ────────┘              │ adaLN 注入
+                                                        ▼
+                    ┌──────────────────────────────────────────┐
+  含噪动作 A^k ─────►│      DiT × 8 层,  embedding = 768         │──► 预测噪声 ε
+                    └──────────────────────────────────────────┘
+                                                        │
+                       输出:  16 步 × 20 维  =  320 维动作序列  (6D 旋转表示)</div>
+  <div class="row" style="margin-top:14px">
+    <div class="stat"><div class="num">8×768</div><div class="lbl">DiT 层数 × 嵌入维度</div></div>
+    <div class="stat"><div class="num">10 Hz</div><div class="lbl">部署闭环频率 (执行前8步)</div></div>
+    <div class="stat"><div class="num">n_obs=2</div><div class="lbl">观测历史长度</div></div>
+    <div class="stat"><div class="num">DDIM/DDPM</div><div class="lbl">扩散采样/训练目标</div></div>
+  </div>
+</div>
+
+<!-- 数据集构成 -->
+<div class="card">
+  <h2>🍜 Ramen 数据集构成</h2>
+  <p class="desc">预训练混合集 = TRI 内部数据 + Open X-Embodiment 子集。点条形看各部分。</p>
+  <canvas id="cv_data" width="1000" height="150"></canvas>
+  <div class="legend" style="margin-top:12px">
+    <span><span class="dot" style="background:var(--teal)"></span>TRI-Ramen-Real 468h</span>
+    <span><span class="dot" style="background:var(--accent2)"></span>OXE-Ramen ~1150h</span>
+    <span><span class="dot" style="background:var(--maroon)"></span>TRI-Ramen-Sim 45h</span>
+    <span><span class="dot" style="background:var(--good)"></span>TRI-Ramen-UMI 32h</span>
+  </div>
+</div>
+
+<!-- 超参表 -->
+<div class="card">
+  <h2>⚙️ 训练超参数</h2>
+  <p class="desc">注意单任务基线的训练步数远多于微调 LBM——侧面印证预训练让模型收敛更快。</p>
+  <div class="scroll"><table>
+    <tr><th class="k">超参</th><th>预训练</th><th>微调(真机)</th><th>微调(仿真)</th><th>单任务(真机)</th><th>单任务(仿真)</th></tr>
+    <tr><td class="k">Learning Rate</td><td>3e-4</td><td>2e-5</td><td>2e-5</td><td>2e-5</td><td>2e-5</td></tr>
+    <tr><td class="k">Global Batch Size</td><td>2560</td><td>320</td><td>320</td><td>320</td><td>320</td></tr>
+    <tr><td class="k">Steps</td><td>48k</td><td>30k</td><td>10k</td><td>100k</td><td>25k</td></tr>
+    <tr><td class="k">LR Schedule</td><td colspan="5">Constant（全部恒定）</td></tr>
+  </table></div>
+  <div class="note">⚠️ 论文诚实披露：预训练存在一个<b>数据归一化 bug</b>（部分 datagram 用了错误数据源的归一化参数）。
+  事后消融显示 nominal 下影响小，正确归一化在分布偏移下更好——教训是"归一化等细节影响可能盖过架构"。</div>
+</div>
+
+<footer style="text-align:center;color:var(--muted);font-size:12.5px;margin-top:30px">
+  交互式探索器 · 数据全部来自论文原文 · 🐾 by 樵樵<br>
+  <a href="https://toyotaresearchinstitute.github.io/lbm1/" target="_blank">项目主页</a> ·
+  <a href="https://arxiv.org/abs/2507.05331" target="_blank">arXiv</a>
+</footer>
+</div>
+
+<script>
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function toggleTheme(){
+  const r=document.documentElement;
+  r.setAttribute('data-theme', r.getAttribute('data-theme')==='light'?'dark':'light');
+  redrawAll();
+}
+
+// ---- Beta 后验 ----
+function lgamma(z){ // Lanczos
+  const g=7,c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,
+    771.32342877765313,-176.61502916214059,12.507343278686905,
+    -0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(z<0.5)return Math.log(Math.PI/Math.sin(Math.PI*z))-lgamma(1-z);
+  z-=1;let x=c[0];for(let i=1;i<g+2;i++)x+=c[i]/(z+i);
+  const t=z+g+0.5;return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x);
+}
+function betaPDF(x,a,b){
+  if(x<=0||x>=1)return 0;
+  const lp=(a-1)*Math.log(x)+(b-1)*Math.log(1-x)-(lgamma(a)+lgamma(b)-lgamma(a+b));
+  return Math.exp(lp);
+}
+// 近似 Beta 分位（用累积 pdf 数值积分）
+function betaQuantiles(a,b){
+  const N=2000;let cum=0,cdf=[],xs=[];
+  for(let i=0;i<=N;i++){const x=i/N;const p=betaPDF(x,a,b);cdf.push(p);xs.push(x);}
+  let tot=0;for(let i=0;i<=N;i++)tot+=cdf[i];
+  let acc=0,lo=0,hi=1,f1=false,f2=false;
+  for(let i=0;i<=N;i++){acc+=cdf[i]/tot;if(!f1&&acc>=0.025){lo=xs[i];f1=true}if(!f2&&acc>=0.975){hi=xs[i];f2=true}}
+  return [lo,hi];
+}
+function drawBeta(){
+  const n=+document.getElementById('s_n').value;
+  let s=+document.getElementById('s_s').value;
+  document.getElementById('s_s').max=n; if(s>n){s=n;document.getElementById('s_s').value=n;}
+  document.getElementById('v_n').textContent=n;
+  document.getElementById('v_s').textContent=s;
+  const a=1+s,b=1+n-s,mean=a/(a+b);
+  const cv=document.getElementById('cv_beta'),ct=cv.getContext('2d');
+  const W=cv.width,H=cv.height,pad=40;
+  ct.clearRect(0,0,W,H);
+  // grid
+  ct.strokeStyle=css('--grid');ct.lineWidth=1;ct.fillStyle=css('--muted');ct.font='11px sans-serif';
+  for(let i=0;i<=10;i++){const x=pad+i/10*(W-2*pad);ct.beginPath();ct.moveTo(x,pad-10);ct.lineTo(x,H-pad);ct.stroke();
+    ct.fillText((i/10).toFixed(1),x-8,H-pad+16);}
+  // pdf
+  let maxp=0;const pts=[];
+  for(let i=0;i<=400;i++){const x=i/400;const p=betaPDF(x,a,b);pts.push([x,p]);if(p>maxp)maxp=p;}
+  ct.beginPath();
+  pts.forEach(([x,p],i)=>{const px=pad+x*(W-2*pad);const py=(H-pad)-p/maxp*(H-2*pad);
+    i?ct.lineTo(px,py):ct.moveTo(px,py);});
+  ct.lineTo(pad+(W-2*pad),H-pad);ct.lineTo(pad,H-pad);ct.closePath();
+  const grad=ct.createLinearGradient(0,pad,0,H-pad);
+  grad.addColorStop(0,css('--teal')+'cc');grad.addColorStop(1,css('--teal')+'22');
+  ct.fillStyle=grad;ct.fill();
+  ct.strokeStyle=css('--teal');ct.lineWidth=2;ct.stroke();
+  // mean line
+  const mx=pad+mean*(W-2*pad);
+  ct.strokeStyle=css('--accent2');ct.lineWidth=2;ct.setLineDash([5,4]);
+  ct.beginPath();ct.moveTo(mx,pad-10);ct.lineTo(mx,H-pad);ct.stroke();ct.setLineDash([]);
+  const [lo,hi]=betaQuantiles(a,b);
+  document.getElementById('beta_ci').innerHTML='95% 可信区间 = ['+lo.toFixed(3)+', '+hi.toFixed(3)+']，宽度 '+(hi-lo).toFixed(3);
+  const wide=(hi-lo);
+  let msg='经验成功率 = '+(s/n).toFixed(3)+'。';
+  if(n<=20)msg+='样本量很小 → 后验很宽 → 你几乎无法区分它和一个差 15% 的策略。这正是论文警告"很多机器人论文可能在测量噪声"的原因。';
+  else if(n>=150)msg+='样本量大 → 后验收窄 → 才有能力分辨小差异。论文仿真用 200 次/任务正是为此。';
+  else msg+='论文真机用 50 次/任务/条件——足以抓 ~10-20% 的效应，但仍可能漏掉更小的差异。';
+  document.getElementById('beta_note').textContent=msg;
+}
+
+// ---- CLD 双比例检验 ----
+function normCdf(x){return 0.5*(1+erf(x/Math.SQRT2))}
+function erf(x){const t=1/(1+0.3275911*Math.abs(x));
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return x>=0?y:-y;}
+function drawCLD(){
+  const sa=+document.getElementById('c_a').value, sb=+document.getElementById('c_b').value, n=50;
+  document.getElementById('v_ca').textContent=sa+'/50';
+  document.getElementById('v_cb').textContent=sb+'/50';
+  const p1=sa/n,p2=sb/n,pp=(sa+sb)/(2*n);
+  const se=Math.sqrt(pp*(1-pp)*(2/n));
+  const z=se>0?(p1-p2)/se:0;const pval=2*(1-normCdf(Math.abs(z)));
+  const sig=pval<0.05;
+  const cv=document.getElementById('cv_cld'),ct=cv.getContext('2d');
+  const W=cv.width,H=cv.height;ct.clearRect(0,0,W,H);
+  const bars=[['微调 LBM',p1,css('--maroon'),sig?'a':'a'],['单任务基线',p2,css('--muted'),sig?'b':'a']];
+  const bw=170,gap=120,x0=140,base=H-50,scale=(H-90);
+  bars.forEach((bar,i)=>{
+    const x=x0+i*(bw+gap);const h=bar[1]*scale;
+    ct.fillStyle=bar[2];ct.fillRect(x,base-h,bw,h);
+    ct.fillStyle=css('--text');ct.font='bold 14px sans-serif';ct.textAlign='center';
+    ct.fillText(bar[0],x+bw/2,base+22);
+    ct.font='bold 18px sans-serif';ct.fillText('SR '+bar[1].toFixed(2),x+bw/2,base-h-24);
+    // letter
+    ct.fillStyle=sig?(i==0?css('--good'):css('--bad')):css('--accent2');
+    ct.font='bold 26px sans-serif';ct.fillText(bar[3],x+bw/2,base-h-2);
+  });
+  ct.textAlign='left';
+  const note=document.getElementById('cld_note');
+  if(sig)note.innerHTML='p = '+pval.toFixed(4)+' &lt; 0.05 → 字母 <b class="pill pA">a</b> vs <b class="pill pC">b</b> 不共享 → <b>95% 置信下显著不同</b>，微调 LBM 确实更好。';
+  else note.innerHTML='p = '+pval.toFixed(4)+' ≥ 0.05 → 两者都是 <b class="pill pB">a</b>（共享字母）→ <b>统计上不可区分</b>。这正是论文中"零样本预训练 LBM 常与单任务基线无法分开"的情形。';
+}
+
+// ---- 数据效率 ----
+function drawEff(){
+  const frac=+document.getElementById('d_frac').value;
+  document.getElementById('v_frac').textContent=frac+'%';
+  const cv=document.getElementById('cv_eff'),ct=cv.getContext('2d');
+  const W=cv.width,H=cv.height,pad=46;ct.clearRect(0,0,W,H);
+  // axes grid
+  ct.strokeStyle=css('--grid');ct.fillStyle=css('--muted');ct.font='11px sans-serif';ct.lineWidth=1;
+  for(let i=0;i<=10;i++){const y=pad+i/10*(H-2*pad);ct.beginPath();ct.moveTo(pad,y);ct.lineTo(W-pad,y);ct.stroke();}
+  for(let i=0;i<=10;i++){const x=pad+i/10*(W-2*pad);ct.fillText((i*10)+'%',x-10,H-pad+16);}
+  ct.save();ct.translate(14,H/2);ct.rotate(-Math.PI/2);ct.fillText('Task Completion',-40,0);ct.restore();
+  // curves: LBM saturating high; single-task starts at 15%, lower
+  function lbm(f){return 0.28+0.55*(1-Math.exp(-f/22));}   // 微调LBM：低数据即高
+  function single(f){if(f<15)return null;return 0.05+0.62*(1-Math.exp(-(f-15)/40));} // 单任务：15%才起步且更低
+  function plot(fn,color,dash){
+    ct.strokeStyle=color;ct.lineWidth=2.5;ct.setLineDash(dash||[]);ct.beginPath();let started=false;
+    for(let f=0;f<=100;f++){const v=fn(f);if(v==null)continue;
+      const x=pad+f/100*(W-2*pad);const y=(H-pad)-Math.min(1,v)*(H-2*pad);
+      started?ct.lineTo(x,y):ct.moveTo(x,y);started=true;}
+    ct.stroke();ct.setLineDash([]);
+  }
+  plot(lbm,css('--maroon'));
+  plot(single,css('--muted'),[6,4]);
+  // marker at frac
+  const fx=pad+frac/100*(W-2*pad);
+  ct.strokeStyle=css('--accent2');ct.setLineDash([4,3]);ct.beginPath();ct.moveTo(fx,pad);ct.lineTo(fx,H-pad);ct.stroke();ct.setLineDash([]);
+  const vl=lbm(frac),vs=single(frac);
+  [[vl,css('--maroon')],[vs,css('--muted')]].forEach(([v,c])=>{if(v==null)return;
+    const y=(H-pad)-Math.min(1,v)*(H-2*pad);ct.fillStyle=c;ct.beginPath();ct.arc(fx,y,5,0,7);ct.fill();});
+  const note=document.getElementById('eff_note');
+  const gap=vs==null?null:(vl-vs);
+  if(vs==null)note.innerHTML='在 '+frac+'% 数据处：单任务基线<b>还不存在</b>（论文里从零训练从 15% 数据才起步），而微调 LBM 已达 TC≈'+vl.toFixed(2)+'。';
+  else note.innerHTML='在 '+frac+'% 数据处：微调 LBM TC≈'+vl.toFixed(2)+' vs 单任务 TC≈'+vs.toFixed(2)+'（领先 '+(gap*100).toFixed(0)+' 分）。论文：仿真 &lt;30% 数据即可追平全量单任务。';
+}
+
+// ---- 分布偏移小条 ----
+function drawMiniBar(id,frac,color){
+  const cv=document.getElementById(id),ct=cv.getContext('2d');
+  const W=cv.width,H=cv.height;ct.clearRect(0,0,W,H);
+  ct.fillStyle=css('--line');ct.fillRect(0,6,W,H-12);
+  ct.fillStyle=color;ct.fillRect(0,6,W*frac,H-12);
+}
+
+// ---- 数据集构成 ----
+function drawData(){
+  const cv=document.getElementById('cv_data'),ct=cv.getContext('2d');
+  const W=cv.width,H=cv.height;ct.clearRect(0,0,W,H);
+  const parts=[['Real',468,css('--teal')],['OXE',1150,css('--accent2')],['Sim',45,css('--maroon')],['UMI',32,css('--good')]];
+  const tot=parts.reduce((a,p)=>a+p[1],0);
+  let x=20;const y=40,h=54,fullW=W-40;
+  parts.forEach(p=>{const w=p[1]/tot*fullW;ct.fillStyle=p[2];ct.fillRect(x,y,w,h);
+    ct.fillStyle=css('--bg');ct.font='bold 13px sans-serif';ct.textAlign='center';
+    if(w>60)ct.fillText(p[1]+'h',x+w/2,y+h/2+5);x+=w;});
+  ct.textAlign='left';ct.fillStyle=css('--muted');ct.font='12px sans-serif';
+  ct.fillText('总计 ~1695 小时 · TRI-Ramen 545h + OXE-Ramen ~1150h',20,120);
+}
+
+function redrawAll(){drawBeta();drawCLD();drawEff();drawData();
+  drawMiniBar('bar_nom',3/16,css('--muted'));drawMiniBar('bar_shift',10/16,css('--good'));}
+window.addEventListener('resize',redrawAll);
+document.documentElement.setAttribute('data-theme','dark');
+redrawAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HydroShear 交互探索器</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a2e; --card: #f4f5f9; --line: #d8dae3;
+    --accent: #2563eb; --accent2: #dc2626; --ok: #16a34a; --muted: #6b7280;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #12121a; --fg: #e5e7f0; --card: #1d1e2a; --line: #34364a;
+            --accent: #60a5fa; --accent2: #f87171; --ok: #4ade80; --muted: #9ca3af; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--fg);
+         font-family: "PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+         line-height: 1.6; padding: 1rem; max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 1.35rem; margin: .4rem 0; }
+  h2 { font-size: 1.1rem; margin: 1rem 0 .5rem; }
+  .sub { color: var(--muted); font-size: .85rem; margin-bottom: .8rem; }
+  .tabs { display: flex; gap: .4rem; margin: .8rem 0; flex-wrap: wrap; }
+  .tab { padding: .45rem .9rem; border: 1px solid var(--line); border-radius: 8px;
+         cursor: pointer; background: var(--card); font-size: .9rem; user-select: none; }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .panel { display: none; } .panel.active { display: block; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+          padding: 1rem; margin-bottom: 1rem; }
+  .flex { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .grow { flex: 1 1 320px; }
+  canvas { background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+           max-width: 100%; touch-action: none; cursor: crosshair; display: block; }
+  label { font-size: .85rem; display: block; margin-top: .6rem; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .val { color: var(--accent); font-weight: 600; }
+  button { padding: .4rem .8rem; border-radius: 8px; border: 1px solid var(--line);
+           background: var(--card); color: var(--fg); cursor: pointer; margin: .5rem .3rem 0 0; }
+  button:hover { border-color: var(--accent); }
+  .stat { display: inline-block; background: var(--bg); border: 1px solid var(--line);
+          border-radius: 8px; padding: .3rem .6rem; margin: .25rem .25rem 0 0; font-size: .82rem; }
+  .barrow { display: flex; align-items: center; gap: .5rem; margin: .3rem 0; font-size: .82rem; }
+  .barlabel { width: 118px; text-align: right; flex-shrink: 0; }
+  .bartrack { flex: 1; background: var(--bg); border: 1px solid var(--line);
+              border-radius: 6px; height: 20px; overflow: hidden; }
+  .barfill { height: 100%; border-radius: 5px 0 0 5px; display: flex; align-items: center;
+             justify-content: flex-end; padding-right: 5px; color: #fff; font-size: .72rem;
+             min-width: 2px; white-space: nowrap; }
+  .hint { font-size: .82rem; color: var(--muted); margin-top: .4rem; }
+  .formula { font-family: "SF Mono",Consolas,monospace; font-size: .82rem; background: var(--bg);
+             border: 1px solid var(--line); border-radius: 8px; padding: .6rem .8rem;
+             margin: .5rem 0; overflow-x: auto; }
+  .step { border-left: 3px solid var(--accent); padding-left: .8rem; margin: .8rem 0; }
+  .warn { border-left: 3px solid var(--accent2); padding-left: .8rem; margin: .8rem 0;
+          font-size: .88rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .82rem; }
+  th, td { border: 1px solid var(--line); padding: .35rem .5rem; text-align: center; }
+  th { background: var(--card); }
+  .best { color: var(--ok); font-weight: 700; }
+  .overflow { overflow-x: auto; }
+  select { padding: .3rem; border-radius: 6px; background: var(--card); color: var(--fg);
+           border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<h1>🖐️ HydroShear：水弹性触觉剪切仿真交互探索器</h1>
+<div class="sub">arXiv 2603.00446 · 拖动压头，体验路径依赖的剪切场（stick-slip、累积、重置）——真实实现了论文式 5–17 的递归力追踪器</div>
+
+<div class="tabs">
+  <div class="tab active" data-t="sandbox">① 交互沙盘</div>
+  <div class="tab" data-t="results">② 论文结果</div>
+  <div class="tab" data-t="pipeline">③ 方法流程</div>
+</div>
+
+<!-- ═══════════════ ① 沙盘 ═══════════════ -->
+<div class="panel active" id="p-sandbox">
+<div class="card">
+  <div class="flex">
+    <div class="grow" style="flex:2 1 420px">
+      <canvas id="cv" width="560" height="440"></canvas>
+      <div class="hint">🖱️ <b>按住拖动</b> = 压头在弹性膜上移动（按下=压入 1mm，松开=抬起并重置该点历史）。
+      绿点 = marker 网格（7×9，同 GelSight Mini），蓝色箭头 = 剪切场 M<sup>s</sup>，红圈 = 接触斑。
+      <b style="color:var(--accent2)">变红的表面点 = 正在滑移(slip)</b>，其余为粘着(stick)。</div>
+      <div>
+        <span class="stat">切向合力: <b id="s-tan">0.00</b> mN</span>
+        <span class="stat">法向合力: <b id="s-nor">0.00</b> mN</span>
+        <span class="stat">滑移点比例: <b id="s-slip">0%</b></span>
+        <span class="stat" id="s-mode">状态: 未接触</span>
+      </div>
+      <button id="b-reset">重置历史</button>
+      <button id="b-circle">演示: 画圆轨迹</button>
+      <button id="b-backforth">演示: 拖出→拖回(滞回)</button>
+    </div>
+    <div class="grow">
+      <h2>模型参数（论文仅 4 个）</h2>
+      <label>μ 摩擦系数 = <span class="val" id="v-mu">0.8</span>
+        <input type="range" id="r-mu" min="0.1" max="2.0" step="0.05" value="0.8"></label>
+      <div class="hint">↓调低：更早进入滑移，剪切场更快饱和；↑调高：长时间粘着，剪切持续累积</div>
+      <label>λ<sub>s</sub> 阴影衰减 = <span class="val" id="v-ls">1.0</span>×
+        <input type="range" id="r-ls" min="0.3" max="3" step="0.1" value="1.0"></label>
+      <div class="hint">触觉阴影范围：↓小 = 形变扩散更远（场更弥散），↑大 = 更局域</div>
+      <label>K 切向刚度 = <span class="val" id="v-k">1.0</span>×
+        <input type="range" id="r-k" min="0.2" max="3" step="0.1" value="1.0"></label>
+      <div class="hint">只缩放剪切幅值（式 15：力 = KA × 位移追踪值）</div>
+      <div class="warn"><b>试试这个：</b>把压头拖出去再<b>沿原路拖回起点</b>——剪切场不会归零
+      （滞回/路径依赖）。惩罚式仿真（TacSL）在这里给出 0，这正是 93% vs 58% 的差距来源。</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════ ② 结果 ═══════════════ -->
+<div class="panel" id="p-results">
+<div class="card">
+  <h2>零样本 Sim-to-Real 成功率（每任务 30 次真机测试，Table II）</h2>
+  <select id="sel-task">
+    <option value="4">总计 (120 次)</option>
+    <option value="0">Peg Insertion 插孔</option>
+    <option value="1">Bin Packing 装箱</option>
+    <option value="2">Book Shelving 上架</option>
+    <option value="3">Drawer Pulling 拉抽屉</option>
+  </select>
+  <div id="chart-sr" style="margin-top:.6rem"></div>
+  <div class="hint" id="task-note"></div>
+</div>
+<div class="card">
+  <h2>剪切场保真度：per-taxel RMSE [px] ↓（Table I）</h2>
+  <select id="sel-shear">
+    <option value="0">Dilation 压入</option>
+    <option value="1" selected>Shear 平移剪切</option>
+    <option value="2">Twist 扭转</option>
+    <option value="3">Roll 滚动</option>
+  </select>
+  <div id="chart-rmse" style="margin-top:.6rem"></div>
+  <div class="hint">括号内为余弦相似度 CS↑。Twist/Roll 属 SE(3) out-of-plane 运动——FOTS 的 SE(2) 表征在此显著退化（CS 0.683/0.561），HydroShear 保持 0.974/0.904。</div>
+</div>
+<div class="card">
+  <h2>计算速度：剪切场计算耗时 [ms]（Table X，Peg Insertion rollout）</h2>
+  <div class="overflow"><table>
+    <tr><th>方法</th><th>256 env</th><th>512 env</th><th>1024 env</th><th>瓶颈</th></tr>
+    <tr><td>FOTS 原版</td><td>122.8</td><td>230.9</td><td>446.7</td><td>无批量化</td></tr>
+    <tr><td>FOTS 重实现</td><td class="best">11.1</td><td class="best">11.8</td><td class="best">12.0</td><td>近常数时间</td></tr>
+    <tr><td>HydroShear</td><td>33.8</td><td>57.0</td><td>103.7</td><td>批量 SDF 查询</td></tr>
+  </table></div>
+  <div class="hint">保真-速度权衡仍在：HydroShear 比原版 FOTS 快 4×+，但比重实现 FOTS 慢；作者指出批量 SDF 算法改进是加速方向。</div>
+</div>
+</div>
+
+<!-- ═══════════════ ③ 流程 ═══════════════ -->
+<div class="panel" id="p-pipeline">
+<div class="card">
+  <h2>递归力追踪器 F 的五步（每个压头表面点 j，每个时间步）</h2>
+  <div class="step"><b>1️⃣ 接触内位移截取（式 6–7）</b>
+    <div class="formula">α = [ReLU(−φ_E(o_t)) − ReLU(−φ_E(o_{t−1}))] / [φ_E(o_{t−1}) − φ_E(o_t)]<br>d = α·(o_t − o_{t−1})</div>
+    两帧膜内 α=1；膜外 α=0；跨界 0&lt;α&lt;1。把"接触开/关"离散事件连续化，无分支，GPU 友好。</div>
+  <div class="step"><b>2️⃣ 法向/切向分解</b>
+    <div class="formula">dⁿ = ⟨d, n̂⟩；d^xy = d − dⁿ·n̂ &nbsp;&nbsp;(n̂ = 压头表面法向)</div></div>
+  <div class="step"><b>3️⃣ 弹性累积（式 8–9）→ stick 阶段剪切 build-up</b>
+    <div class="formula">fⁿ ← f̃ⁿ + E·A·dⁿ；&nbsp; f^xy ← f̃^xy + K·A·d^xy</div></div>
+  <div class="step"><b>4️⃣ 单边约束 + 库仑摩擦锥截断（式 10–11）→ slip</b>
+    <div class="formula">f̄ⁿ = ReLU(fⁿ)；&nbsp; f̄^xy = min{1, μ·f̄ⁿ/‖f^xy‖}·f^xy</div>
+    切向力触顶 μf̄ⁿ 即滑移：力停止增长（增量 return mapping，塑性力学经典结构）。</div>
+  <div class="step"><b>5️⃣ 脱离重置（式 12）</b>
+    <div class="formula">f̃ = H(−φ_E(o))·(f̄ⁿ·n̂ + f̄^xy) &nbsp;&nbsp;(H = Heaviside)</div>
+    离开膜即清零——下一次接触重新累积。</div>
+  <div class="warn"><b>⚠️ 复现提示：</b>论文式 6 分母按原文为 φ_E(o_t)−φ_E(o_{t−1})，验算"两帧均在膜内"得 α=−1，与其自述 α=1 矛盾；正确符号应为 φ_E(o_{t−1})−φ_E(o_t)（本页 JS 与配套 Python demo 均已按正确符号实现并验证）。</div>
+</div>
+<div class="card">
+  <h2>一器两用（式 13–15）</h2>
+  <div class="formula">f̂ = F(...; 1,1,1,μ̂) → 投影点 ô = o + f̂（滑移时在膜面漂移）<br>若 E=K, μ=μ̂, A 均匀 ⟹ f̃ = K·A·f̂（力与投影位移只差常数）</div>
+  剪切场以<b>投影点 ô</b> 为中心汇聚（式 16–17）：粘着时中心不动，滑移时中心漂移——stick-slip 在空间分布上的体现。
+  <div class="formula">M^s = Σ −φ_E(o)·(−f̃^xy)·exp{−λ_s‖(x,y)−ô^xy‖²}</div>
+</div>
+<div class="card">
+  <h2>Sim-to-Real RL 三阶段（AACD）</h2>
+  <div class="step"><b>Stage 1</b> Teacher actor-critic（特权信息）+ <b>接触惩罚课程</b>：先无惩罚训到成功，再加惩罚微调——否则策略要么"躲接触"塌缩，要么暴力到撕坏 GelSight 膜。</div>
+  <div class="step"><b>Stage 2</b> Student actor 从零训练（观测：EE 位姿 + 相对目标位姿 + 左右剪切场 7×9×2），critic 继承 teacher；同任务各仿真框架共用同一 teacher checkpoint。</div>
+  <div class="step"><b>Stage 3</b> 真机零样本部署，无微调。PPO：teacher 1024 env / student 256 env，CNN+soft-argmax → LSTM(256)×2 → MLP[512,128,64]。</div>
+</div>
+</div>
+
+<script>
+(function(){
+  // ------- Tab 切换 -------
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('p-' + t.dataset.t).classList.add('active');
+  });
+
+  // ============ 沙盘: HydroShear 追踪器 JS 移植 ============
+  const R = 0.0175, EA = 0.01, PRESS = 0.001, EPS = 1e-12;
+  let MU = 0.8, LS_SCALE = 1.0, K_SCALE = 1.0;
+  const LAM_S_BASE = 80000;
+
+  // 压头下半球表面点 (局部坐标)
+  const OL = [], NL = [];
+  for (let i = 0; i < 10; i++) {
+    const th = Math.PI/2 + 0.06 + (Math.PI/2 - 0.06) * i / 9;
+    const nphi = Math.max(1, Math.round(20 * Math.sin(th)));
+    for (let k = 0; k < nphi; k++) {
+      const ph = 2*Math.PI*k/nphi;
+      const p = [Math.sin(th)*Math.cos(ph)*R, Math.sin(th)*Math.sin(ph)*R, Math.cos(th)*R];
+      OL.push(p); NL.push([p[0]/R, p[1]/R, p[2]/R]);
+    }
+  }
+  const M = OL.length;
+  let F = new Float64Array(M*3);      // 累积力 f̃ (式5递归状态)
+  let Fh = new Float64Array(M*3);     // 投影位移追踪 f̂ (式14, 参数=1)
+  let slipState = new Float64Array(M);
+  let pos = null, prevPos = null;     // 压头球心 [x,y,z] (米)
+
+  const phiE = z => z;                // 平面膜 SDF
+
+  // 一步递归 F: 同时更新力(F)与投影(Fh) —— 式6-12
+  function trackerStep(cNow, cPrev) {
+    let tanSum = [0,0], norSum = 0, nContact = 0, nSlip = 0;
+    for (let j = 0; j < M; j++) {
+      const ox = OL[j][0]+cNow[0], oy = OL[j][1]+cNow[1], oz = OL[j][2]+cNow[2];
+      const px = OL[j][0]+cPrev[0], py = OL[j][1]+cPrev[1], pz = OL[j][2]+cPrev[2];
+      const sdN = phiE(oz), sdP = phiE(pz);
+      // 式6 (修正符号的分母)
+      const num = Math.max(-sdN,0) - Math.max(-sdP,0), den = sdP - sdN;
+      const a = Math.abs(den) > EPS ? num/den : (sdN < 0 ? 1 : 0);
+      const dx = a*(ox-px), dy = a*(oy-py), dz = a*(oz-pz);
+      const n = NL[j];
+      const dn = dx*n[0]+dy*n[1]+dz*n[2];
+      const txy = [dx-dn*n[0], dy-dn*n[1], dz-dn*n[2]];
+      for (const [arr, ea, ka] of [[F, EA, EA*K_SCALE],[Fh, 1, 1]]) {
+        const fpn = arr[j*3]*n[0]+arr[j*3+1]*n[1]+arr[j*3+2]*n[2];
+        let fn = fpn + ea*dn;
+        let fx = (arr[j*3]  -fpn*n[0]) + ka*txy[0];
+        let fy = (arr[j*3+1]-fpn*n[1]) + ka*txy[1];
+        let fz = (arr[j*3+2]-fpn*n[2]) + ka*txy[2];
+        const fnb = Math.max(fn, 0);
+        const tm = Math.hypot(fx,fy,fz);
+        const sc = Math.min(1, MU*fnb/Math.max(tm,EPS));
+        if (arr === F) slipState[j] = (sdN < 0 && tm > EPS) ? 1-sc : 0;
+        const ic = sdN < 0 ? 1 : 0;
+        arr[j*3]   = ic*(fnb*n[0] + sc*fx);
+        arr[j*3+1] = ic*(fnb*n[1] + sc*fy);
+        arr[j*3+2] = ic*(fnb*n[2] + sc*fz);
+      }
+      if (sdN < 0) {
+        nContact++;
+        if (slipState[j] > 0.05) nSlip++;
+        tanSum[0] += F[j*3]; tanSum[1] += F[j*3+1]; norSum += F[j*3+2];
+      }
+    }
+    return { tan: Math.hypot(tanSum[0],tanSum[1]), nor: Math.abs(norSum),
+             slipFrac: nContact ? nSlip/nContact : 0, nContact };
+  }
+
+  // 式16-17: 汇聚剪切场到 marker 网格 (以投影点 ô 为中心)
+  function shearAt(x, y) {
+    let sx = 0, sy = 0;
+    const lam = LAM_S_BASE * LS_SCALE;
+    for (let j = 0; j < M; j++) {
+      if (!pos) break;
+      const oz = OL[j][2]+pos[2];
+      if (oz >= 0) continue;
+      const ohx = OL[j][0]+pos[0]+Fh[j*3], ohy = OL[j][1]+pos[1]+Fh[j*3+1];
+      const vx = x-ohx, vy = y-ohy;
+      const w = (-oz) * Math.exp(-lam*(vx*vx+vy*vy));
+      sx += w * (-F[j*3]); sy += w * (-F[j*3+1]);
+    }
+    return [sx, sy];
+  }
+
+  // ------- 画布 -------
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const W2M = 0.00006;  // 1px = 0.06mm → 画布 560px ≈ 33.6mm (GelSight Mini 视野级别)
+  const toM = (px,py) => [(px-cv.width/2)*W2M, (py-cv.height/2)*W2M];
+  const toPx = (mx,my) => [mx/W2M+cv.width/2, my/W2M+cv.height/2];
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  const GX = 9, GY = 7, SPAN_X = 0.024, SPAN_Y = 0.018;
+  function draw(stats) {
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const fg = css('--fg'), acc = css('--accent'), acc2 = css('--accent2'), ok = css('--ok');
+    // marker 网格 + 剪切箭头
+    for (let i = 0; i < GX; i++) for (let k = 0; k < GY; k++) {
+      const mx = -SPAN_X/2 + SPAN_X*i/(GX-1), my = -SPAN_Y/2 + SPAN_Y*k/(GY-1);
+      const [px,py] = toPx(mx,my);
+      const [sx,sy] = shearAt(mx,my);
+      const mag = Math.hypot(sx,sy), scale = 3.2e8;
+      ctx.fillStyle = ok; ctx.beginPath(); ctx.arc(px,py,3,0,7); ctx.fill();
+      if (mag > 1e-10) {
+        const ex = px + sx*scale, ey = py + sy*scale;
+        ctx.strokeStyle = acc; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(ex,ey); ctx.stroke();
+        const ang = Math.atan2(ey-py, ex-px);
+        ctx.beginPath(); ctx.moveTo(ex,ey);
+        ctx.lineTo(ex-7*Math.cos(ang-0.4), ey-7*Math.sin(ang-0.4));
+        ctx.lineTo(ex-7*Math.cos(ang+0.4), ey-7*Math.sin(ang+0.4));
+        ctx.closePath(); ctx.fillStyle = acc; ctx.fill();
+      }
+    }
+    if (pos) {
+      // 接触斑圆 (球压入深度决定半径)
+      const pen = R - pos[2] >= 0 ? Math.sqrt(Math.max(R*R-pos[2]*pos[2],0)) : 0;
+      if (pen > 0) {
+        const [cx,cy] = toPx(pos[0],pos[1]);
+        ctx.strokeStyle = acc2; ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
+        ctx.beginPath(); ctx.arc(cx,cy,pen/W2M,0,7); ctx.stroke(); ctx.setLineDash([]);
+      }
+      // 表面点: stick=灰, slip=红
+      for (let j = 0; j < M; j++) {
+        const oz = OL[j][2]+pos[2];
+        if (oz >= 0) continue;
+        const [qx,qy] = toPx(OL[j][0]+pos[0], OL[j][1]+pos[1]);
+        ctx.fillStyle = slipState[j] > 0.05 ? acc2 : fg;
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath(); ctx.arc(qx,qy,2.2,0,7); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (stats) {
+      document.getElementById('s-tan').textContent = (stats.tan*1000).toFixed(2);
+      document.getElementById('s-nor').textContent = (stats.nor*1000).toFixed(2);
+      document.getElementById('s-slip').textContent = Math.round(stats.slipFrac*100)+'%';
+      document.getElementById('s-mode').textContent = '状态: ' + (stats.nContact === 0 ? '未接触'
+        : stats.slipFrac > 0.4 ? '滑移 (slip) 🔴' : '粘着 (stick) 🟢');
+    }
+  }
+
+  function moveTo(mx,my,down) {
+    prevPos = pos ? pos.slice() : [mx,my,R+0.0005];
+    pos = [mx,my, down ? R-PRESS : R+0.0005];
+    if (!prevPos) prevPos = pos.slice();
+    // 大位移拆成小步(帧间直线路径假设)
+    const steps = Math.max(1, Math.ceil(Math.hypot(pos[0]-prevPos[0],pos[1]-prevPos[1],pos[2]-prevPos[2])/2e-4));
+    let st = null;
+    for (let s = 1; s <= steps; s++) {
+      const a = s/steps;
+      const c = [prevPos[0]+(pos[0]-prevPos[0])*a, prevPos[1]+(pos[1]-prevPos[1])*a, prevPos[2]+(pos[2]-prevPos[2])*a];
+      const p = [prevPos[0]+(pos[0]-prevPos[0])*(s-1)/steps, prevPos[1]+(pos[1]-prevPos[1])*(s-1)/steps, prevPos[2]+(pos[2]-prevPos[2])*(s-1)/steps];
+      st = trackerStep(c, p);
+    }
+    draw(st);
+  }
+
+  let dragging = false;
+  cv.addEventListener('pointerdown', e => {
+    dragging = true; cv.setPointerCapture(e.pointerId);
+    const r = cv.getBoundingClientRect();
+    const [mx,my] = toM((e.clientX-r.left)*cv.width/r.width, (e.clientY-r.top)*cv.height/r.height);
+    pos = [mx,my,R+0.0005]; prevPos = pos.slice();  // 空中落点
+    moveTo(mx,my,true);                              // 压入
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const r = cv.getBoundingClientRect();
+    const [mx,my] = toM((e.clientX-r.left)*cv.width/r.width, (e.clientY-r.top)*cv.height/r.height);
+    moveTo(mx,my,true);
+  });
+  cv.addEventListener('pointerup', () => {
+    dragging = false;
+    if (pos) moveTo(pos[0],pos[1],false);  // 抬起 → 式12 Heaviside 清零
+  });
+
+  document.getElementById('b-reset').onclick = () => {
+    F.fill(0); Fh.fill(0); slipState.fill(0); pos = null; prevPos = null;
+    draw({tan:0,nor:0,slipFrac:0,nContact:0});
+  };
+  // 演示轨迹
+  function playPath(pts) {
+    F.fill(0); Fh.fill(0); pos = null; let i = 0;
+    const iv = setInterval(() => {
+      if (i >= pts.length) { clearInterval(iv); if (pos) moveTo(pos[0],pos[1],false); return; }
+      if (i === 0) { pos = [pts[0][0],pts[0][1],R+0.0005]; prevPos = pos.slice(); }
+      moveTo(pts[i][0], pts[i][1], true); i++;
+    }, 24);
+  }
+  document.getElementById('b-circle').onclick = () => {
+    const pts = [[0,0]];
+    for (let t = 0; t <= 80; t++) pts.push([0.005*Math.sin(t/80*2*Math.PI*1.5), 0.005-0.005*Math.cos(t/80*2*Math.PI*1.5)]);
+    playPath(pts);
+  };
+  document.getElementById('b-backforth').onclick = () => {
+    const pts = [[0,0]];
+    for (let t = 1; t <= 30; t++) pts.push([t/30*0.006, 0]);
+    for (let t = 1; t <= 30; t++) pts.push([0.006-t/30*0.006, 0]);
+    playPath(pts);
+  };
+  // 滑块
+  const bind = (id, vid, fn) => {
+    const el = document.getElementById(id);
+    el.oninput = () => { document.getElementById(vid).textContent = el.value; fn(+el.value); draw(null); };
+  };
+  bind('r-mu','v-mu', v => MU = v);
+  bind('r-ls','v-ls', v => LS_SCALE = v);
+  bind('r-k','v-k',  v => K_SCALE = v);
+  draw({tan:0,nor:0,slipFrac:0,nContact:0});
+
+  // ============ 结果图表 (论文真实数据) ============
+  const METHODS = ['TacSL Gray','TacSL Shear','FOTS 原版','FOTS 重实现','HydroShear'];
+  const SR = [ // Table II: [插孔,装箱,上架,抽屉,总计] 成功次数 (每列满分30/120)
+    [16,16,6,3,41],[19,4,23,24,70],[1,5,20,15,41],[20,24,26,3,73],[25,29,28,30,112]];
+  const DENOM = [30,30,30,30,120];
+  const NOTES = [
+    '插孔: 原版 FOTS 仅 1/30——物体坐标系中心远离接触斑，触觉信号系统性失真。',
+    '装箱: TacSL Shear 仅 4/30——归一化丢掉剪切幅值与空间结构，大接触斑成分布外观测。',
+    '上架: TacSL Gray 仅 6/30——满指尖接触遮蔽纹理，图像缺剪切方向线索。',
+    '抽屉: FOTS 重实现 3/30——"单一参考接触斑"假设在频繁接触切换/间歇滑移下崩溃；HydroShear 30/30。',
+    '总计: 剪切表征保真度与零样本迁移成功率单调相关——93% vs 61% / 58% / 34% / 34%。'];
+  const RMSE = [ // Table I: [TacSL, FOTS, Ours] × [Dilation,Shear,Twist,Roll], (RMSE, CS)
+    [[2.187,0.323],[1.333,0.976],[1.000,0.976]],
+    [[4.262,0.126],[2.146,0.930],[1.719,0.951]],
+    [[4.022,0.157],[3.596,0.683],[2.021,0.974]],
+    [[3.861,0.137],[2.841,0.561],[1.576,0.904]]];
+  const COLORS = ['#94a3b8','#818cf8','#f59e0b','#fb923c','#16a34a'];
+
+  function renderSR() {
+    const t = +document.getElementById('sel-task').value;
+    const host = document.getElementById('chart-sr'); host.innerHTML = '';
+    METHODS.forEach((m,i) => {
+      const v = SR[i][t], pct = v/DENOM[t]*100;
+      host.insertAdjacentHTML('beforeend',
+        `<div class="barrow"><div class="barlabel">${m}</div><div class="bartrack">
+         <div class="barfill" style="width:${pct}%;background:${COLORS[i]}">${v}/${DENOM[t]} (${Math.round(pct)}%)</div></div></div>`);
+    });
+    document.getElementById('task-note').textContent = NOTES[t];
+  }
+  function renderRMSE() {
+    const s = +document.getElementById('sel-shear').value;
+    const host = document.getElementById('chart-rmse'); host.innerHTML = '';
+    const names = ['TacSL','FOTS','HydroShear'], cols = ['#94a3b8','#f59e0b','#16a34a'];
+    const maxR = 4.5;
+    names.forEach((m,i) => {
+      const [r,c] = RMSE[s][i];
+      host.insertAdjacentHTML('beforeend',
+        `<div class="barrow"><div class="barlabel">${m}</div><div class="bartrack">
+         <div class="barfill" style="width:${r/maxR*100}%;background:${cols[i]}">${r.toFixed(3)} px (CS ${c.toFixed(3)})</div></div></div>`);
+    });
+  }
+  document.getElementById('sel-task').onchange = renderSR;
+  document.getElementById('sel-shear').onchange = renderRMSE;
+  renderSR(); renderRMSE();
+})();
+</script>
+</body>
+</html>
