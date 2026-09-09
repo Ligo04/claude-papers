@@ -1,0 +1,45 @@
+{
+  "id": "convergent-incremental-potential-contact",
+  "title": "Convergent Incremental Potential Contact",
+  "slug": "convergent-incremental-potential-contact",
+  "authors": [
+    "Minchen Li",
+    "Zachary Ferguson",
+    "Teseo Schneider",
+    "Timothy Langlois",
+    "Denis Zorin",
+    "Daniele Panozzo",
+    "Chenfanfu Jiang",
+    "Danny M. Kaufman"
+  ],
+  "arxiv": "2307.15908v1",
+  "arxiv_url": "https://arxiv.org/abs/2307.15908v1",
+  "doi": "10.48550/arXiv.2307.15908",
+  "year": 2023,
+  "date": "2023-07-29",
+  "submitted_date": "2023-07-29",
+  "pageCount": 26,
+  "subjects": [
+    "Numerical Analysis",
+    "Computational Physics"
+  ],
+  "abstract": "增量势接触（IPC）通过平滑障碍、过滤线搜索和优化式时间积分，实现了无单元翻转、无相交的摩擦接触弹性动力学模拟。然而，原始 IPC 从已经离散的网格约束出发，其纯离散接触模型不能保证随网格细化收敛。本文在连续曲线与曲面上重新定义接触障碍势和耗散摩擦势，并给出首个相应的收敛离散化；作者通过弹性静力与动力接触问题、解析基准和应用案例分析其收敛行为与精度。",
+  "abstractOriginal": "Recent advances in the simulation of frictionally contacting elastodynamics with the Incremental Potential Contact (IPC) model have enabled inversion and intersection-free simulation via the application of mollified barriers, filtered line-search, and optimization-based solvers for time integration. In its current formulation the IPC model is constructed via a discrete constraint model, replacing non-interpenetration constraints with barrier potentials on an already spatially discretized domain. However, while effective, this purely discrete formulation prohibits convergence under refinement. To enable a convergent IPC model we reformulate IPC potentials in the continuous setting and provide a first, convergent discretization thereof. We demonstrate and analyze the convergence behavior of this new model and discretization on a range of elastostatic and dynamic contact problems, and evaluate its accuracy on both analytical benchmarks and application-driven examples.",
+  "tags": [
+    "frictional contact",
+    "convergent IPC"
+  ],
+  "githubLinks": [],
+  "codeLinks": [],
+  "sourceUrls": [
+    "https://arxiv.org/abs/2307.15908v1",
+    "https://arxiv.org/html/2307.15908v1",
+    "https://arxiv.org/pdf/2307.15908v1"
+  ],
+  "difficulty": "Advanced",
+  "nature": "Theoretical + empirical numerical analysis",
+  "methodologicalComplexity": "Heavy mathematical derivation + optimization-based simulation pipeline",
+  "fullTextAvailable": true,
+  "contentFile": "paper.txt",
+  "sourcePdfSha256": "75b294a61c5a49ac39cd68fdf9f1bc51c767efb789b748b7484166e01789fece"
+}

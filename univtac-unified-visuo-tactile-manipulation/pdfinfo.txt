@@ -1,0 +1,18 @@
+Title:           UniVTAC: A Unified Simulation Platform for Visuo-Tactile Manipulation Data Generation, Learning, and Benchmarking
+Author:          Baijun Chen; Weijie Wan; Tianxing Chen; Xianda Guo; Congsheng Xu; Yuanyang Qi; Haojie Zhang; Longyan Wu; Tianling Xu; Zixuan Li; Yizhe Wu; Rui Li; Xiaokang Yang; Ping Luo; Wei Sui; Yao Mu
+Creator:         arXiv GenPDF (tex2pdf:57610bf)
+Producer:        pikepdf 8.15.1
+Custom Metadata: yes
+Metadata Stream: yes
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           13
+Encrypted:       no
+Page size:       612 x 792 pts (letter)
+Page rot:        0
+File size:       3519346 bytes
+Optimized:       no
+PDF version:     1.7

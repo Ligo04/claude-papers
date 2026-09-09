@@ -1,0 +1,14 @@
+{
+  "id": "convex-primitive-decomposition",
+  "title": "Convex Primitive Decomposition for Collision Detection",
+  "slug": "convex-primitive-decomposition",
+  "authors": ["Julian Knodt", "Xifeng Gao"],
+  "abstract": "Creation of collision objects for 3D models is a time-consuming task, requiring modelers to manually place primitives such as bounding boxes, capsules, spheres, and other convex primitives to approximate complex meshes. While there has been work in automatic approximate convex decompositions of meshes using convex hulls, they are not practical for applications with tight performance budgets such as games due to slower collision detection and inability to manually modify the output while maintaining convexity as compared to manually placed primitives. Rather than convex decomposition with convex hulls, we devise an approach for bottom-up decomposition of an input mesh into convex primitives specifically for rigid body simulation inspired by quadric mesh simplification. This approach fits primitives to complex, real-world meshes that provide plausible simulation performance and are guaranteed to enclose the input surface. We test convex primitive decomposition on over 60 models from Sketchfab, showing the algorithm's effectiveness.",
+  "year": 2026,
+  "date": "2026-02-07",
+  "tags": ["collision detection", "mesh simplification"],
+  "githubLinks": [],
+  "codeLinks": [],
+  "venue": "EUROGRAPHICS 2026",
+  "affiliation": "Lightspeed Studios, Bellevue, Washington, USA"
+}

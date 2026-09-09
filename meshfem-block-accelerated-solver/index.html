@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeshFEM 块稀疏探索器</title>
+  <style>
+    :root { color-scheme: light; --ink:#172033; --muted:#5d6b82; --card:#fff; --line:#d9e1ee; --accent:#356ae6; --accent2:#13a58b; --bg:#f3f6fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); }
+    main { max-width:1100px; margin:0 auto; padding:32px 18px 56px; }
+    h1 { margin:0 0 8px; font-size:clamp(1.8rem,4vw,3rem); letter-spacing:-.03em; }
+    h2 { margin:0 0 10px; font-size:1.2rem; }
+    p { margin:8px 0; }
+    .lede { color:var(--muted); max-width:850px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:20px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; box-shadow:0 7px 24px rgba(25,44,80,.06); }
+    .controls label { display:flex; justify-content:space-between; gap:12px; margin:13px 0 5px; font-weight:650; }
+    input[type=range], select { width:100%; accent-color:var(--accent); }
+    select { padding:8px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); }
+    .value { color:var(--accent); font-variant-numeric:tabular-nums; }
+    .metric-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px; }
+    .metric { padding:12px; border-radius:11px; background:#f2f6ff; }
+    .metric strong { display:block; font-size:1.4rem; color:var(--accent); }
+    .metric small { color:var(--muted); }
+    .bar-wrap { margin-top:12px; }
+    .bar-label { display:flex; justify-content:space-between; color:var(--muted); font-size:.9rem; }
+    .bar { height:13px; background:#e5eaf4; border-radius:99px; overflow:hidden; margin:4px 0 10px; }
+    .bar i { display:block; height:100%; width:0; border-radius:inherit; transition:width .25s ease; }
+    #scalarBar { background:#f19a68; } #blockBar { background:var(--accent2); }
+    .matrix { display:grid; gap:4px; margin-top:13px; max-width:420px; }
+    .cell { min-height:24px; border-radius:4px; background:#eef2f9; border:1px solid #e0e7f2; }
+    .cell.live { background:linear-gradient(135deg,#6991f4,#356ae6); border-color:#356ae6; }
+    .legend { display:flex; gap:15px; color:var(--muted); font-size:.9rem; margin-top:8px; }
+    .dot { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; background:#356ae6; }
+    .dot.off { background:#eef2f9; border:1px solid #d6deeb; }
+    .fact { border-left:4px solid var(--accent2); padding-left:12px; margin:10px 0; }
+    code { background:#eef2f7; padding:2px 5px; border-radius:5px; }
+    a { color:#2458bf; }
+    .note { color:var(--muted); font-size:.9rem; }
+    footer { color:var(--muted); font-size:.9rem; margin-top:22px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>MeshFEM：块稀疏 Newton 探索器</h1>
+  <p class="lede">这个单文件页面把论文的核心结构可视化：节点变量的维度 <code>d</code> 形成稠密 <code>d×d</code> 块；保留块边界后，模式、装配和直接 Cholesky 求解都能围绕同一表示优化。数值是由当前控制器即时推导的概念布局，不是论文 benchmark。</p>
+
+  <div class="grid">
+    <section class="card controls">
+      <h2>探索参数</h2>
+      <label for="dimension">坐标维度 d <span class="value" id="dimensionValue">2</span></label>
+      <input id="dimension" type="range" min="1" max="3" step="1" value="2">
+      <label for="blocks">非零块数量 <span class="value" id="blocksValue">12</span></label>
+      <input id="blocks" type="range" min="4" max="24" step="1" value="12">
+      <label for="task">论文应用场景</label>
+      <select id="task">
+        <option value="param">注入曲面参数化</option>
+        <option value="contact">带接触的弹性仿真</option>
+      </select>
+      <p class="note">d 和块数量是概念输入，用来感受表示层的变化；两个场景名称来自论文公开摘要。</p>
+    </section>
+
+    <section class="card">
+      <h2>块表示 vs 标量展开</h2>
+      <div class="metric-row">
+        <div class="metric"><strong id="blockCount">12</strong><small>非零 d×d 块</small></div>
+        <div class="metric"><strong id="scalarSlots">48</strong><small>标量值槽（d²×块）</small></div>
+        <div class="metric"><strong id="diagSlots">18</strong><small>对角块对称槽</small></div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-label"><span>标量索引对象（概念）</span><span id="scalarLabel">48</span></div>
+        <div class="bar"><i id="scalarBar"></i></div>
+        <div class="bar-label"><span>块索引对象（概念）</span><span id="blockLabel">12</span></div>
+        <div class="bar"><i id="blockBar"></i></div>
+      </div>
+      <p class="note">块存储不保证总字节数必然更小；它的价值还在于减少索引查找、保留消去结构，并让小矩阵 kernel 可用。</p>
+    </section>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>块稀疏模式示意</h2>
+      <div id="matrix" class="matrix" aria-label="块稀疏模式"></div>
+      <div class="legend"><span><i class="dot"></i>可能非零块</span><span><i class="dot off"></i>零块</span></div>
+      <p id="taskExplain" class="fact">场景：注入曲面参数化。重点是几何约束下的非凸 Newton 系统。</p>
+    </section>
+    <section class="card">
+      <h2>论文事实</h2>
+      <div class="fact">总能量由小 stencil 的元素能量求和而成，Hessian 因而是带稠密小块的块稀疏矩阵。</div>
+      <div class="fact">MeshFEM 覆盖模式构建、系统装配、矩阵 factorization 和 solve，而非只优化单一 kernel。</div>
+      <div class="fact">BlockCatamari 是面向 BCSC 的实数 supernodal sparse Cholesky 实现；官方仓库还提供 TBB 并行路径。</div>
+      <p class="note">来源：<a href="https://doi.org/10.1145/3811386">论文 DOI</a> · <a href="https://github.com/MeshFEM/MeshFEM">MeshFEM</a> · <a href="https://github.com/MeshFEM/BlockCatamari">BlockCatamari</a></p>
+    </section>
+  </div>
+  <footer>交互页无外部脚本、无网络请求；它是学习辅助，不替代论文原文或正式性能复现。</footer>
+</main>
+<script>
+  const dimension = document.getElementById('dimension');
+  const blocks = document.getElementById('blocks');
+  const task = document.getElementById('task');
+  const $ = id => document.getElementById(id);
+
+  function render() {
+    const d = Number(dimension.value);
+    const b = Number(blocks.value);
+    const scalar = b * d * d;
+    const diag = Math.ceil(b / 3) * d * (d + 1) / 2;
+    $('dimensionValue').textContent = d;
+    $('blocksValue').textContent = b;
+    $('blockCount').textContent = b;
+    $('scalarSlots').textContent = scalar;
+    $('diagSlots').textContent = diag;
+    $('scalarLabel').textContent = scalar;
+    $('blockLabel').textContent = b;
+    $('scalarBar').style.width = '100%';
+    $('blockBar').style.width = Math.max(8, 100 * b / scalar) + '%';
+
+    const side = Math.max(4, Math.min(8, Math.ceil(Math.sqrt(b * 1.4))));
+    const matrix = $('matrix');
+    matrix.style.gridTemplateColumns = `repeat(${side}, minmax(20px, 1fr))`;
+    matrix.replaceChildren();
+    for (let r = 0; r < side; r++) {
+      for (let c = 0; c < side; c++) {
+        const cell = document.createElement('span');
+        cell.className = 'cell';
+        // A deterministic symmetric band is a visual proxy for element adjacency.
+        const live = (r === c) || (Math.abs(r - c) === 1) || ((r + 2 * c + d) % 7 === 0);
+        if (live && (r * side + c) < side * side) cell.classList.add('live');
+        matrix.appendChild(cell);
+      }
+    }
+    $('taskExplain').textContent = task.value === 'param'
+      ? '场景：注入曲面参数化。重点是几何约束下的非凸 Newton 系统。'
+      : '场景：带接触的弹性仿真。重点是活动接触集变化时的模式缓存与重分析。';
+  }
+  [dimension, blocks, task].forEach(control => control.addEventListener('input', render));
+  task.addEventListener('change', render);
+  render();
+</script>
+</body>
+</html>

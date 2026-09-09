@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UniVTAC · 视触觉操作学习探索器</title>
+  <style>
+    :root {
+      --ink: #182524; --muted: #687773; --paper: #eef2ed; --panel: #fbfcf8;
+      --line: #d4ded6; --deep: #153f3a; --teal: #2b766b; --coral: #c5604b;
+      --gold: #d29a42; --blue: #5685a0; --shadow: 0 18px 46px rgba(23, 55, 47, .11);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: radial-gradient(circle at 90% 0%, rgba(210,154,66,.16), transparent 30rem), linear-gradient(140deg,#f4f5ef,#e6eee8); font-family: ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height: 1.55; }
+    .shell { width: min(1240px, calc(100% - 34px)); margin: 0 auto; }
+    .hero { padding: 58px 0 30px; }
+    .eyebrow, .kicker { color: var(--teal); font: 700 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { max-width: 980px; margin: 13px 0 10px; font: 700 clamp(36px,6vw,76px)/.98 Georgia,"Times New Roman",serif; letter-spacing: -.045em; }
+    h1 em { color: var(--coral); font-style: normal; }
+    .dek { max-width: 820px; margin: 0; color: #43534e; font-size: clamp(16px,2vw,20px); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+    .chip { border: 1px solid var(--line); background: rgba(251,252,248,.8); border-radius: 999px; padding: 7px 11px; color: #53645e; font-size: 12px; }
+    .stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); box-shadow: var(--shadow); margin: 4px 0 24px; }
+    .stat { background: var(--panel); padding: 17px 18px; min-height: 92px; }
+    .stat b { display: block; color: var(--deep); font: 700 26px/1 Georgia,serif; }
+    .stat small { color: var(--muted); font-size: 11px; }
+    main { display: grid; gap: 23px; padding-bottom: 48px; }
+    .panel { padding: clamp(19px,3.5vw,34px); background: rgba(251,252,248,.9); border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .panel-head { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 22px; }
+    h2 { margin: 5px 0 0; font: 700 clamp(25px,4vw,40px)/1.04 Georgia,serif; letter-spacing: -.025em; }
+    .intro { max-width: 610px; margin: 0; color: var(--muted); font-size: 13px; }
+    .lab-grid { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(270px,.75fr); gap: 24px; align-items: start; }
+    .canvas-shell { padding: 10px; background: #102b29; border: 1px solid #2e5e55; }
+    canvas { width: 100%; display: block; background: #10211f; }
+    .canvas-legend { display: flex; justify-content: space-between; padding: 8px 3px 0; color: #b9cec4; font: 11px ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .control-card { border-left: 3px solid var(--gold); padding-left: 18px; }
+    .control-card h3 { margin: 0 0 14px; font: 700 20px Georgia,serif; }
+    .row { margin: 14px 0; }
+    .row label, .select-label { display: flex; justify-content: space-between; gap: 12px; color: #40534d; font-size: 13px; }
+    output { color: var(--coral); font: 700 12px ui-monospace,SFMono-Regular,Menlo,monospace; }
+    input[type=range] { width: 100%; margin-top: 7px; accent-color: var(--teal); }
+    select { width: 100%; margin-top: 7px; padding: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); }
+    .path-tabs { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin: 8px 0 14px; }
+    .path-tabs button, .metric-tabs button { border: 1px solid var(--line); background: #fff; color: #50615b; padding: 8px 5px; cursor: pointer; font-size: 12px; }
+    .path-tabs button.active, .metric-tabs button.active { background: var(--deep); border-color: var(--deep); color: #f4f5ed; }
+    .check { display: flex; align-items: center; gap: 8px; margin: 11px 0; color: #40534d; font-size: 13px; }
+    .check input { accent-color: var(--teal); }
+    .readout { padding: 11px 12px; background: #eaf1eb; border: 1px solid #d3e0d5; color: #38574e; font-size: 12px; }
+    .note { margin: 16px 0 0; color: var(--muted); font-size: 11px; }
+    .pipeline { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .stage { text-align: left; padding: 16px; border: 1px solid var(--line); background: #fff; cursor: pointer; transition: transform .18s,border-color .18s,background .18s; }
+    .stage:hover,.stage.active { transform: translateY(-3px); border-color: var(--teal); background: #e7f0e9; }
+    .stage .num { color: var(--coral); font: 700 11px ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .stage strong { display: block; margin: 8px 0 4px; font: 700 18px Georgia,serif; }
+    .stage small { color: var(--muted); font-size: 11px; }
+    .stage-detail { min-height: 54px; margin-top: 15px; padding: 12px 14px; border-left: 3px solid var(--blue); background: #edf3f1; color: #435650; font-size: 13px; }
+    .metric-tabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 17px; }
+    .metric-layout { display: grid; grid-template-columns: 1.25fr .75fr; gap: 23px; align-items: start; }
+    .metric-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .metric-table th,.metric-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+    .metric-table th { color: var(--muted); font-weight: 600; }
+    .metric-table td:not(:first-child) { text-align: right; font-family: ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .metric-table tr:first-child td { color: var(--deep); font-weight: 700; }
+    .bars { display: grid; gap: 13px; }
+    .bar label { display: flex; justify-content: space-between; color: #50615b; font-size: 12px; }
+    .track { height: 9px; margin-top: 5px; overflow: hidden; background: #dfe7e1; }
+    .fill { height: 100%; background: var(--coral); transition: width .25s; }
+    .fill.ours { background: var(--teal); }
+    .caption { margin: 14px 0 0; color: var(--muted); font-size: 11px; }
+    .four { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .card { min-height: 145px; padding: 16px; border: 1px solid var(--line); background: #fff; }
+    .card i { color: var(--coral); font: 700 11px ui-monospace,SFMono-Regular,Menlo,monospace; font-style: normal; }
+    .card strong { display: block; margin: 8px 0 5px; font: 700 18px Georgia,serif; }
+    .card p { margin: 0; color: var(--muted); font-size: 12px; }
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
+    .status-grid h3 { margin: 0 0 8px; font: 700 19px Georgia,serif; }
+    .status-grid ul { margin: 0; padding-left: 19px; color: #52625c; font-size: 12px; }
+    footer { border-top: 1px solid var(--line); padding: 23px 0 42px; color: var(--muted); font-size: 11px; }
+    footer a { color: var(--teal); }
+    .mono { font-family: ui-monospace,SFMono-Regular,Menlo,monospace; }
+    @media(max-width:920px){.stats{grid-template-columns:repeat(3,1fr)}.lab-grid,.metric-layout,.status-grid{grid-template-columns:1fr}.pipeline{grid-template-columns:repeat(2,1fr)}.four{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:560px){.shell{width:calc(100% - 20px)}.stats,.four{grid-template-columns:1fr}.pipeline{grid-template-columns:1fr}.panel{padding:18px 14px}.panel-head{display:block}.intro{margin-top:8px}.path-tabs{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="eyebrow">ARXIV 2602.10093V1 · CS.RO · 2026-02-10</div>
+      <h1>UniVTAC<em>：让接触变得可学习</em></h1>
+      <p class="dek">一个把高保真视触觉仿真、物理感知表示学习和统一操作基准放在同一条闭环里的研究平台。</p>
+      <div class="chips"><span class="chip">视触觉操作</span><span class="chip">多路径表示学习</span><span class="chip">TacEx · Isaac Sim · ACT</span></div>
+    </header>
+    <div class="stats" aria-label="论文关键数字">
+      <div class="stat"><b>205,826</b><small>仿真触觉样本（报告）</small></div>
+      <div class="stat"><b>14</b><small>几何压头形状</small></div>
+      <div class="stat"><b>8</b><small>Benchmark 任务</small></div>
+      <div class="stat"><b>+17.1 pp</b><small>仿真平均成功率提升</small></div>
+      <div class="stat"><b>+25 pp</b><small>真机平均成功率提升</small></div>
+    </div>
+
+    <main>
+      <section class="panel" id="lab">
+        <div class="panel-head"><div><div class="kicker">01 / CONTACT LAB</div><h2>把一个接触 episode 拆开</h2></div><p class="intro">拖动压入、剪切和位姿，观察带 marker RGB、纯接触 RGB 与 gelpad 深度如何分工。画面是标准库概念渲染，不是 TacEx 输出。</p></div>
+        <div class="lab-grid">
+          <div class="canvas-shell"><canvas id="scene" width="960" height="420" aria-label="视触觉接触概念可视化"></canvas><div class="canvas-legend"><span>I_marked · 传感器观察</span><span>I_pure / D / p · 训练目标</span></div></div>
+          <div class="control-card">
+            <h3>实验变量</h3>
+            <div class="row"><label for="shape">压头形状 <output id="shapeOut">Star</output></label><select id="shape"><option>CircleShell</option><option>Cross</option><option>Cubehole</option><option>Cuboid</option><option>Cylinder</option><option>Doubleslope</option><option>Hemisphere</option><option>Line</option><option>Pacman</option><option>S</option><option>Sphere</option><option selected>Star</option><option>Tetrahedron</option><option>Torus</option></select></div>
+            <div class="row"><label for="indent">压入程度 <output id="indentOut">0.65</output></label><input id="indent" type="range" min="0" max="1" step="0.01" value="0.65"></div>
+            <div class="row"><label for="shear">剪切幅度 <output id="shearOut">+0.35</output></label><input id="shear" type="range" min="-1" max="1" step="0.01" value="0.35"></div>
+            <div class="row"><label for="yaw">相对 yaw（度） <output id="yawOut">18°</output></label><input id="yaw" type="range" min="-35" max="35" step="1" value="18"></div>
+            <div class="row"><label for="sensor">传感器配置 <output id="sensorOut">GelSight Mini</output></label><select id="sensor"><option>GelSight Mini</option><option>ViTai GF225</option><option>Xense WS</option></select></div>
+            <div class="row"><div class="select-label"><span>聚焦路径</span><output id="pathOut">All</output></div><div class="path-tabs"><button class="active" data-path="all">All</button><button data-path="shape">Shape</button><button data-path="contact">Contact</button><button data-path="pose">Pose</button></div></div>
+            <label class="check"><input id="markers" type="checkbox" checked> 显示 marker flow</label>
+            <label class="check"><input id="correction" type="checkbox" checked> 模拟“失败后纠正”轨迹</label>
+            <div class="readout" id="labReadout">Shape / Contact / Pose 三条监督同时开启；当前是轻度压入、正向剪切。</div>
+          </div>
+        </div>
+        <p class="note">论文中的 `I_pure`、`D`、`M`、`p` 是仿真特权标签，用来训练 encoder；真实部署不把这些标签直接喂给策略。</p>
+      </section>
+
+      <section class="panel" id="pipeline">
+        <div class="panel-head"><div><div class="kicker">02 / CLOSED LOOP</div><h2>平台—表示—基准</h2></div><p class="intro">点击阶段卡片，查看每层解决的失败模式。</p></div>
+        <div class="pipeline">
+          <button class="stage active" data-stage="platform"><span class="num">A · SYNTHESIS</span><strong>UniVTAC Platform</strong><small>传感器模型、API、接触数据</small></button>
+          <button class="stage" data-stage="encoder"><span class="num">B · LATENT</span><strong>UniVTAC Encoder</strong><small>Shape / Contact / Pose</small></button>
+          <button class="stage" data-stage="benchmark"><span class="num">C · EVALUATION</span><strong>8-task Benchmark</strong><small>任务、invalid、成功率</small></button>
+          <button class="stage" data-stage="real"><span class="num">D · TRANSFER</span><strong>真机验证</strong><small>Marvin + 双 GF225</small></button>
+        </div>
+        <div class="stage-detail" id="stageDetail">Platform 层把“安全而有信息的接触”变成可重复数据：随机压入深度、接触后旋转，并用触觉反馈控制夹爪，避免穿透和 clipping。</div>
+      </section>
+
+      <section class="panel" id="metrics">
+        <div class="panel-head"><div><div class="kicker">03 / EVIDENCE BOARD</div><h2>数字要按实验层级读</h2></div><p class="intro">表格数字来自论文 Table I–IV；柱形只用于视觉比较，百分比是成功率。</p></div>
+        <div class="metric-tabs"><button class="active" data-metric="sim">表 I · 仿真任务</button><button data-metric="ablation">表 II · 路径消融</button><button data-metric="scale">表 III · 数据规模</button><button data-metric="real">表 IV · 真机</button></div>
+        <div id="metricPanel"></div>
+      </section>
+
+      <section class="panel" id="principles">
+        <div class="panel-head"><div><div class="kicker">04 / DESIGN CONTRACT</div><h2>三条路径，各自回答一个问题</h2></div><p class="intro">共享 ResNet-18 latent 只有在同时解释形状、接触和位姿时，才可能对下游策略真正有用。</p></div>
+        <div class="four">
+          <article class="card"><i>SHAPE</i><strong>物体长什么样？</strong><p>重建带 marker 与无 marker 的 RGB，把物体固有几何从传感器纹理和光照伪影中分离出来。</p></article>
+          <article class="card"><i>CONTACT</i><strong>界面怎样变形？</strong><p>预测 gelpad 深度和 marker 位置，把法向压入、切向剪切与滑移变成可行动的接触线索。</p></article>
+          <article class="card"><i>POSE</i><strong>物体在哪里？</strong><p>回归 3D 平移 + 四元数，给局部触觉一个外部度量空间锚点，支持插入和放置纠正。</p></article>
+          <article class="card"><i>DEPLOY</i><strong>训练复杂，线上简单</strong><p>训练头全部丢弃，部署只保留 encoder；策略得到 tactile-centric latent，不承担额外 decoder 开销。</p></article>
+        </div>
+        <div class="status-grid"><div><h3>论文声明</h3><ul><li>平台设计覆盖 GelSight Mini、ViTai GF225、Xense WS。</li><li>仿真数据约 205,826 样本，平均成功率 48.0%。</li><li>真机三项任务平均 68.3%，部署不对 encoder 再微调。</li></ul></div><div><h3>公开快照提醒</h3><ul><li>仓库 TODO 目前只支持 GelSight Mini 的采集/评测。</li><li>Hugging Face viewer 当前出现 schema CastError。</li><li>README 写 MIT，根目录 LICENSE 为 Apache-2.0。</li></ul></div></div>
+      </section>
+    </main>
+
+    <footer><div><span class="mono">SOURCES</span> · <a href="https://arxiv.org/abs/2602.10093" target="_blank" rel="noreferrer">arXiv 2602.10093</a> · <a href="https://github.com/univtac/UniVTAC" target="_blank" rel="noreferrer">GitHub / univtac/UniVTAC</a> · <a href="https://univtac.github.io/" target="_blank" rel="noreferrer">项目主页</a></div><div style="margin-top:7px">本页面的接触图是教学代理；真实方法、训练权重、环境依赖和复现边界见同目录 Markdown 资料。</div></footer>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const state = { shape: "Star", indent: .65, shear: .35, yaw: 18, sensor: "GelSight Mini", path: "all", markers: true, correction: true };
+      const W = 200, H = 150;
+      const clamp = (x) => Math.max(0, Math.min(1, x));
+      const rot = (x,y,a) => [Math.cos(a)*x-Math.sin(a)*y, Math.sin(a)*x+Math.cos(a)*y];
+      function shapeValue(kind,x,y) {
+        if (kind === "CircleShell" || kind === "Sphere") return .30-Math.hypot(x,y);
+        if (kind === "Cross") return .12-Math.max(Math.min(Math.abs(x),Math.abs(y)),0)+((Math.abs(x)<.12||Math.abs(y)<.12)?.1:0);
+        if (kind === "Cubehole") return Math.min(.27-Math.max(Math.abs(x),Math.abs(y)),Math.max(Math.abs(x),Math.abs(y))-.075);
+        if (kind === "Cuboid") return .22-Math.max(Math.abs(x),Math.abs(y));
+        if (kind === "Cylinder") return .23-Math.hypot(x,y);
+        if (kind === "Doubleslope") return .20-Math.abs(y)-.35*Math.abs(x);
+        if (kind === "Hemisphere") return .25-Math.hypot(x,y)-.08*x;
+        if (kind === "Line") return .055-Math.abs(y);
+        if (kind === "Pacman") return Math.min(.24-Math.hypot(x,y),Math.abs(x)+.65*y-.015);
+        if (kind === "S") return .13-Math.min(Math.hypot(x,y+.1),Math.hypot(x,y-.1))+.05*Math.sin(12*x);
+        if (kind === "Star") return .22+.065*Math.cos(5*Math.atan2(y,x))-Math.hypot(x,y);
+        if (kind === "Tetrahedron") return .20-Math.max(Math.abs(x),Math.abs(y))-.08*Math.max(0,x+y);
+        if (kind === "Torus") return .075-Math.abs(Math.hypot(x,y)-.18);
+        return .2-Math.hypot(x,y);
+      }
+      function makeSample() {
+        const pure = new Float32Array(W*H*3), marked = new Float32Array(W*H*3), depth = new Float32Array(W*H), a = state.yaw*Math.PI/180;
+        for (let y=0;y<H;y++) for (let x=0;x<W;x++) {
+          const u=x/(W-1),v=y/(H-1), p=rot((u-.5)*.72,(v-.5)*.72,-a), f=shapeValue(state.shape,p[0],p[1]), inside=clamp(f/.08+.5);
+          let d=clamp(state.indent*inside*(.55+.45*(1-Math.min(1,Math.hypot(p[0],p[1])/.3)))); d*=clamp(1+.25*state.shear*p[0]/.3);
+          const grain=.025*Math.sin(x*.21+y*.13), c=[clamp(.16+.52*inside+grain),clamp(.20+.26*inside+.015*state.shear),clamp(.24+.18*inside)];
+          const i=(y*W+x)*3; pure[i]=c[0];pure[i+1]=c[1];pure[i+2]=c[2];marked[i]=c[0];marked[i+1]=c[1];marked[i+2]=c[2];depth[y*W+x]=d;
+        }
+        const markers=[]; for(let row=0;row<7;row++) for(let col=0;col<9;col++){const u=.18+.08*col,v=.28+.075*row,du=state.shear*.055*(v-.54),dv=state.shear*.032*(u-.5)+state.indent*.008,uu=clamp(u+du),vv=clamp(v+dv);markers.push([uu,vv]);if(state.markers){const cx=Math.round(uu*(W-1)),cy=Math.round(vv*(H-1));for(let yy=cy-2;yy<=cy+2;yy++)for(let xx=cx-2;xx<=cx+2;xx++)if((xx-cx)**2+(yy-cy)**2<=5&&xx>=0&&yy>=0&&xx<W&&yy<H){const i=(yy*W+xx)*3;marked[i]=.96;marked[i+1]=.91;marked[i+2]=.28;}}}
+        return {pure,marked,depth,markers};
+      }
+      function toImage(px,type) { const data=new Uint8ClampedArray(W*H*4); for(let i=0;i<W*H;i++){if(type==='depth'){const z=Math.round(clamp(px[i])*255);data[i*4]=z;data[i*4+1]=Math.round(z*.9);data[i*4+2]=Math.round(255-z*.65);}else{data[i*4]=Math.round(px[i*3]*255);data[i*4+1]=Math.round(px[i*3+1]*255);data[i*4+2]=Math.round(px[i*3+2]*255);}data[i*4+3]=255;}return new ImageData(data,W,H); }
+      function panelCanvas(imageData) { const c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').putImageData(imageData,0,0);return c; }
+      function drawLab() {
+        const canvas=$("scene"),ctx=canvas.getContext('2d'),sample=makeSample();ctx.clearRect(0,0,canvas.width,canvas.height);
+        const p1=panelCanvas(toImage(sample.marked,'rgb')),p2=panelCanvas(toImage(sample.pure,'rgb')),p3=panelCanvas(toImage(sample.depth,'depth'));
+        [[p1,0,'I_marked'],[p2,320,'I_pure'],[p3,640,'D']].forEach(([im,x,label])=>{ctx.drawImage(im,x,0,300,225);ctx.fillStyle='#c7ded1';ctx.font='12px ui-monospace,monospace';ctx.fillText(label,x+10,245);});
+        ctx.fillStyle='rgba(16,43,41,.86)';ctx.fillRect(0,260,960,3);ctx.fillStyle='#9fc2b2';ctx.font='11px ui-monospace,monospace';ctx.fillText(`sensor: ${state.sensor} · shape: ${state.shape} · indent: ${state.indent.toFixed(2)} · shear: ${state.shear>=0?'+':''}${state.shear.toFixed(2)} · yaw: ${state.yaw}°`,14,284);
+        const pathNote={all:'三条路径',shape:'Shape：双视图 RGB',contact:'Contact：D + marker flow',pose:'Pose：p ∈ R⁷'}[state.path];ctx.fillStyle='#d29a42';ctx.fillText(pathNote,14,308);
+        ctx.fillStyle='#83b9ab';ctx.fillRect(14,326,930*state.indent,5);ctx.fillStyle='#9fc2b2';ctx.fillText('indentation → normal deformation',14,344);
+        ctx.fillStyle='#c5604b';ctx.fillRect(14,355,930*((state.shear+1)/2),5);ctx.fillStyle='#caa9a2';ctx.fillText('shear → tangential marker displacement',14,373);
+        const correction=state.correction?'· randomized failure + corrective feedback':'· direct expert trajectory';ctx.fillStyle=state.correction?'#d29a42':'#80928b';ctx.fillText(correction,14,401);
+        const disp=Math.hypot(state.shear*.055,state.indent*.008);$("labReadout").textContent=`${pathNote}；marker 平均位移代理 ${disp.toFixed(3)}（非论文指标）。${state.correction?'当前包含接触反馈纠正':'当前跳过纠正，只看一次性动作'}。`;
+      }
+      function sync(){ $("shapeOut").value=state.shape;$("indentOut").value=state.indent.toFixed(2);$("shearOut").value=(state.shear>=0?'+':'')+state.shear.toFixed(2);$("yawOut").value=state.yaw+'°';$("sensorOut").value=state.sensor;$("pathOut").value=state.path==='all'?'All':state.path; }
+      [["shape","shape"],["sensor","sensor"]].forEach(([id,key])=>$(id).addEventListener('change',e=>{state[key]=e.target.value;sync();drawLab();}));
+      [["indent","indent"],["shear","shear"],["yaw","yaw"]].forEach(([id,key])=>$(id).addEventListener('input',e=>{state[key]=Number(e.target.value);sync();drawLab();}));
+      $("markers").addEventListener('change',e=>{state.markers=e.target.checked;drawLab();});$("correction").addEventListener('change',e=>{state.correction=e.target.checked;drawLab();});
+      document.querySelectorAll('[data-path]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-path]').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.path=b.dataset.path;sync();drawLab();}));
+
+      const stageText={platform:'Platform 层把“安全而有信息的接触”变成可重复数据：随机压入深度、接触后旋转，并用触觉反馈控制夹爪，避免穿透和 clipping。',encoder:'Encoder 层共享一个 ResNet-18 latent，同时接受 Shape、Contact、Pose 的 MSE 监督；训练头在部署时丢弃。',benchmark:'Benchmark 层用八项任务覆盖位姿、形状和接触丰富操作，并把最大穿透和明显滑移列为 invalid，堵住物理捷径。',real:'真机层把仿真预训练的 encoder 接到 ACT + diffusion policy，在 Marvin + 双 GF225 上不做进一步微调。'};
+      document.querySelectorAll('[data-stage]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-stage]').forEach(x=>x.classList.remove('active'));b.classList.add('active');$("stageDetail").textContent=stageText[b.dataset.stage];}));
+
+      const tables={
+        sim:{title:'Table I · UniVTAC Benchmark（成功率 %）',head:['方法','Lift Bottle','Pull-out Key','Lift Can','Put Bottle in Shelf','Insert Hole','Insert HDMI','Insert Tube','Grasp Classify','Average'],rows:[['ACT（无触觉）',42,28,20,28,19,15,45,50,30.9],['VITaL',72,47,8,32,25,6,34,100,40.5],['ACT + UniVTAC',71,46,29,31,24,28,56,99,48.0]],bars:[['平均成功率',48.0,40.5,30.9],['Insert HDMI',28,6,15],['Insert Tube',56,34,45]]},
+        ablation:{title:'Table II · 路径消融（成功率 %）',head:['任务','Scratch','Contact','Shape','Contact+Shape','Full'],rows:[['Lift Bottle',56,59,51,62,71],['Pull-out Key',40,42,35,28,46],['Lift Can',33,12,26,18,29],['Put Bottle in Shelf',34,24,25,39,31],['Insert Hole',3,32,20,21,24],['Insert HDMI',16,24,25,23,28],['Insert Tube',45,43,53,60,56],['Grasp Classify',45,99,98,100,99],['Average',34,41.9,41.6,43.9,48.0]],bars:[['Average',48.0,43.9,41.9,41.6,34.0],['Insert Hole',24,21,32,20,3],['Grasp Classify',99,100,99,98,45]]},
+        scale:{title:'Table III · 预训练数据规模（八任务平均 %）',head:['数据量','0','1K','5K','10K','50K','100K','200K'],rows:[['Average',34.2,38.3,38.3,44.1,45.0,44.3,48.0],['说明','无预训练','','','','','','最大规模']],bars:[['平均成功率',34.2,38.3,38.3,44.1,45.0,44.3,48.0]]},
+        real:{title:'Table IV · Real-world Evaluation（成功率 %）',head:['任务','Vision only','Vision + UniVTAC','绝对增益'],rows:[['Insert Tube',55,85,30],['Insert USB',15,25,10],['Bottle Upright',60,95,35],['Average',43.3,68.3,25]],bars:[['Average',68.3,43.3],['Bottle Upright',95,60],['Insert Tube',85,55]]}
+      };
+      function renderMetrics(kind){const t=tables[kind],panel=$("metricPanel"),head=t.head.map(x=>`<th>${x}</th>`).join(''),rows=t.rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('');let bars='';if(kind==='scale'){const vals=t.bars[0].slice(1),names=['0','1K','5K','10K','50K','100K','200K'];bars=vals.map((v,i)=>`<div class="bar"><label><span>${names[i]}</span><span>${v}%</span></label><div class="track"><div class="fill ours" style="width:${v}%"></div></div></div>`).join('');}else{bars=t.bars.map((b)=>{const max=Math.max(...b.slice(1));return `<div class="bar"><label><span>${b[0]}</span><span>${b.slice(1).join(' / ')}</span></label>${b.slice(1).map((v,i)=>`<div class="track" style="margin-top:${i?'2px':'5px'}"><div class="fill ${i===0?'ours':''}" style="width:${v/max*100}%"></div></div>`).join('')}</div>`}).join('');}panel.innerHTML=`<div class="metric-layout"><div><h3 style="margin:0 0 9px;font:700 19px Georgia,serif">${t.title}</h3><table class="metric-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><div class="bars">${bars}<p class="caption">绿色第一条 = UniVTAC/Full；珊瑚色 = 对照或其他消融。柱宽是相对可读化，不是额外统计量。</p></div></div>`;}
+      document.querySelectorAll('[data-metric]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-metric]').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderMetrics(b.dataset.metric);}));
+      sync();drawLab();renderMetrics('sim');
+    })();
+  </script>
+</body>
+</html>

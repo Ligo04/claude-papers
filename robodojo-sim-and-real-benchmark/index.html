@@ -95,10 +95,10 @@ svg{max-width:100%;height:auto}
 <div class="wrap">
 
 <header class="hero">
-  <span class="badge">arXiv 2607.04434v1 · cs.RO · 2026</span>
+  <span class="badge">arXiv 2607.04434v3 · 2026-07-08 · cs.RO</span>
   <h1>RoboDojo 交互式导览</h1>
   <div class="sub">统一的 <b>Sim-and-Real</b> 通用机器人操作策略评测基准 —— 42 仿真任务 / 5 能力维度 + 18 真机任务 / 3 本体，异构并行仿真 + 可复现远程真机平台 + 统一策略框架。</div>
-  <div class="meta">MMLab@HKU · UC Berkeley · THU · PKU · Stanford · MIT ...　|　<a href="http://robodojo-benchmark.com/">robodojo-benchmark.com</a></div>
+  <div class="meta">44 authors · 46 pages　|　<a href="https://robodojo-benchmark.com/">robodojo-benchmark.com</a></div>
 </header>
 
 <div class="kpis">
@@ -113,7 +113,7 @@ svg{max-width:100%;height:auto}
   <h2><span class="dot"></span>系统三大件：集成一次，处处评测</h2>
   <p class="hint">RoboDojo 把「策略」通过 XPolicyLab 统一接口接入一次，即可在仿真快速迭代、再最小改动部署到标准化真机评测，形成诊断→改进闭环。</p>
   <div class="pgrid pgrid2" style="grid-template-columns:1fr 1fr 1fr">
-    <div class="pcard"><h4>🖥️ 仿真平台</h4><div class="d" style="font-size:12.5px;color:var(--sub)">基于 Isaac Sim / Isaac Lab；YAML 配置驱动；物理接地资产库；<b>异构并行</b>；cuRobo v2 自动合成 + VR 遥操作采数。42 任务 / 5 维度 / 2100 episodes。</div></div>
+    <div class="pcard"><h4>🖥️ 仿真平台</h4><div class="d" style="font-size:12.5px;color:var(--sub)">基于 MagicSim manager/runtime + Isaac Sim / Isaac Lab 向量化接口；YAML 配置驱动；物理接地资产库；<b>异构并行</b>；cuRobo v2 自动合成 + VR 遥操作采数。42 任务 / 5 维度 / 2100 episodes。</div></div>
     <div class="pcard"><h4>🤖 RoboDojo-RealEval</h4><div class="d" style="font-size:12.5px;color:var(--sub)">标准化硬件（1.5×1.5m，1 head + 2 wrist cam，固定夹具与光源）+ 触摸屏软件 + 布局叠加复位 + 云端远程评测。18 任务 / 3 本体。</div></div>
     <div class="pcard"><h4>🔌 XPolicyLab</h4><div class="d" style="font-size:12.5px;color:var(--sub)">统一策略接口（观测更新/动作预测/reset/批量查询）。集成 30 策略，标准化数据/训练/部署/评测流程，保留各自内部架构。</div></div>
   </div>
@@ -171,7 +171,7 @@ svg{max-width:100%;height:auto}
     <div class="thrbar" id="thr-het" style="width:100%">异构 77.4 interactions/s</div></div>
   <div class="thrrow">
     <div class="thrbar" id="thr-hom" style="width:52%;background:linear-gradient(90deg,#94a3b8,#64748b)">同构 40.0 interactions/s</div></div>
-  <div class="note">含 π0.5 远程推理时：异构 64.0 vs 非异构 → <b>1.63×</b>；零动作下 <b>1.94×</b>。异构并行是本论文最硬的系统贡献。</div>
+  <div class="note">含 π0.5 远程推理时：异构 64.0 vs 非异构 39.2 → <b>1.63×</b>；zero-action 为 77.4 vs 40.0 → <b>1.94×</b>。这是指定硬件与任务组合下的系统测量。</div>
 </section>
 
 <!-- 5. 与 Human 的差距 -->
@@ -184,8 +184,8 @@ svg{max-width:100%;height:auto}
 </section>
 
 <div class="foot">
-  数据来自 RoboDojo 论文（arXiv 2607.04434v1）Table 1 / Table 4 及正文，快照 2026-07-03。<br>
-  本页为学习用交互导览，非官方产物 · 由 claude-paper:study 生成 🐾
+  数据来自 RoboDojo（arXiv 2607.04434v3）Table 1 / Table 2 / Table 4，榜单冻结于 2026-07-03。<br>
+  本页为学习用交互导览，非官方产物；不调用外部网络。
 </div>
 </div>
 
@@ -220,6 +220,16 @@ const SIM=[
 ["SmolVLA (Single)",[1.83,0.85],[1.69,1.22],[2.87,0.33],[1.22,0.25],[3.35,2.44],[0.00,0.00]],
 ["LDA-1B",[1.58,0.51],[0.71,0.17],[3.21,0.50],[1.92,0.08],[2.08,1.78],[0.00,0.00]],
 ["MolmoAct2",[1.02,0.38],[0.39,0.06],[0.45,0.00],[2.32,0.00],[1.02,1.00],[0.91,0.83]],
+["GO-1",[0.99,0.53],[1.58,1.22],[1.45,0.42],[1.13,0.25],[0.70,0.67],[0.08,0.08]],
+["ACT (Single-Task)",[0.98,0.32],[0.69,0.56],[0.85,0.00],[1.73,0.92],[1.65,0.13],[0.00,0.00]],
+["H-RDT",[0.67,0.12],[0.49,0.22],[0.41,0.00],[2.23,0.17],[0.12,0.11],[0.08,0.08]],
+["RDT-1B",[0.51,0.13],[0.56,0.33],[0.38,0.00],[1.13,0.00],[0.49,0.33],[0.00,0.00]],
+["DM0",[0.45,0.05],[0.49,0.06],[0.61,0.00],[0.97,0.08],[0.20,0.11],[0.00,0.00]],
+["Dexora-1B",[0.38,0.02],[0.49,0.11],[0.49,0.00],[0.82,0.00],[0.12,0.00],[0.01,0.00]],
+["A1",[0.28,0.02],[0.16,0.00],[0.09,0.00],[1.07,0.00],[0.00,0.00],[0.08,0.08]],
+["Spirit v1.5",[0.23,0.14],[0.80,0.50],[0.03,0.00],[0.11,0.00],[0.22,0.22],[0.00,0.00]],
+["TinyVLA",[0.22,0.07],[0.03,0.00],[0.05,0.00],[0.67,0.00],[0.11,0.11],[0.25,0.25]],
+["OpenVLA-OFT",[0.21,0.02],[0.04,0.00],[0.20,0.00],[0.70,0.00],[0.00,0.00],[0.08,0.08]],
 ];
 const SIM_HUMAN=["Human Expert (Teleop)",[80.42,76.03],[90.05,87.83],[68.06,64.00],[83.63,74.25],[75.25,74.33],[85.13,79.75]];
 // 真机榜: [name, overall(score,sr)]
@@ -227,7 +237,9 @@ const REAL=[
 ["π0.5",[22.9,12.8]],["InternVLA-A1",[12.0,7.2]],["GalaxeaVLA (G0)",[9.0,4.4]],
 ["Xiaomi-Robotics-0",[7.9,3.9]],["X-VLA",[7.6,3.3]],["GR00T-N1.7",[5.9,1.7]],
 ["π0",[5.8,1.7]],["StarVLA-α",[4.1,1.7]],["Spirit v1.5",[1.6,0.6]],
+["DM0",[0.0,0.0]],
 ];
+const REAL_HUMAN=["Human Expert (Teleop)",[100.0,100.0]];
 const DIMIDX={Average:1,Generalization:2,Precision:3,LongHorizon:4,Memory:5,Open:6};
 
 // ============ 维度卡片 ============
@@ -237,7 +249,7 @@ document.getElementById("dimcards").innerHTML=DIMS.map(d=>
    <div class="d">${d.desc}</div></div>`).join("");
 
 // ============ 榜单 ============
-let curBoard="sim",curDim="Average",sortDesc=true;
+let curBoard="sim",curDim="Average",sortDesc=true,sortKey="score";
 function renderBoard(){
   const tb=document.getElementById("board");
   const dimTabs=document.getElementById("dimtabs");
@@ -246,10 +258,12 @@ function renderBoard(){
   if(curBoard==="sim"){
     const di=DIMIDX[curDim];
     rows=SIM.map(r=>({name:r[0],score:r[di][0],sr:r[di][1]}));
-    rows.sort((a,b)=>sortDesc?b.score-a.score:a.score-b.score);
+    rows.sort((a,b)=>sortDesc?b[sortKey]-a[sortKey]:a[sortKey]-b[sortKey]);
     const max=Math.max(...rows.map(r=>r.score));
     const hd=SIM_HUMAN[di];
-    head=`<tr><th class="rank">#</th><th>策略</th><th class="num" data-sort="score">Score ▾</th><th class="num" data-sort="sr">成功率 %</th></tr>`;
+    const scoreArrow=sortKey==="score"?(sortDesc?" ▾":" ▴"):"";
+    const srArrow=sortKey==="sr"?(sortDesc?" ▾":" ▴"):"";
+    head=`<tr><th class="rank">#</th><th>策略</th><th class="num" data-sort="score">Score${scoreArrow}</th><th class="num" data-sort="sr">成功率 %${srArrow}</th></tr>`;
     let body=rows.map((r,i)=>{
       const w=(r.score/max*100).toFixed(0);
       const rk=i===0?'<span class="gold">①</span>':i===1?'<span class="silver">②</span>':(i+1);
@@ -266,16 +280,20 @@ function renderBoard(){
       :`当前维度：${curDim}。注意顶尖策略分数仍远低于 Human（${hd[0].toFixed(1)} 分），揭示离均衡通用操作的巨大差距。`;
   }else{
     rows=REAL.map(r=>({name:r[0],score:r[1][0],sr:r[1][1]}));
-    rows.sort((a,b)=>sortDesc?b.score-a.score:a.score-b.score);
+    rows.sort((a,b)=>sortDesc?b[sortKey]-a[sortKey]:a[sortKey]-b[sortKey]);
     const max=Math.max(...rows.map(r=>r.score));
-    head=`<tr><th class="rank">#</th><th>策略</th><th class="num">Overall Score</th><th class="num">成功率 %</th></tr>`;
-    tb.innerHTML=head+rows.map((r,i)=>{
+    const scoreArrow=sortKey==="score"?(sortDesc?" ▾":" ▴"):"";
+    const srArrow=sortKey==="sr"?(sortDesc?" ▾":" ▴"):"";
+    head=`<tr><th class="rank">#</th><th>策略</th><th class="num" data-sort="score">Overall Score${scoreArrow}</th><th class="num" data-sort="sr">成功率 %${srArrow}</th></tr>`;
+    const body=rows.map((r,i)=>{
       const w=(r.score/max*100).toFixed(0);
       const rk=i===0?'<span class="gold">①</span>':i===1?'<span class="silver">②</span>':(i+1);
       return `<tr><td class="rank">${rk}</td><td>${r.name}</td>
         <td class="num barcell"><div class="barfill" style="width:${w}%"></div><span>${r.score.toFixed(1)}</span></td>
         <td class="num">${r.sr.toFixed(1)}%</td></tr>`;
     }).join("");
+    tb.innerHTML=head+body+`<tr class="human"><td class="rank">★</td><td>${REAL_HUMAN[0]}</td>
+      <td class="num">${REAL_HUMAN[1][0].toFixed(1)}</td><td class="num">${REAL_HUMAN[1][1].toFixed(1)}%</td></tr>`;
     document.getElementById("boardnote").innerHTML=
       "真机榜 π0.5 领先（22.9 分/12.8%），但整体仍低——真机部署不可靠，部分进度极少转化为完成。Piper X 本体对多数策略近乎 0。";
   }
@@ -289,7 +307,12 @@ document.querySelectorAll("#dimtabs .tab").forEach(t=>t.onclick=()=>{
   t.classList.add("active");curDim=t.dataset.dim;renderBoard();
 });
 document.getElementById("board").addEventListener("click",e=>{
-  if(e.target.dataset&&e.target.dataset.sort!==undefined){sortDesc=!sortDesc;renderBoard();}
+  if(e.target.dataset&&e.target.dataset.sort!==undefined){
+    const nextKey=e.target.dataset.sort;
+    if(sortKey===nextKey)sortDesc=!sortDesc;
+    else{sortKey=nextKey;sortDesc=true;}
+    renderBoard();
+  }
 });
 renderBoard();
 

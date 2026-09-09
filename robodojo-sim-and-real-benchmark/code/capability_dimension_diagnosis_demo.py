@@ -5,7 +5,7 @@ capability_dimension_diagnosis_demo.py
 =========================================
 
 【教学演示，非官方代码】
-本脚本演示 RoboDojo 论文 (arXiv:2607.04434) 的评测哲学——
+本脚本演示 RoboDojo 论文 (arXiv:2607.04434v3) 的评测哲学——
 「能力维度诊断 (capability dimension diagnosis)」——而不是官方评测代码。
 
 论文原文事实（引用自 FACTS.md，真实榜单数字，不得编造）：
@@ -67,7 +67,7 @@ log = logging.getLogger("capability_dimension_diagnosis_demo")
 # 真实数据区（来自 FACTS.md，2026-07-03 快照，禁止修改数值）
 # ---------------------------------------------------------------------------
 
-# 5 个能力维度的真实任务数（来自论文 4.x 节），总和为 42
+# 5 个能力维度的真实任务数（来自论文 3.1 节），总和为 42
 DIMENSION_TASK_COUNTS: dict[str, int] = {
     "Generalization": 12,
     "Memory": 6,
@@ -89,9 +89,9 @@ TABLE1_AVERAGE_LEADERBOARD: list[tuple[str, float, float]] = [
     ("GigaWorld-Policy", 6.20, 3.27),
     ("GalaxeaVLA (G0)", 5.82, 2.96),
     ("LingBot-VLA", 5.50, 2.96),
-    ("π0", 3.48, 1.53),
-    ("GR00T-N1.7", 2.85, 1.31),
-    ("InternVLA-A1", 2.48, 1.08),
+    ("EventVLA", 4.97, 2.81),
+    ("AHA-WAM", 4.82, 2.39),
+    ("ABot-M0", 3.67, 1.73),
 ]
 HUMAN_AVERAGE = ("Human Expert (Teleop)", 80.42, 76.03)
 

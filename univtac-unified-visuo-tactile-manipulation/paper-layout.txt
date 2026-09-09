@@ -1,0 +1,784 @@
+                                                 UniVTAC: A Unified Simulation Platform for
+                                                 Visuo-Tactile Manipulation Data Generation,
+                                                        Learning, and Benchmarking
+                                                           Baijun Chen5,2∗ , Weijie Wan6∗ , Tianxing Chen4∗ , Xianda Guo7,2∗ , Congsheng Xu1 ,
+                                                          Yuanyang Qi3 , Haojie Zhang3 , Longyan Wu8 , Tianling Xu1 , Zixuan Li6 , Yizhe Wu3 ,
+                                                                   Rui Li3,9 , Xiaokang Yang1 , Ping Luo4 , Wei Sui2,† , and Yao Mu1,†
+                                            1 ScaleLab, Shanghai Jiao Tong University 2 D-Robotics 3 ViTai Robotics 4 The University of Hong Kong
+                                            5 Nanjing University 6 Shenzhen University 7 Wuhan University 8 Fudan University 9 Tsinghua University
+arXiv:2602.10093v1 [cs.RO] 10 Feb 2026
+
+
+
+
+                                                                                  ∗ Equal Contribution † Corresponding Authors
+
+
+
+
+                                            Abstract—Robotic manipulation has seen rapid progress with         the detection of misalignment and supports closed-loop cor-
+                                         vision-language-action (VLA) policies. However, visuo-tactile per-    rective control during manipulation. Building upon these ad-
+                                         ception is critical for contact-rich manipulation, as tasks such as   vantages, visuo-tactile perception integrates visual appearance
+                                         insertion are difficult to complete robustly using vision alone.
+                                         At the same time, acquiring large-scale and reliable tactile          with tactile deformation cues, yielding dense and spatially
+                                         data in the physical world remains costly and challenging, and        resolved observations of contact phenomena such as pressure
+                                         the lack of a unified evaluation platform further limits policy       distribution, surface texture, and material properties. This
+                                         learning and systematic analysis. To address these challenges, we     combination makes visuo-tactile perception particularly well
+                                         propose UniVTAC, a simulation-based visuo-tactile data synthesis      suited for contact-rich manipulation scenarios where reliable
+                                         platform that supports three commonly used visuo-tactile sensors
+                                         and enables scalable and controllable generation of informative       interaction depends on accurate perception under occlusion
+                                         contact interactions. Based on this platform, we introduce the        and close-range contact.
+                                         UniVTAC Encoder, a visuo-tactile encoder trained on large-scale          However, the current infrastructure for visuo-tactile manip-
+                                         simulation-synthesized data with designed supervisory signals,        ulation remains underdeveloped. On the one hand, the scarcity
+                                         providing tactile-centric visuo-tactile representations for down-     of large-scale tactile data severely limits the training of tactile-
+                                         stream manipulation tasks. In addition, we present the UniVTAC
+                                         Benchmark, which consists of eight representative visuo-tactile       centric representation models, leading to suboptimal perfor-
+                                         manipulation tasks for evaluating tactile-driven policies. Exper-     mance of tactile-based manipulation policies. This limitation
+                                         imental results show that integrating the UniVTAC Encoder             largely stems from practical constraints of real-world tactile
+                                         improves average success rates by 17.1% on the UniVTAC Bench-         sensing hardware, including the lack of standardized sensor
+                                         mark, while real-world robotic experiments further demonstrate        designs, high manufacturing and deployment costs, and the
+                                         a 25% improvement in task success. Our webpage is available
+                                         at https://univtac.github.io/.                                        difficulty of large-scale production and data collection. As a
+                                                                                                               result, both representation learning and policy optimization for
+                                                                I. I NTRODUCTION                               tactile manipulation are significantly constrained.
+                                                                                                                  On the other hand, the absence of unified and compre-
+                                            Recent advances in robotic manipulation have enabled im-           hensive benchmarks for visuo-tactile manipulation hinders
+                                         pressive performance across a broad range of tasks. Modern            systematic evaluation and iterative improvement of tactile-
+                                         policies [15, 42, 7, 44, 27, 41, 23, 17, 2, 28, 4, 8] demonstrate     driven strategies. Addressing this gap requires a reproducible
+                                         strong capabilities in flexible object manipulation and fine-         platform that supports both scalable data acquisition and
+                                         grained skills, supporting complex activities such as coffee          standardized policy evaluation, enabling fair comparison and
+                                         making and tool use. Nevertheless, precise and reliable ma-           principled analysis across different methods.
+                                         nipulation remains fundamentally challenging, particularly for           To address these challenges, we propose UniVTAC, a
+                                         tasks that require accurate reasoning about object pose and           simulation-based framework for synthesizing visuo-tactile ma-
+                                         contact states, including insertion and alignment. In these           nipulation data that supports three widely used visuo-tactile
+                                         settings, vision-based perception alone is often insufficient due     sensors. Leveraging high-fidelity simulation, UniVTAC en-
+                                         to occlusions introduced by the end-effector, limited depth           ables large-scale and controllable generation of visuo-tactile
+                                         accuracy at close range, and the lack of direct observability of      interaction data, including pressure patterns, marker deforma-
+                                         contact interactions once physical engagement occurs.                 tions, and tangential force cues. Based on the synthesized
+                                            Tactile sensing provides complementary information by di-          data, we design multiple supervision objectives, such as visuo-
+                                         rectly capturing localized contact geometry, force distribution,      tactile image reconstruction and pose estimation, and train a
+                                         and relative motion at the interaction interface, which enables       unified visuo-tactile encoder under this multi-task supervision.
+Through large-scale pretraining, the encoder learns tactile-         faster-than-real-time simulation. TacEx [35] couples the mod-
+centric representations that capture fine-grained contact bound-     ern IPC library libuipc [13, 14] with a physically based visuo-
+aries while remaining sensitive to object pose and interaction       tactile renderer in NVIDIA Isaac Sim, supporting real-time,
+dynamics.                                                            high-fidelity simulation of GelSight-style sensors. The Finite
+   To systematically evaluate the effectiveness of the synthe-       Element Method (FEM) offers an alternative route focused on
+sized data and the learned representations, we further introduce     geometric and material fidelity, exemplified by TacFlex [51].
+a simulation-based visuo-tactile manipulation benchmark built        By coupling FEM-based elastic deformation models with ray-
+on TacEx [35] and NVIDIA Isaac Sim [36]. The benchmark               traced optical rendering. In contrast, DiffTactile [39] adopts
+comprises eight representative tactile manipulation tasks and        the Material Point Method (MPM) to model highly deformable
+supports automated data synthesis and unified policy evalua-         objects, leveraging its compatibility with automatic differenti-
+tion. Together with UniVTAC, it enables systematic and repro-        ation for gradient-based policy optimization. Separately, Tac-
+ducible analysis of visuo-tactile manipulation strategies under      chi [6] utilizes MPM for its efficiency in pluggable, modular
+diverse contact scenarios. Our contributions are summarized          simulation settings, where fast setup and moderate accuracy
+as follows:                                                          are prioritized.
+   (1) Simulation-based visuo-tactile data synthesis. We                Our work is built upon the TacEx framework [35], leverag-
+propose UniVTAC, a scalable and controllable simulation              ing its physical accuracy and integration in Isaac Sim, intro-
+framework for synthesizing visuo-tactile contact and manip-          ducing multiple sensors support and automatic manipulation
+ulation data, supporting three commonly used visuo-tactile           APIs. Our marker deformation simulation is also inspired by
+sensors. Within this framework, we design task-specific su-          the IPC-based contact modeling in [5] and [20].
+pervisory signals tailored for tactile manipulation and use
+them to generate large-scale annotated synthetic visuo-tactile       B. Visuo-tactile Representation Learning
+data. Leveraging this data, we pretrain a visuo-tactile encoder         Learning effective representations from tactile signals typi-
+designed to support downstream tactile manipulation tasks.           cally follows three paradigms: reconstruction, explicit geomet-
+   (2) UniVTAC Benchmark. We introduce the UniVTAC                   ric supervision, and multi-modal alignment. Reconstruction-
+Benchmark, a simulation-based benchmark comprising eight             based methods focus on capturing visual distribution. Marker-
+dexterous visuo-tactile manipulation tasks. Built upon the           Embedded GAN [18] utilizes GANs to generate RGB images
+UniVTAC platform, the benchmark supports automated data              from depth maps to bridge the cross-modal gap, while UniT
+generation and unified policy evaluation, enabling systematic        [46] employs VQGAN to reconstruct tactile images for data-
+and reproducible analysis of visuo-tactile manipulation strate-      efficient encoding. However, as these methods optimize for
+gies.                                                                pixel-level fidelity, they often overlook the underlying contact
+   (3) Comprehensive evaluation and real-world validation.           physics and force distributions.
+We conduct extensive experiments the on UniVTAC bench-                  To capture finer contact details, explicit geometric super-
+mark to analyze the performance of representative manip-             vision has been explored. RDP [47] treats markers as a
+ulation policies on tactile-dependent tasks. We demonstrate          2D grid-structured point matrix and applies PCA to capture
+the effectiveness of the UniVTAC Encoder representations in          dominant deformation modes. In contrast, the framework of
+simulation and further validate their applicability through real-    [5] models markers as 3D point clouds and uses a PointNet-
+world robotic experiments.                                           based architecture to learn nonlinear geometric features from
+                                                                     full spatial coordinates. While these methods are robust in
+                     II. R ELATED W ORK                              modeling physical contact, they often sacrifice rich tactile
+                                                                     textures and object-specific shape information by discarding
+A. Visuo-tactile Sensor Simulation
+                                                                     high-dimensional image features.
+   The development of high-fidelity simulators for visuo-tactile        Recently, vision-tactile contrastive learning has gained trac-
+sensors is a cornerstone for data-driven tactile perception          tion by aligning tactile embeddings with multi-view or tem-
+research. Recent progress has been driven by advancements in         poral visual signals [11, 26]. Although these approaches
+physics-based simulation and differentiable rendering. Existing      achieve impressive results in contact-rich manipulation, the
+frameworks can be categorized by their underlying physical           resulting representations are often task-specific. Relying on
+formulation.                                                         global alignment (e.g., CLIP-like objectives) often necessitates
+   The Incremental Potential Contact (IPC) method [22] has           training the encoder for each new task, thereby limiting the
+emerged as a prominent framework for contact-rich robotic            generalizability of the learned tactile representation.
+simulation, offering rigorous non-penetration guarantees and
+robust handling of complex frictional interactions. Building         C. Simulation for Data Generation
+on IPC, [5] and [20] integrated it into robotic manipulation           Many simulation-based methods have been proposed for
+pipelines through SapienIPC, a soft-body capable extension of        robotic policy learning [45, 12, 48, 31, 34, 10, 9, 37,
+the original SAPIEN simulator, enabling high-fidelity sim-to-        25, 19, 3, 33], providing scalable environments for training
+real transfer. Taccel [24] significantly accelerated this pipeline   and evaluation. Building upon these platforms, a number of
+via a GPU-optimized IPC backend, achieving real-time or              simulation-based pipelines further focus on large-scale robot
+data generation. For example, the RoboTwin series [32, 33, 3]        A. UniVTAC Platform
+and RoboGen [43] employ expert code to synthesize high-                 Built upon the TacEx framework [35], UniVTAC extends
+quality, near-perfect manipulation trajectories. MimicGen [30]       the soft-body simulation capabilities to support diverse sensor
+and DexMimicGen [16] extend data collection through hu-              types and complex manipulation tasks.
+man teleoperation, while other works [49, 21] obtain expert             1) Sensor Configuration and Heterogeneity: UniVTAC
+policies via reinforcement learning with carefully designed          integrates three mainstream visuotactile sensors: GelSight
+reward functions and subsequently use them for data synthesis.       Mini[50], ViTai GF225 [38], and Xense WS [1]. The opti-
+Collectively, these approaches enable efficient large-scale data     cal and mechanical properties of each sensor are modeled
+collection and, in some cases, support natural-language task         by adjusting internal camera intrinsics, gelpad meshes, and
+specifications for novel tasks [29].                                 rendering methods. This modularity allows researchers to val-
+   Despite their success, most existing simulation-based data        idate tactile algorithms across different hardware specifications
+generation pipelines primarily focus on rigid or articulated         within a unified environment.
+object manipulation and provide limited support for mod-                2) Automated Manipulation APIs: To facilitate large-scale
+eling the complex dynamics of tactile interaction. Standard          and high-fidelity data collection, we implement a library of
+protocols typically rely on heuristic gripper commands and           atomic manipulation APIs: Grasp, Move, Place, Probe, and
+binary success criteria based on final object states, without        Rotate. While Move and Place focus on precise trajectory
+explicitly modeling transient contact forces, deformation, or        generation via cuRobo [40], the Grasp and Probe primitives
+slippage during execution. As a result, such open-loop or            incorporate a tactile-reactive adaptive control mechanism to
+weakly constrained execution may produce trajectories with           ensure physical consistency. Specifically, during the Grasp
+excessive grasping forces or unstable contact configurations,        sequence, the gripper’s joint velocity q̇ is governed by a state-
+which would be unsafe for real-world tactile sensors and             dependent feedback law to prevent non-physical penetration:
+insufficient for learning tactile-dependent manipulation skills.
+   In contrast, our work explicitly incorporates tactile aware-                  (
+ness into the data generation process through a closed-loop                       vfast                       if dmin = dmax
+                                                                            q̇ =                                                  (1)
+control scheme for gripper aperture. By integrating runtime                       min (|dmin − δth |, vslow ) if dmin < dmax
+validity checks and contact-sensitive feedback, our pipeline
+avoids sensor-destructive behaviors and ensures that synthe-            where dmin is the real-time minimum depth from the tactile
+sized trajectories capture rich, physically meaningful contact       sensors, dmax denotes the zero-contact depth, and δth is the
+responses. This design enables the generation of tactile-aware       reaching depth threshold. The vfast and vslow constrains the
+data that is better aligned with the requirements of visuo-tactile   maximum velocity during the phase without or with contact.
+manipulation and downstream tactile-based policy learning.           This closed-loop approach effectively mitigates non-physical
+                                                                     clipping artifacts and ensures that the captured tactile imprints
+                        III. U NI VTAC                               remain within a realistic deformation manifold, providing
+                                                                     high-quality training data for the subsequent representation
+   The representation of observations plays a central role           learning.
+in effective robotic manipulation, particularly in contact-rich         3) Tactile Representation Prerequisites: To learn a robust
+settings. However, acquiring large-scale and reliable tactile        general-purpose tactile representation, we posit that the en-
+data in the physical world remains difficult to scale, as real-      coder must disentangle three distinct physical properties from
+world tactile sensors provide only raw observations and incur        raw tactile observations. We categorize these into three per-
+substantial data collection costs. Simulation environments, by       ception pathways, which guide our data generation and subse-
+contrast, offer access to ground-truth physical states and enable    quent supervision strategies. Shape Perception targets global
+scalable synthesis of contact interactions.                          geometry, compelling the model to disentangle the object’s
+   In this section, we present UniVTAC as an end-to-end              intrinsic visual appearance from sensor-specific artifacts such
+simulation-driven framework for visuo-tactile manipulation,          as markers and lighting. Contact Perception focuses on local
+encompassing data synthesis, representation learning, and sys-       dynamics, explicitly modeling interaction mechanics through
+tematic evaluation. UniVTAC enables automated generation             surface deformation and shear-induced marker displacement.
+of large-scale annotated visuo-tactile interaction data, which       Pose Perception provides spatial grounding, anchoring tactile
+we use to train the UniVTAC Encoder via auxiliary su-                signals in external metric space to enable consistent spatial
+pervision derived from simulation-specific physical signals.         reasoning for downstream policies. To support these pathways,
+The resulting tactile-centric visuo-tactile representations are      our pipeline is designed to capture high-fidelity ground truth
+designed to support downstream policy learning in contact-rich       for each modality alongside the raw sensor input.
+manipulation tasks. To systematically assess the effectiveness          4) Contact-Rich Data Generation: We curate a geometri-
+of the learned representations and the policies built upon them,     cally diverse dataset to ensure the encoder encounters broad
+we further introduce the UniVTAC Benchmark, a simulation             variations in local curvature and contact topology. Following
+benchmark comprising eight representative visuo-tactile ma-          protocols in [18], we employ 14 distinct geometric primi-
+nipulation tasks that span diverse contact scenarios.                tives as indenters, ranging from standard convex shapes (e.g.,
+                                                                                               RGB
+
+
+
+
+                                                                                                                                                                  Shape Pathway
+                                                                                             w/ Marker
+                                                                              Tactile         Decoder
+                                            Tactile
+                                                                              Repre-
+                                           Encoder
+                                                                             sentation         RGB
+                                                                                            w/o Marker
+                                                                                             Decoder
+           Vision            Tactile                                            (a)
+          Encoder           Encoder
+                                           Joint Pos
+                                                                                              Depth
+
+
+
+
+                                                                                                                                                                  Contact Pathway
+                                                                                              Map
+            Transformer/Diffusion based Policy                                               Decoder
+
+
+
+
+                                                       Temporal Ensembling
+                       𝑎𝑡                  …
+
+                𝑎𝑡−1                   …                                                   Point Decoder
+
+
+
+
+                                                                                                                                                                  Pose Pathway
+         𝑎𝑡−2                                                                                              [0.075, 0.005, 0.041, 0.464, 0.404, -0.421, -0.528]
+                                  …
+                                                                                                           [-0.028, 0.014, 0.040, 0.410, -0.110, 0.136, -0.478]
+                                                                                                           [0.087, -0.00, 0.038, 0.463, 0.457, -0.477, -0.505]
+                            (b)                                                            Pose Decoder    ……
+
+
+Fig. 1: The UniVTAC Encoder Framework and Integration into Policy Learning. (a) The UniVTAC Encoder is pretrained
+with three self-supervised objectives, including shape reconstruction, contact deformation prediction, and object pose regression,
+to learn a structured tactile-centric representation from raw visuo-tactile observations. (b) At deployment time, the pretrained
+encoder is integrated as a perception module for downstream manipulation policies, enabling end-to-end policy learning from
+raw tactile images without introducing additional inference-time overhead.
+
+
+spheres, cones) to complex non-convex patterns (e.g., stars,                             mentary inductive biases on the learned representation, while
+cross-shapes). These objects are mounted on a standardized                               all decoders are discarded at deployment time, ensuring that
+prism base to facilitate varying grasp interactions.                                     only the encoder is retained with no additional inference-time
+   For each episode, the robotic gripper approaches a prism                              overhead.
+on the ground plane with shapes on its surface and initiates                                The design of UniVTAC is grounded in three perceptual
+contact. To capture the dynamic relationship between gripper                             prerequisites that are critical for contact-rich manipulation: ob-
+width and gelpad deformation, we vary the grasping tightness                             ject shape understanding, local contact dynamics, and spatial
+stochastically by setting the reaching depth threshold δth . This                        pose awareness. To support shape perception, the UniVTAC
+generates data ranging from light touches to deep indentations.                          Encoder employs a dual-view reconstruction strategy in which
+Once in contact, the robot executes a series of randomized                               the encoder is supervised to reconstruct both the raw tactile
+small-scale rotations through the Move and Rotate APIs.                                  image with marker patterns, denoted as Imarked ∈ R3×H×W ,
+These actions induce rich shear force patterns and marker                                and a counterfactual marker-free image Ipure ∈ R3×H×W .
+displacements, which are critical for the contact perception.                            Jointly optimizing these two reconstruction objectives en-
+During this interaction sequence, we synchronously record                                courages the encoder to disentangle intrinsic object geometry
+the raw tactile images with markers Imarked , along with the                             from sensor-specific marker artifacts, resulting in shape-aware
+simulation-privileged ground truth: pure contact images Ipure ,                          representations that are robust to appearance variations.
+depth maps D, 2D projections of fiducial markers M , and the                                Contact perception is enforced by supervising the encoder
+pose of the object in the gelpad center local frame p.                                   with physically grounded signals that capture local deforma-
+   This automated pipeline generates approximately 14,000 in-                            tion dynamics. Specifically, the UniVTAC Encoder predicts a
+teraction frames per shape, yielding a total dataset of 205,826                          dense surface depth map D ∈ RH×W representing normal
+samples.                                                                                 indentation of the gelpad, together with the 2D projections of
+                                                                                         N fiducial markers, denoted as M ∈ R2×N , which encode
+B. UniVTAC Encoder                                                                       lateral shear and tangential deformation. By jointly modeling
+   We formulate the UniVTAC Encoder as a multi-pathway                                   geometric deformation and marker displacement, the learned
+representation learning framework that embeds structured                                 representation is encouraged to capture true contact mechanics
+physical priors into tactile observations through task-driven                            rather than relying on pixel-level cues alone.
+supervision. As illustrated in Figure 1, a shared encoder maps                              To anchor tactile observations within a global spatial con-
+each visuo-tactile observation into a compact latent representa-                         text, the UniVTAC Encoder further incorporates a pose per-
+tion, which is then decoded by multiple pathway-specific heads                           ception pathway that regresses the relative object pose p ∈ R7 ,
+during training. These decoding pathways impose comple-                                  consisting of 3D translation and a quaternion representation of
+CircleShell   Cross   Cubehole   Cuboid   Cylinder Doubleslope Hemisphere     Line       Pacman      S      Sphere     Star   Tetrahedron   Torus
+
+
+
+
+                                                                      Input
+
+
+
+
+                                                       Reconstruct RGB Image with Marker
+
+
+
+
+                                                           Reconstruct RGB Pure Image
+
+
+
+                                                             Reconstruct Depth Map
+
+
+
+
+                                                            Reconstruct Point Position
+
+Fig. 2: Reconstruction Result. From a tactile image with markers, the UniVTAC Encoder reconstructs complementary physical
+signals, including the marker-free tactile image, gelpad deformation depth map, and marker point positions, across diverse
+contact geometries. These results show that the learned representation captures both global shape cues and fine-grained contact
+deformation beyond sensor-specific visual patterns.
+
+
+orientation. This explicit spatial supervision grounds the latent           where D is the depth map and M represents the marker
+representation in a metric space, enabling downstream policies              positions porjected onto the image plane.
+to perform spatially consistent reasoning during manipulation.                 Pose Regression Loss. The spatial grounding is optimized
+   Architecturally, the UniVTAC Encoder adopts a ResNet-18                  via:
+backbone as the shared encoder, which projects each tactile                                      Lpose = M SE(p̂, p)                 (4)
+observation into a latent feature vector. The shape recon-
+struction heads employ transposed convolutional decoders to                 where p represents the object relevant pose (3D translation and
+generate RGB outputs, while the depth decoder follows a                     4D quaternion).
+similar architecture with a single-channel output. Marker flow                The final training objective is
+is predicted using a lightweight multilayer perceptron, and                                Ltotal = λs Lshape + λc Lcontact + λp Lpose          (5)
+pose regression is performed by a compact MLP that outputs
+the 7-dimensional pose vector. Reconstruction examples are                    In our experiments, we empirically set the balancing hyper-
+shown in Figure 2.                                                          parameters to λs = 1.0, λc = 0.5, and λp = 0.5.
+   The shared encoder and task-specific heads are trained end-
+                                                                            C. UniVTAC Benchmark
+to-end using a multi-task objective. We employ Mean Squared
+Error (MSE) as the primary optimization criterion for all                      Following the RoboTwin paradigm and the tactile percep-
+pathways. The total loss Ltotal is defined as a weighted sum                tion design of UniVTAC, we leverage simulation APIs, anno-
+of the following components:                                                tated object assets, and expert programs to enable automated
+   Shape Reconstruction Loss. This loss encourages the                      task-level data synthesis and evaluation. This design integrates
+model to capture global geometry by reconstructing both the                 data collection, model training, and policy evaluation into a
+marked and marker-free observations:                                        unified pipeline, supporting scalable and reproducible experi-
+                                                                            mentation.
+                                                                               Expert-driven data synthesis methods are capable of gen-
+   Lshape = M SE(Iˆmarked , Imarked ) + M SE(Iˆpure , Ipure )      (2)      erating near-perfect manipulation trajectories. For example,
+                                                                            insertion tasks can be synthesized with highly precise and
+where Iˆ and I denote the predicted and ground-truth tactile                collision-free executions. However, such trajectories are sub-
+images, respectively.                                                       optimal for tactile learning, as they lack meaningful variations
+  Contact Deformation Loss. To supervise local interaction                  in contact perception. In these executions, contact events are
+dynamics, we minimize the discrepancy in surface depth and                  often trivial or instantaneous, preventing tactile policies from
+marker displacements:                                                       learning informative, contact-dependent behaviors.
+                                                                               To address this limitation, we introduce stochasticity and
+              Lcontact = M SE(D̂, D) + M SE(M̂ , M )               (3)      corrective behaviors into the synthesis process. Specifically,
+       Grasp Classify                    Insert HDMI                      Insert Hole                        Insert Tube
+
+
+
+
+        Pull Out Key                  Put Bottle in Shelf                 Lift Bottle                          Lift Can
+
+Fig. 3: UniVTAC Benchmark Tasks. The UniVTAC Benchmark comprises eight representative visuo-tactile manipulation
+tasks spanning shape recognition, pose reasoning, and contact-rich interaction, and is designed to systematically evaluate
+tactile-dependent manipulation policies. For each task, we visualize two representative key frames corresponding to critical
+stages of execution. Each key frame includes both a visuo-tactile observation and a standard visual observation. For clarity of
+presentation, we display the tactile observation from only one side of the gripper, although tactile sensing is available on both
+fingertips during execution.
+
+
+for contact-rich skills such as insertion, we intentionally          learned representations to capture shape-related contact cues.
+introduce randomized failures during execution and allow             Contact-rich interaction tasks, including Insert Hole, Insert
+the expert controller to perform corrective actions based on         Tube, Insert HDMI, and Pull Out Key, involve fine-grained
+perceived contact feedback, which in simulation is provided by       alignment and sequential contact transitions, requiring precise
+ground-truth physical states. This process more closely resem-       reasoning over contact dynamics throughout the manipulation
+bles human manipulation behavior, where coarse alignment             process.
+is followed by iterative contact-based correction until task
+completion. As a result, the synthesized trajectories exhibit                              IV. E XPERIMENT
+diverse contact patterns and corrective interactions, providing
+                                                                        Our experiments are designed to investigate three key
+rich tactile supervision that enables policies to effectively
+                                                                     questions. (1) The performance of representative manipulation
+leverage visuo-tactile information.
+                                                                     policies on the UniVTAC Benchmark are evaluated to charac-
+   To ensure reliable evaluation, the UniVTAC Benchmark              terize their behavior across diverse visuo-tactile tasks; (2) The
+incorporates tactile-specific, physics-based success criteria that   efficacy of the UniVTAC Encoder are examed, comparing with
+extend beyond reaching target coordinates. A trial is con-           existing approaches and analyzing the contributions of differ-
+sidered invalid if the maximum penetration depth exceeds a           ent pathways; (3) We conduct simulation-to-real experiments
+predefined safety threshold or if significant relative slip is       to assess whether the UniVTAC Encoder, trained solely on
+detected between the gelpad and the object surface. These            simulation-synthesized data, transfers effectively to real-world
+constraints prevent degenerate solutions that exploit simulation     robotic manipulation.
+artifacts and ensure that evaluation outcomes reflect physically
+meaningful manipulation behaviors rather than numerical or           A. Evaluation on the UniVTAC Benchmark
+physical loopholes.
+                                                                        We evaluate representative manipulation policies on the
+   We design eight visuo-tactile manipulation tasks spanning         UniVTAC Benchmark, focusing on Action Chunking Trans-
+three perceptual dimensions. All tasks are visualized in Fig-        formers (ACT) [52]. ACT models manipulation as sequence
+ure 3, with detailed task descriptions provided in Appendix A.       prediction using a Transformer-based conditional variational
+Pose reasoning tasks, including Lift Bottle, Lift Can, and           framework, enabling temporally coherent action generation
+Put Bottle in Shelf, require policies to estimate the relative       and flexible fusion of sensory inputs through attention mecha-
+spatial relationship between the gripper and the object during       nisms. To assess the effectiveness of tactile-centric representa-
+interaction, relying primarily on accurate perception of object      tions, we further evaluate ACT augmented with the UniVTAC
+position and orientation. Shape perception tasks, such as Grasp      Encoder, which incorporates visuo-tactile features learned
+Classify, focus on distinguishing object geometries from high-       through large-scale simulation pretraining. In addition, we
+dimensional tactile observations, emphasizing the ability of         include VITaL [11], a representative visuo-tactile manipulation
+TABLE I: UniVTAC Benchmark. We report the success rates and average performance of ACT without tactile input, VITaL,
+and ACT with the UniVTAC Encoder (Ours) across the eight tasks in the UniVTAC Benchmark. (Bold: the best results;
+Underlined: the second-best results)
+Method       Lift Bottle Pull-out Key Lift Can Put Bottle in Shelf Insert Hole Insert HDMI Insert Tube Grasp Classify Average
+ACT [52]        42.0        28.0        20.0           28.0             19.0               15.0        45.0           50.0          30.9
+VITaL [11]      72.0        47.0         8.0           32.0             25.0               6.0         34.0          100.0          40.5
+Ours            71.0        46.0        29.0           31.0             24.0               28.0        56.0           99.0          48.0
+
+
+
+policy that leverages visuo-tactile pretraining, serving as a       TABLE II: Pathways Ablation. We evaluate the contribution
+strong baseline that explicitly exploits tactile representations.   of different tactile perception pathways in the UniVTAC
+                                                                    Encoder under the ACT-based policy framework, including
+   All policies are trained on 50 automatically collected full
+                                                                    contact-only, shape-only, and their combination, with a from-
+trajectories per task and evaluated over 100 test rollouts.
+                                                                    scratch baseline for comparison. (Bold: the best results;
+   Table I summarizes the performance of representative ma-
+                                                                    Underlined: the second-best results).
+nipulation policies on the UniVTAC Benchmark. Overall,
+the results highlight both the effectiveness of the benchmark        Task                   Scratch Contact   Shape Contact+Shape    Full
+design and the importance of tactile feedback for contact-           Lift Bottle              56.0   59.0     51.0      62.0         71.0
+rich manipulation. The benchmark spans tasks with varying            Pull-out Key             40.0   42.0     35.0       28.0        46.0
+degrees of perceptual and interaction complexity, enabling a         Lift Can                 33.0   12.0     26.0      18.0         29.0
+                                                                     Put Bottle in Shelf      34.0   24.0     25.0       39.0        31.0
+nuanced analysis of how different policies exploit visual and        Insert Hole               3.0   32.0     20.0      21.0         24.0
+tactile information.                                                 Insert HDMI              16.0   24.0     25.0       23.0        28.0
+                                                                     Insert Tube              45.0   43.0     53.0      60.0         56.0
+   Across all tasks, ACT augmented with the UniVTAC En-              Grasp Classify           45.0   99.0     98.0      100.0        99.0
+coder achieves a substantial performance improvement over
+                                                                     Average                  34.0   41.9     41.6       43.9        48.0
+its vision-only counterpart, increasing the average success
+rate from 30.9% to 48.0%. The improvement is consistently
+observed across multiple contact-sensitive tasks, including
+insertion and pull-out scenarios. This trend indicates that the     B. Efficacy of the UniVTAC Encoder
+UniVTAC Encoder provides tactile-centric representations that          We further evaluate the UniVTAC Encoder by comparing it
+can be effectively exploited by attention-based policy archi-       against baselines and ablation variants.
+tectures. Moreover, these results suggest that the UniVTAC             We first compare our method with a CLIP-based visuo-
+Benchmark captures manipulation scenarios in which tactile          tactile encoder. As shown in Table I, when integrated with
+perception plays a decisive role, and that ACT’s Transformer-       ACT, the UniVTAC Encoder achieves an average success rate
+based attention mechanism is well suited for integrating het-       of 48.0%, outperforming the contrastive learning-based VITaL,
+erogeneous visuo-tactile features.                                  which attains 40.5%. This performance gap suggests that
+   We also observe that VITaL achieves strong performance           the reconstruction-based pretraining strategy adopted in the
+on several tasks, most notably attaining near-perfect accuracy      UniVTAC Encoder captures more actionable and physically
+on Grasp Classify. This behavior is expected, as VITaL              grounded contact information than contrastive representations
+benefits from explicit visuo-tactile pretraining, enabling the      alone, which primarily emphasize global feature alignment.
+extraction of discriminative tactile features that are closely         We further conduct ablation studies to analyze the contribu-
+aligned with shape-related contact cues. As such, VITaL serves      tion of different tactile perception pathways in the UniVTAC
+as a meaningful reference point, illustrating the effectiveness     Encoder. As shown in Table II, we evaluate several variants
+of representation pretraining for visuo-tactile manipulation and    of our method under the same ACT-based policy framework,
+providing a practical upper bound for evaluating the UniVTAC        systematically ablating the tactile input modalities: contact
+Encoder under comparable experimental settings.                     pathway only(Contact), shape pathway only(Shape), and their
+   These observations indicate that the UniVTAC Benchmark           combination (Contact+Shape), with the from-scratch(Scratch)
+spans a continuum of task dependencies, ranging from visually       setting serving as the baseline that uses no pretraining and
+solvable manipulation to scenarios that fundamentally rely          trains the tactile encoder from random initialization.
+on tactile feedback. While vision-only policies can achieve            Our full model, which integrates geometric shape, contact
+competitive performance on tasks dominated by geometric             force and relative pose through the proposed UniVTAC pre-
+visibility, tactile perception becomes essential for robust exe-    training scheme, achieves an average success rate of 48.0%,
+cution in contact-rich and correction-intensive settings. Conse-    outperforming all ablated variants. Notably, the performance
+quently, the benchmark enables a more principled evaluation         gain is most pronounced in fine manipulation tasks requiring
+of manipulation policies by revealing not only aggregate task       precise tactile feedback. The Contact+Shape variant attains
+success, but also how effectively different policy architectures    the second-highest average (43.9%), yet still underperforms
+exploit visuo-tactile representations.                              the full model, suggesting that the pose perception is essential,
+                                                                                                                                                                   after pretraining. Detailed quantitative results are reported in
+                                                                      / L I W  % R W W O H                               , Q V H U W  + ' 0 ,
+                                                                      3 X O O  R X W  . H \                             , Q V H U W  7 X E H
+                                                                                                                                                                      Table III, and the trend of average success rate with respect
+                                                                    / L I W  & D Q                                     * U D V S  & O D V V L I \                 to data scale is shown in Figure 4.
+                                                                      3 X W  % R W W O H  L Q  6 K H O I               $ Y H U D J H                                  The results indicate that model performance increases
+ 6 X F F H V V  5 D W H    
+
+
+                                                                      , Q V H U W  + R O H
+                                                                                                                                                                      monotonically as the amount of simulation data grows, and
+                                                                                                                                                                    a clear scaling trend can be observed. This suggests that
+                                                                                                                                                   
+                                                                                                                                                                      expanding the diversity and scale of tactile manipulation data
+                                                                     
+                                                                                                                                                                consistently improves the effectiveness of the pretrained en-
+                                                                                                                                                                      coder and its contribution to downstream policy performance.
+                                                                                                                                                                    D. Real-World Experiments
+                                                                                                                                                                         We evaluate our approach on three physically challeng-
+                                                                                                                                                                     ing dexterous manipulation tasks using a real-world robotic
+                                                       .              .                         .                 .                    .            .
+                                                                           ' D W D  6 L ] H   L W H P V                                                           platform: Insert Tube, Insert USB, and Bottle Upright. All
+                                                                                                                                                                      experiments are conducted on the Tianji Robotics Marvin
+Fig. 4: Impact of Pretraining Data Scale on Encoder                                                                                                                   manipulator, a 7-DoF robotic arm equipped with a parallel
+Effectiveness. Downstream policy performance improves con-                                                                                                            gripper and a wrist-mounted RGB camera for visual feedback.
+sistently with increasing amounts of synthetic tactile data,                                                                                                          Tactile sensing is provided by two ViTai GF225 visuo-tactile
+highlighting the benefits of large-scale simulated experiences                                                                                                        sensors embedded in the gripper fingertips, each capturing
+for representation learning.                                                                                                                                          high-resolution deformation images at 30 Hz. The sensors out-
+                                                                                                                                                                      put marker-based RGB observations that encode rich contact
+TABLE III: Per-Task Success Rates Across Pretraining                                                                                                                  geometry and pressure distribution during interaction. The ex-
+Data Scales. Performance varies across tasks, with improve-                                                                                                           perimental setups are illustrated in Figure 6, and representative
+ments most pronounced in dexterous manipulation at higher                                                                                                             key frames of the tasks are shown in Figure 5.
+data volumes. (Bold: the best results; Underlined: the second-                                                                                                           To collect expert demonstrations, we employ VR-based
+best results).                                                                                                                                                        teleoperation using Meta Quest headsets. Human operators
+                                                                                                                                                                      control the end-effector pose via hand-held controllers while
+                                    Task                         0          1K               5K               10K      50K 100K 200K
+                                                                                                                                                                      observing live video streams from the wrist-mounted camera.
+                                    Lift Bottle         56.0 45.0 44.0 51.0 58.0 59.0                                                                   71.0          For each task, we collect 150 high-quality demonstration
+                                    Pull-out Key        40.0 34.0 35.0 46.0 29.0 37.0                                                                   46.0
+                                    Lift Can            33.0 20.0 23.0 26.0 24.0 20.0                                                                   29.0          trajectories, which are used to train an ACT integrated with
+                                    Put Bottle in Shelf 34.0 34.0 27.0 36.0 27.0 40.0                                                                   31.0          a diffusion-based policy head. The policy maps sequences of
+                                    Insert Hole          3.0 4.0 6.0 19.0 32.0 26.0                                                                     24.0          multimodal observations to future actions and outputs joint
+                                    Insert HDMI         16.0 21.0 21.0 24.0 38.0 36.0                                                                   28.0
+                                    Insert Tube         45.0 48.0 51.0 51.0 52.0 36.0                                                                   56.0          positions as direct action commands.
+                                    Grasp Classify      45.0 100.0 99.0 100.0 100.0 100.0                                                               99.0             The UniVTAC Encoder is first pretrained in simulation
+                                    Average                     34.2 38.3 38.3 44.1                                     45.0             44.3           48.0          using large-scale synthesized visuo-tactile contact data to learn
+                                                                                                                                                                      generalizable contact representations. To rigorously evaluate
+                                                                                                                                                                      the generalization of the pretrained feature, the encoder is
+especially in the tasks needing pose awareness like Lift Bottle.                                                                                                      transferred to the real robot without further fine-tuning at
+   Importantly, even individual tactile pathways yield signif-                                                                                                        deployment time. We conduct ablation studies comparing
+icant gains over training from scratch: Contact (+7.9%) and                                                                                                           policies with tactile input enabled via the UniVTAC Encoder
+Shape (+7.6%) demonstrate consistent improvements across                                                                                                              against vision-only baselines. All policies are trained sepa-
+most tasks, validating the effectiveness of each design com-                                                                                                          rately for each task and evaluated over 20 rollouts under
+ponent.                                                                                                                                                               identical initial conditions, with task success determined by
+   These results collectively validate that geometric shapes,                                                                                                         human observers.
+contact dynamics and pose perception are essential for dex-                                                                                                              We further analyze the real-world experimental results to
+terous manipulation and joint optimization of the full pipeline                                                                                                       understand how the UniVTAC Encoder contributes to perfor-
+yields superior performance compared to modular or partial                                                                                                            mance gains across different manipulation tasks. As summa-
+usage of tactile information.                                                                                                                                         rized in Table IV, integrating the UniVTAC Encoder leads
+                                                                                                                                                                      to consistent improvements across all evaluated tasks, with
+C. Tactile Data Scaling for Encoder Pretraining                                                                                                                       an average success rate increase of 25%. In fine-grained
+   To investigate the effect of the amount of simulation-                                                                                                             insertion tasks, including Insert Tube and Insert USB, policies
+synthesized tactile manipulation data on encoder performance,                                                                                                         augmented with the UniVTAC Encoder achieve performance
+we conduct a data-scaling study for tactile pretraining. Specif-                                                                                                      gains of 30% and 10%, respectively. These improvements
+ically, we pretrain the encoder using different volumes of                                                                                                            indicate that UniVTAC provides high-quality tactile feedback
+synthetic tactile data, including 0, 1k, 5k, 10k, 50k, 100k,                                                                                                          that enables policies to reason over subtle contact cues during
+and 200k samples, and then evaluate the resulting models                                                                                                              precise alignment and insertion. Successful execution in these
+Fig. 5: Real-world Task Key Frames. Representative key frames from three real-world visuo-tactile manipulation tasks,
+showing synchronized wrist RGB images (left) and marker-based tactile observations (right) at the initial approach, contact-
+rich interaction, and final completion stages. The intermediate frames highlight evolving contact states and deformation cues
+that support fine-grained alignment and correction beyond vision-only perception.
+
+
+                                                                  effective deployment in physical robotic systems despite being
+                                                                  pretrained exclusively on simulation-synthesized data. These
+                                                                  results underscore the value of simulation-based visuo-tactile
+                                                                  data synthesis and highlight UniVTAC as a practical and scal-
+                                                                  able approach to enhance real-world dexterous manipulation
+                                                                  through tactile perception.
+     Insert USB           Insert Tube          Bottle Upright                            V. C ONCLUSION
+                                                                     We presented UniVTAC, a unified simulation platform for
+Fig. 6: Real World Taks. We illustrate the experimental
+                                                                  scalable visuo-tactile data generation, representation learning,
+settings for the three real-world manipulation tasks evaluated
+                                                                  and benchmarking in contact-rich robotic manipulation. Built
+in this work.
+                                                                  on high-fidelity tactile simulation, UniVTAC enables control-
+                                                                  lable synthesis of diverse visuo-tactile interactions and pro-
+TABLE IV: Real-World Evaluation Results. We report the            vides structured supervisory signals for learning tactile-centric
+real-world performance on three manipulation tasks, compar-       representations. Leveraging this platform, we introduced the
+ing a vision-only observation setting with a vision-and-tactile   UniVTAC Encoder, a visuo-tactile encoder pretrained via
+fusion setting.                                                   multi-pathway supervision that captures object shape, contact
+                                                                  deformation, and pose information from tactile observations.
+       Task              Vision         Vision + UniVTAC
+                                                                  To facilitate systematic evaluation, we further proposed the
+       Insert Tube        55.0                85.0                UniVTAC Benchmark, a benchmark comprising eight rep-
+       Insert USB         15.0                25.0                resentative visuo-tactile manipulation tasks that emphasize
+       Bottle Upright     60.0                95.0                tactile-dependent reasoning under occlusion and contact un-
+       Average            43.3                68.3                certainty. Extensive simulation experiments demonstrate that
+                                                                  the UniVTAC Encoder consistently improves manipulation
+                                                                  performance when integrated with modern policy architec-
+                                                                  tures, while real-world evaluations confirm effective sim-to-
+tasks often depends on detecting partial misalignment and         real transfer despite being pretrained purely in simulation.
+responding with incremental corrective motions, which cannot      We believe UniVTAC establishes a practical and extensible
+be reliably inferred from vision alone.                           foundation for visuo-tactile manipulation research, enabling
+   In the Bottle Upright task, incorporating the UniVTAC          scalable data generation, robust tactile representation learning
+Encoder results in a performance improvement of 35%. This         and fair benchmarking. Future work will extend this frame-
+outcome highlights that the benefits of UniVTAC extend            work to more diverse sensor modalities, dynamic interactions,
+beyond direct contact detection to object pose understanding.     and open-world manipulation scenarios.
+Although the encoder is pretrained purely in simulation, its
+representations implicitly capture object orientation and pose-
+related cues that are critical for maintaining stability during
+manipulation. The strong performance observed in real-world
+execution demonstrates that such pose-aware representations
+transfer effectively to physical robotic systems.
+   Overall, the average improvement of 25% in real-world suc-
+cess rates demonstrates that the UniVTAC Encoder not only
+provides informative tactile representations, but also enables
+                       R EFERENCES                                  scalable and generalizable robot learning. arXiv preprint
+                                                                    arXiv:2504.18904, 2025.
+ [1] Xense. https://www.xenserobotics.com/product/367/detail/9,[11] Abraham George, Selam Gano, Pranav Katragadda, and
+     2025. 2.                                                       Amir Barati Farimani. VITaL Pretraining: Visuo-Tactile
+ [2] Kevin Black, Noah Brown, Danny Driess, Adnan Es-               Pretraining for Tactile and Non-Tactile Manipulation
+     mail, Michael Equi, Chelsea Finn, Niccolo Fusai, Lachy         Policies, 2024-09-26. URL http://arxiv.org/abs/2403.
+     Groom, Karol Hausman, Brian Ichter, et al. pi0 : A vision-     11898.
+     language-action flow model for general robot control. [12] Jiayuan Gu, Fanbo Xiang, Xuanlin Li, Zhan Ling,
+     arXiv preprint arXiv:2410.24164, 2024.                         Xiqiang Liu, Tongzhou Mu, Yihe Tang, Stone Tao,
+ [3] Tianxing Chen, Zanxin Chen, Baijun Chen, Zijian Cai,           Xinyue Wei, Yunchao Yao, et al. Maniskill2: A unified
+     Yibin Liu, Zixuan Li, Qiwei Liang, Xianliang Lin, Yi-          benchmark for generalizable manipulation skills. In The
+     heng Ge, Zhenyu Gu, et al. Robotwin 2.0: A scalable data       Eleventh International Conference on Learning Repre-
+     generator and benchmark with strong domain random-             sentations, 2023.
+     ization for robust bimanual robotic manipulation. arXiv [13] Kemeng Huang, Floyd M. Chitalu, Huancheng Lin, and
+     preprint arXiv:2506.18088, 2025.                               Taku Komura. Gipc: Fast and stable gauss-newton opti-
+ [4] Tianxing Chen, Yao Mu, Zhixuan Liang, Zanxin Chen,             mization of ipc barrier energy. ACM Trans. Graph., 43
+     Shijia Peng, Qiangyu Chen, Mingkun Xu, Ruizhen Hu,             (2), mar 2024. ISSN 0730-0301. doi: 10.1145/3643028.
+     Hongyuan Zhang, Xuelong Li, et al. G3flow: Generative [14] Kemeng Huang, Xinyu Lu, Huancheng Lin, Taku Ko-
+     3d semantic flow for pose-aware and generalizable object       mura, and Minchen Li. Stiffgipc: Advancing gpu ipc
+     manipulation. In Proceedings of the Computer Vision            for stiff affine-deformable simulation. ACM Trans.
+     and Pattern Recognition Conference, pages 1735–1744,           Graph., 44(3), May 2025. ISSN 0730-0301. doi:
+     2025.                                                          10.1145/3735126.
+ [5] Weihang Chen, Jing Xu, Fanbo Xiang, Xiaodi Yuan, [15] Physical Intelligence, Ali Amin, Raichelle Aniceto, Ash-
+     Hao Su, and Rui Chen. General-Purpose Sim2Real                 win Balakrishna, Kevin Black, Ken Conley, Grace Con-
+     Protocol for Learning Contact-Rich Manipulation With           nors, James Darpinian, Karan Dhabalia, Jared DiCarlo,
+     Marker-Based Visuotactile Sensors. IEEE Transactions           et al. pi∗0.6 : a vla that learns from experience. arXiv
+     on Robotics, 40:1509–1526, 2024. ISSN 1552-3098,               preprint arXiv:2511.14759, 2025.
+     1941-0468. doi: 10.1109/TRO.2024.3352969. URL [16] Zhenyu Jiang, Yuqi Xie, Kevin Lin, Zhenjia Xu, Weikang
+     https://ieeexplore.ieee.org/document/10388459/.                Wan, Ajay Mandlekar, Linxi Fan, and Yuke Zhu.
+ [6] Zixi Chen, Shixin Zhang, Shan Luo, Fuchun Sun, and             Dexmimicgen: Automated data generation for bimanual
+     Bin Fang. Tacchi: A Pluggable and Low Computational            dexterous manipulation via imitation learning. In 2025
+     Cost Elastomer Deformation Simulator for Optical Tac-          IEEE International Conference on Robotics and Automa-
+     tile Sensors. IEEE Robotics and Automation Letters, 8          tion (ICRA), 2025.
+     (3):1239–1246, 2023-03. ISSN 2377-3766, 2377-3774. [17] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+     doi: 10.1109/LRA.2023.3237042. URL http://arxiv.org/           Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov,
+     abs/2301.08343.                                                Ethan Foster, Grace Lam, Pannag Sanketi, et al. Openvla:
+ [7] Shengliang Deng, Mi Yan, Songlin Wei, Haixin Ma,               An open-source vision-language-action model. arXiv
+     Yuxin Yang, Jiayi Chen, Zhiqi Zhang, Taoyu Yang,               preprint arXiv:2406.09246, 2024.
+     Xuheng Zhang, Heming Cui, et al. Graspvla: a grasping [18] Won Dong Kim, Sanghoon Yang, Woojong Kim, Jeong-
+     foundation model pre-trained on billion-scale synthetic        Jung Kim, Chang-Hyun Kim, and Jung Kim. Marker-
+     action data. arXiv preprint arXiv:2505.03233, 2025.            Embedded Tactile Image Generation via Generative Ad-
+ [8] Yankai Fu, Qiuxuan Feng, Ning Chen, Zichen Zhou,               versarial Networks. IEEE Robotics and Automation
+     Mengzhen Liu, Mingdong Wu, Tianxing Chen, Shanyu               Letters, 8(8):4481–4488, August 2023. ISSN 2377-3766.
+     Rong, Jiaming Liu, Hao Dong, et al.              Cordvip:      doi: 10.1109/LRA.2023.3284370.
+     Correspondence-based visuomotor policy for dexter- [19] Zhiqian Lan, Yuxuan Jiang, Ruiqi Wang, Xuanbing Xie,
+     ous manipulation in real-world.          arXiv preprint        Rongkui Zhang, Yicheng Zhu, Peihang Li, Tianshuo
+     arXiv:2502.08449, 2025.                                        Yang, Tianxing Chen, Haoyu Gao, et al. Autobio: A
+ [9] Ricardo Garcia, Shizhe Chen, and Cordelia Schmid.              simulation and benchmark for robotic automation in dig-
+     Towards generalizable vision-language robotic manip-           ital biology laboratory. arXiv preprint arXiv:2505.14030,
+     ulation: A benchmark and llm-guided 3d policy. In              2025.
+     International Conference on Robotics and Automation [20] Chuanyu Li, Renjun Dang, Xiang Li, Zhiyuan Wu,
+     (ICRA), 2025.                                                  Jing Xu, Hamidreza Kasaei, Roberto Calandra, Nathan
+[10] Haoran Geng, Feishi Wang, Songlin Wei, Yuyang Li,              Lepora, Shan Luo, Hao Su, and Rui Chen. ManiSkill-
+     Bangjun Wang, Boshi An, Charlie Tianyue Cheng,                 ViTac 2025: Challenge on Manipulation Skill Learning
+     Haozhe Lou, Peihao Li, Yen-Jen Wang, et al. Roboverse:         With Vision and Tactile Sensing, 2024-11-19. URL
+     Towards a unified platform, dataset and benchmark for          http://arxiv.org/abs/2411.12503.
+[21] Haozhan Li, Yuxin Zuo, Jiale Yu, Yuhao Zhang, Zhao-               Gao, Yude Zou, Lunkai Lin, Zhiqiang Xie, and Ping Luo.
+     hui Yang, Kaiyan Zhang, Xuekai Zhu, Yuchen Zhang,                 Robotwin: Dual-arm robot benchmark with generative
+     Tianxing Chen, Ganqu Cui, et al. Simplevla-rl: Scaling            digital twins (early version). In European Conference
+     vla training via reinforcement learning. arXiv preprint           on Computer Vision, pages 264–273. Springer, 2024.
+     arXiv:2509.09674, 2025.                                      [33] Yao Mu, Tianxing Chen, Zanxin Chen, Shijia Peng,
+[22] Minchen Li, Zachary Ferguson, Teseo Schneider, Timo-              Zhiqian Lan, Zeyu Gao, Zhixuan Liang, Qiaojun Yu,
+     thy Langlois, Denis Zorin, Daniele Panozzo, Chenfanfu             Yude Zou, Mingkun Xu, et al. Robotwin: Dual-arm robot
+     Jiang, and Danny M Kaufman. Incremental potential con-            benchmark with generative digital twins. In Proceedings
+     tact: intersection-and inversion-free, large-deformation          of the Computer Vision and Pattern Recognition Confer-
+     dynamics. ACM transactions on graphics, 2020.                     ence, pages 27649–27660, 2025.
+[23] Qixiu Li, Yaobo Liang, Zeyu Wang, Lin Luo, Xi Chen,          [34] Soroush Nasiriany, Abhiram Maddukuri, Lance Zhang,
+     Mozheng Liao, Fangyun Wei, Yu Deng, Sicheng Xu,                   Adeet Parikh, Aaron Lo, Abhishek Joshi, Ajay Man-
+     Yizhong Zhang, et al.          Cogact: A foundational             dlekar, and Yuke Zhu. Robocasa: Large-scale simulation
+     vision-language-action model for synergizing cognition            of everyday tasks for generalist robots. In Robotics:
+     and action in robotic manipulation. arXiv preprint                Science and Systems (RSS), 2024.
+     arXiv:2411.19650, 2024.                                      [35] Duc Huy Nguyen, Tim Schneider, Guillaume Duret, Alap
+[24] Yuyang Li, Wenxin Du, Chang Yu, Puhao Li, Zihang                  Kshirsagar, Boris Belousov, and Jan Peters. TacEx: Gel-
+     Zhao, Tengyu Liu, Chenfanfu Jiang, Yixin Zhu, and                 Sight Tactile Simulation in Isaac Sim – Combining Soft-
+     Siyuan Huang. Taccel: Scaling Up Vision-based Tactile             Body and Visuotactile Simulators, 2024-11-07. URL
+     Robotics via High-performance GPU Simulation, 2025-               http://arxiv.org/abs/2411.04776.
+     04-17. URL http://arxiv.org/abs/2504.12908.                  [36] NVIDIA. Isaac Sim, 2025. URL https://github.com/
+[25] Bo Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang               isaac-sim/IsaacSim.
+     Liu, Yuke Zhu, and Peter Stone. Libero: Benchmarking         [37] Wilbert Pumacay, Ishika Singh, Jiafei Duan, Ranjay Kr-
+     knowledge transfer for lifelong robot learning. Advances          ishna, Jesse Thomason, and Dieter Fox. The colosseum:
+     in Neural Information Processing Systems, 36:44776–               A benchmark for evaluating generalization for robotic
+     44791, 2023.                                                      manipulation. arXiv preprint arXiv:2402.08191, 2024.
+[26] Fangchen Liu, Chuanyu Li, Yihua Qin, Jing Xu, Pieter         [38] ViTai Robotics. Vitai-sdk-release. https://github.com/
+     Abbeel, and Rui Chen. ViTaMIn: Learning Contact-Rich              ViTai-Tech/ViTai-SDK-Release, 2026.
+     Tasks Through Robot-Free Visuo-Tactile Manipulation          [39] Zilin Si, Gu Zhang, Qingwei Ben, Branden Romero,
+     Interface, September 2025.                                        Zhou Xian, Chao Liu, and Chuang Gan. Difftac-
+[27] Jiaming Liu, Hao Chen, Pengju An, Zhuoyang Liu, Ren-              tile: A physics-based differentiable tactile simulator
+     rui Zhang, Chenyang Gu, Xiaoqi Li, Ziyu Guo, Sixiang              for contact-rich robotic manipulation. arXiv preprint
+     Chen, Mengzhen Liu, et al. Hybridvla: Collaborative               arXiv:2403.08716, 2024.
+     diffusion and autoregression in a unified vision-language-   [40] Balakumar Sundaralingam, Siva Kumar Sastry Hari,
+     action model. arXiv preprint arXiv:2503.10631, 2025.              Adam Fishman, Caelan Garrett, Karl Van Wyk, Valts
+[28] Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan,               Blukis, Alexander Millane, Helen Oleynikova, Ankur
+     Huayu Chen, Zhengyi Wang, Ke Xu, Hang Su, and Jun                 Handa, Fabio Ramos, Nathan Ratliff, and Dieter
+     Zhu. Rdt-1b: a diffusion foundation model for bimanual            Fox. cuRobo: Parallelized Collision-Free Minimum-Jerk
+     manipulation. arXiv preprint arXiv:2410.07864, 2024.              Robot Motion Generation, November 2023.
+[29] Yibin Liu, Zhixuan Liang, Zanxin Chen, Tianxing Chen,        [41] Octo Model Team, Dibya Ghosh, Homer Walke, Karl
+     Mengkang Hu, Wanxi Dong, Congsheng Xu, Zhaom-                     Pertsch, Kevin Black, Oier Mees, Sudeep Dasari, Joey
+     ing Han, Yusen Qin, and Yao Mu. Hycodepolicy:                     Hejna, Tobias Kreiman, Charles Xu, et al. Octo: An
+     Hybrid language controllers for multimodal monitor-               open-source generalist robot policy. arXiv preprint
+     ing and decision in embodied agents. arXiv preprint               arXiv:2405.12213, 2024.
+     arXiv:2508.02629, 2025.                                      [42] RDT Team. Rdt2: Enabling zero-shot cross-embodiment
+[30] Ajay Mandlekar, Soroush Nasiriany, Bowen Wen, Ire-                generalization by scaling up umi data, September 2025.
+     tiayo Akinola, Yashraj Narang, Linxi Fan, Yuke Zhu,               URL https://github.com/thu-ml/RDT2.
+     and Dieter Fox. Mimicgen: A data generation system           [43] Yufei Wang, Zhou Xian, Feng Chen, Tsun-Hsuan Wang,
+     for scalable robot learning using human demonstrations.           Yian Wang, Katerina Fragkiadaki, Zackory Erickson,
+     arXiv preprint arXiv:2310.17596, 2023.                            David Held, and Chuang Gan. Robogen: Towards un-
+[31] Oier Mees, Lukas Hermann, Erick Rosete-Beas, and                  leashing infinite data for automated robot learning via
+     Wolfram Burgard. Calvin: A benchmark for language-                generative simulation. arXiv preprint arXiv:2311.01455,
+     conditioned policy learning for long-horizon robot ma-            2023.
+     nipulation tasks. IEEE Robotics and Automation Letters,      [44] Junjie Wen, Yichen Zhu, Jinming Li, Zhibin Tang,
+     7(3):7327–7334, 2022.                                             Chaomin Shen, and Feifei Feng.          Dexvla: Vision-
+[32] Yao Mu, Tianxing Chen, Shijia Peng, Zanxin Chen, Zeyu             language model with plug-in diffusion expert for general
+     robot control. arXiv preprint arXiv:2502.05855, 2025.
+[45] Fanbo Xiang, Yuzhe Qin, Kaichun Mo, Yikuan Xia, Hao
+     Zhu, Fangchen Liu, Minghua Liu, Hanxiao Jiang, Yifu
+     Yuan, He Wang, et al. Sapien: A simulated part-based
+     interactive environment. In Proceedings of the IEEE/CVF
+     conference on computer vision and pattern recognition,
+     pages 11097–11107, 2020.
+[46] Zhengtong Xu, Raghava Uppuluri, Xinwei Zhang, Cael
+     Fitch, Philip Glen Crandall, Wan Shou, Dongyi Wang,
+     and Yu She. UniT: Data Efficient Tactile Representation
+     with Generalization to Unseen Objects, April 2025.
+[47] Han Xue, Jieji Ren, Wendi Chen, Gu Zhang, Yuan Fang,
+     Guoying Gu, Huazhe Xu, and Cewu Lu. Reactive Dif-
+     fusion Policy: Slow-Fast Visual-Tactile Policy Learning
+     for Contact-Rich Manipulation, April 2025.
+[48] Tianhe Yu, Deirdre Quillen, Zhanpeng He, Ryan Julian,
+     Karol Hausman, Chelsea Finn, and Sergey Levine. Meta-
+     world: A benchmark and evaluation for multi-task and
+     meta reinforcement learning. In Conference on robot
+     learning, pages 1094–1100. PMLR, 2020.
+[49] Tianhe Yu, Deirdre Quillen, Zhanpeng He, Ryan Julian,
+     Karol Hausman, Chelsea Finn, and Sergey Levine. Meta-
+     world: A benchmark and evaluation for multi-task and
+     meta reinforcement learning. In Conference on robot
+     learning, pages 1094–1100. PMLR, 2020.
+[50] Wenzhen Yuan, Siyuan Dong, and Edward H Adelson.
+     Gelsight: High-resolution robot tactile sensors for esti-
+     mating geometry and force. Sensors, 17(12):2762, 2017.
+[51] Chaofan Zhang, Shaowei Cui, Jingyi Hu, Tianyu Jiang,
+     Tiandong Zhang, Rui Wang, and Shuo Wang. TacFlex:
+     Multimode Tactile Imprints Simulation for Visuotactile
+     Sensors With Coating Patterns. IEEE Transactions on
+     Robotics, 41:3965–3985, 2025. ISSN 1941-0468. doi:
+     10.1109/TRO.2025.3576970. URL https://ieeexplore.
+     ieee.org/document/11024236/.
+[52] Tony Z. Zhao, Vikash Kumar, Sergey Levine, and
+     Chelsea Finn. Learning Fine-Grained Bimanual Manip-
+     ulation with Low-Cost Hardware, April 2023.
+                    A PPENDIX A                                                                               A PPENDIX C
+  TASK D ESCRIPTIONS FOR THE U NI VTAC B ENCHMARK                                               D ETAILS FOR R EAL - WORLD E XPERIMENTS
+   The tasks included in the UniVTAC benchmark are de-
+                                                                                                 Insert USB     Insert Tube   Bottle Upright
+scribed in Table V.
+
+TABLE V: Task Descriptions for the UniVTAC Benchmark.
+
+
+
+
+                                                                                  w/o Tactile
+      Task        Description
+                  A bottle rests on the ground plane facing a vertical
+    Lift Bottle   wall. The robot grasps the bottle and lifts it vertically,
+                  keeping its final base within 5 cm of the wall.
+                  A key sits in a slot with random initial rotation.
+     Pull-out
+                  The robot rotates the key until sensing mechanical
+       Key
+                  resistance, then pulls it straight out.
+                  One of three cylindrical cans (4, 5, and 6 cm diame-
+
+
+
+
+                                                                                  w/ Tactile
+     Lift Can     ter) lies horizontally on the ground plane. The robot
+                  grasps the can and lifts it vertically without slippage.
+                  A bottle stands upright before a shelf. The robot
+    Put Bottle
+                  grasps the bottle, then positions it into the shelf
+     in Shelf
+                  cavity.
+                  An cube with inclined hole (60° or 120° orienta-
+      Insert      tion) lies on the ground plane. The robot explores
+       Hole       the hole’s geometry through contact, determines its          Fig. 7: Rollout Key Frames. Tactile feedback enables
+                  orientation, and inserts a test tube into the hole.          smoother, more adaptive insertion behaviors with reduced
+                  A HDMI connector held by the robot has random                collisions.
+     Insert
+                  rotational offset. The robot aligns and inserts the con-
+     HDMI
+                  nector into a fixed slot under rotational uncertainty.
+                                                                                  We provide qualitative insights into the role of tactile
+                  A narrow hole (2.05 cm diameter) appears on an
+      Insert      inclined surface. The robot inserts a 2.0 cm diameter
+                                                                               sensing in real-world task execution. Representative rollout
+       Tube       test tube from a near-center starting position through       key frames are shown in Figure 7.
+                  the tight clearance.                                            In insert USB, the tactile-enabled policy uses contact feed-
+                  Two cylindrical objects share similar visual appear-         back to adjust alignment after initial touch, reducing misinser-
+                  ance but differ in surface texture. The robot first          tion. Without tactile input, the policy often applies excessive
+      Grasp
+                  performs tactile contact to perceive texture, then
+     Classify
+                  classifies each cylinder and places it at the pre-
+                                                                               force and fails to correct orientation, leading to jamming.
+                  specified goal region for its class.                            In insert tube, the tactile-augmented policy performs gentle
+                                                                               probing and real-time correction under tight clearance, avoid-
+                                                                               ing damage to the fixture. In contrast, the vision-only policy
+                      A PPENDIX B                                              tends to push harder when misaligned, causing base shift or
+        I MPLEMENTATION D ETAILS FOR S IMULATION                               hole deformation. Recovery is possible for moderate errors
+                     E XPERIMENTS                                              with tactile, but fails under large offsets in both settings.
+                                                                                  For upright bottle, tactile feedback improves grip stabil-
+   For each task, we collected 50 episodes of synthetic data                   ity and motion smoothness. The vision-only policy exhibits
+used for training. All ACT models were trained for a total of                  noticeable jitter during lifting, likely due to delayed visual
+4,000 optimization steps using a batch size of 64. The learning                feedback and lack of slip detection.
+rate was set to 1×10−5 for both the vision and tactile encoders,                  Overall, tactile sensing enhances behavioral compliance and
+with a weight decay of 1 × 10−4 .                                              reduces destructive interactions, which are critical for safe and
+   The model employs a transformer-based architecture with 4                   reliable deployment on real world.
+layers in the encoder and 7 layers in the decoder. For positional
+encoding, we adopt fixed sine-cosine embeddings for visual
+features, while learnable positional embeddings are used for
+tactile features. The model predicts a sequence of 50 future
+actions from the current observation, which are executed using
+time aggregation to produce smoother and more stable motor
+outputs.
+   Visual observations are primarily captured from a third-
+person camera view. However, task-specific configurations
+vary: both insert tube and lift bottle utilize multi-view inputs,
+combining third-person and wrist-mounted camera views; all
+other tasks use only the third-person view.
+

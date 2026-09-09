@@ -1,8 +1,8 @@
 # RoboDojo 方法论拆解
 
 > 论文：*RoboDojo: A Unified Sim-and-Real Benchmark for Comprehensive Evaluation of Generalist Robot Manipulation Policies*
-> arXiv 2607.04434v1（2026-07-05，cs.RO）
-> 本文是 **system / benchmark 论文**，不是提出新算法的论文——它的"方法"就是它的**技术架构**：如何用统一的接口把「仿真评测」和「真机评测」缝合成一个可复现、防作弊、可持续扩展的闭环。以下拆解严格依据事实底稿 `FACTS.md`，不引入未在底稿中出现的数字。
+> arXiv 2607.04434v3（2026-07-08，cs.RO）
+> 本文是 **system / benchmark 论文**，不是提出新策略算法的论文——它的“方法”是评测系统架构：如何用统一接口连接仿真诊断与真机验证，并给出可复现、防刷榜、可持续扩展的协议。以下拆解以 `FACTS.md` 为论文事实源；源码细节另见 `implementation-map.md`。
 
 ---
 
@@ -64,9 +64,11 @@ RoboDojo 由三大组件构成，彼此的关系可以概括为一句话：
 
 ## 2. 仿真平台拆解
 
-### 2.1 配置优先设计（Configuration-First，灵感来自 MagicSim）
+### 2.1 MagicSim 基础设施 + 配置优先设计
 
-核心思想：**任务规约（task spec）与仿真执行（simulation runtime）解耦**。每个任务由一份模块化 **YAML** 描述：
+v3 明确说明 RoboDojo **直接建立在 MagicSim 基础设施上**：复用其 manager-based runtime、环境启动/物理渲染配置、确定性 seed 管理和物理对象抽象，再连接 Isaac Lab 的 vectorized RL interface。RoboDojo 的新增工作集中在机器人 benchmark 的任务构造、场景随机化、评测协议和数据/策略接入，而不是从头重写 USD/PhysX 仿真底座。
+
+在这层基础上，核心设计是**任务规约（task spec）与仿真执行（simulation runtime）解耦**。每个任务由模块化 **YAML** 描述：
 
 ```yaml
 # 概念示意，非论文原文 YAML
@@ -100,7 +102,7 @@ reset(seed):
     load_scene(object_pose, joint_state, clutter_layout, lighting, background_tex)
 ```
 
-同一个 seed → 完全相同的场景（可复现），不同 seed → 场景多样（防止策略死记硬背）。统一接口同时支持刚体（rigid）、铰接（articulated，如抽屉/门）、可变形（deformable，如布料）三类资产，reset 逻辑对三者一致。
+同一个 seed 让**场景采样过程可重复**，不同 seed 提供场景多样性。这里不能写成“整个 rollout 位级完全相同”：论文的跨 GPU 稳定性实验仍观察到轻微渲染/底层执行非确定性（最大 SR 标准差 1.1 个百分点、score 标准差 1.07）。统一场景构造接口支持刚体、铰接体和可变形体。
 
 ### 2.3 物理接地数字资产库（灵感 ManiTwin）
 
@@ -114,7 +116,7 @@ reset(seed):
 
 ### 2.4 异构并行 Heterogeneous Parallelism 【核心系统创新】
 
-这是论文中"最硬的系统贡献"。先对比两种并行范式：
+这是论文中有直接吞吐 A/B 的核心系统贡献。先对比两种并行范式：
 
 **(a) 同构克隆并行（标准 vectorized 仿真做法）**
 
@@ -125,7 +127,7 @@ Env 2: [Scene Template A] pose=p2, seed=s2
 Env 3: [Scene Template A] pose=p3, seed=s3
 ...
 ```
-所有并行环境共享**同一个场景模板**，只有物体位姿/随机种子不同——GPU 上同一份 mesh/碰撞体/资产图可以直接广播，效率最高，但场景多样性被严重压缩到"同一模板的变体"。
+所有并行环境共享**同一个场景模板**，只有物体位姿/随机种子等状态变化，场景多样性被压缩到“同一模板的变体”。
 
 **(b) 异构并行（RoboDojo 方案）**
 
@@ -137,18 +139,18 @@ Env 3: [任务 fold_cloth,     deformable asset,  资产集合 D]
         │
         ▼ 所有环境仍共享同一个 vectorized 接口 step()
    ┌─────────────────────────────────────────┐
-   │   单次 batched physics step (GPU kernel)   │
-   │   每个 env 各自的资产/碰撞图/关节结构独立      │
+   │     shared vectorized stepping interface │
+   │     每个 env 保留独立场景与任务状态          │
    └─────────────────────────────────────────┘
 ```
 
-关键点：多个环境**仍然共享一个 vectorized 接口一起步进**（即仍然是批量 GPU 仿真，而不是退化成串行仿真），但**每个环境独立采样场景配置**——不同物体类别、不同几何、不同杂物数量、不同铰接结构、不同任务布局都可以同时存在于同一批次里。工程上需要额外做资产打包/内存布局管理来让异构的碰撞体/关节树在同一个 batched kernel 里高效步进，并支持**多 GPU sharding**（把不同环境分片到不同 GPU 上）来横向扩展吞吐。
+关键点：多个环境**仍然共享 vectorized stepping interface**，但**每个环境独立持有场景配置、任务状态、随机种子、观测流和成功条件**。论文附录给出的实现描述是：关闭 cloned environments 的严格 physics replication，让每个环境从 seed-controlled 配置实例化自己的 scene modules；大规模评测时再按 episode seeds 分到多 GPU 的独立 simulator processes。论文没有宣称自定义了新的 physics kernel，也没有给出资产内存布局算法。
 
-为什么能"既提速又保多样性"：
-- 同构并行虽然快，但要覆盖 42 任务 × 5 维度的多样性，需要**顺序切换场景模板重新编译/加载**，这个"reload"开销才是同构方案的隐藏成本；
-- 异构并行把"多样性"直接编码进单次 batched step 里，避免了频繁 reload，因此在"零动作 rollout"测试中：**异构 77.4 interactions/s vs 非异构 40.0 → 1.94× 加速**；在**接入 π0.5 真实推理**的场景下（推理本身有延迟，测的是端到端流水线）：**异构 64.0 interactions/s，加速比降为 1.63×**（因为推理耗时占比上升，仿真侧的加速收益被摊薄）。
+论文后官方源码与这一描述一致：`InteractiveSceneCfg(replicate_physics=False)` 是关键配置，`TaskEnv` 再把 per-env seed 传播给 Scene/Robot/Camera manager。完整路径见 `implementation-map.md`。
 
-硬件配置：**8×RTX 4090**，每卡 1 进程、每进程 10 个并行环境；π0.5 的推理放在单独的 **A800** 上执行（避免推理和仿真抢卡）。
+为什么论文把它概括为“兼顾效率与多样性”：传统同构配置需要用多组任务/场景进程覆盖多样性，RoboDojo 则让并行环境在同一向量化评测批次中承载不同任务与场景。论文的系统测量是：zero-action **77.4 vs 40.0 interactions/s（1.94×）**；接入 π0.5 后 **64.0 vs 39.2 interactions/s（1.63×）**。论文没有把加速逐项分解成加载、物理、渲染和调度成本，因此教学 demo 中的“模板重载开销”只是解释权衡的简化模型，不是论文验证过的唯一因果机制。
+
+硬件配置：**8×RTX 4090**，每卡 1 进程、每进程 10 个并行环境；π0.5 在同一局域网内的 **A800** 服务器推理。v3 还补充：RoboDojo 渲染 `640×480`，用于横向参考的 RoboTwin 2.0 渲染 3 路 `320×240` 且每卡 2 个进程，因此两者的 77.4/44.6 不能当作等负载的纯并行算法 A/B。
 
 ### 2.5 数据采集双模式
 
@@ -160,7 +162,7 @@ Env 3: [任务 fold_cloth,     deformable asset,  资产集合 D]
       使用 VR 遥操作采集                       # 覆盖自动合成的长尾
 ```
 
-最终训练集规模：**35 个任务目录（34 训练任务 + 1 个 DLC 辅助目录）× 100 条轨迹/任务 = 3,500 条轨迹，共 1,859,602 帧，20.66 小时双臂数据，25 Hz 记录**。注意 **Open 维度不提供训练数据**——这是有意设计，Open 维度专门测试"训练时未见的任务规约、但组成技能在别的上下文中出现过"的重组与迁移能力，而不是让策略靠模仿学会。额外的 **100 条 DLC（Diversity/Data-Level-Clutter类）轨迹**是 train-only 的数据级增强，与评测任务本身独立、不会泄漏解法。
+最终训练集规模：**35 个目录（34 训练任务 + 1 个 DLC 辅助目录）× 100 条轨迹 = 3,500 条轨迹，共 1,859,602 帧，20.66 小时双臂数据，25 Hz 记录**。注意 **Open 维度不提供训练数据**——这是有意设计，Open 专门测试“训练时未见的任务规约、但组成技能在别的上下文中出现过”的重组与迁移能力。额外 100 条 DLC 轨迹是 train-only 的数据级增强，与评测任务独立。v3 没有展开 `DLC` 的英文全称，因此不替作者补造缩写。
 
 ---
 
@@ -220,17 +222,19 @@ Env 3: [任务 fold_cloth,     deformable asset,  资产集合 D]
 
 ```
 interface Policy:
-    def reset(self, task_config) -> None:
+    def reset(self) -> None:
         """策略内部状态复位（如清空历史观测缓存，对应 Memory 维度任务尤其关键）"""
 
-    def update_observation(self, obs: Observation) -> None:
+    def update_obs(self, obs: Observation) -> None:
         """接收一帧观测（RGB×3 + robot states + language instruction）"""
 
-    def predict_action(self) -> Action:
-        """基于当前内部状态预测下一步动作"""
+    def get_action(self) -> list[Action]:
+        """基于当前内部状态预测一个 action chunk"""
 
-    def batched_query(self, obs_batch: List[Observation]) -> List[Action]:
-        """批量查询接口——支撑仿真侧异构并行的高吞吐 rollout"""
+    def update_obs_batch(self, obs_batch: list[Observation]) -> None: ...
+
+    def get_action_batch(self, env_idx_list=None) -> list[list[Action]]:
+        """批量 action chunk，按仍在运行的环境索引对齐。"""
 ```
 
 ### 4.2 "集成一次，处处评测"的落地方式
@@ -242,7 +246,7 @@ interface Policy:
         ├── 数据转换工具  → 把策略原生数据格式转换成 RoboDojo 标准格式
         ├── 训练模板      → 复用 XPolicyLab 提供的训练 pipeline 骨架
         ├── 部署流程      → 同一份部署代码可指向仿真 or 真机 endpoint
-        └── 评测脚本      → 标准化调用 batched_query / predict_action
+        └── 评测脚本      → 标准化调用 update_obs[_batch] / get_action[_batch]
         │
         ▼
    在仿真里快速跑 42 任务迭代调参
@@ -251,7 +255,7 @@ interface Policy:
    部署到 RoboDojo-RealEval 远程真机评测
 ```
 
-策略内部架构（VLA/RL/规则式规划器等）完全不受约束——XPolicyLab 只标准化"接口边界"，不侵入策略实现本身。目前已集成 **30 个策略**（Hy-Embodied-0.5-VLA、π0.5、X-VLA、GR00T-N1.7 等），是这套接口设计已被验证可行的直接证据。
+策略内部架构（VLA、world-action model、经典模仿学习等）由各实现保留，XPolicyLab 标准化外部接口与工作流。论文冻结版本集成 **30 个策略**（Hy-Embodied-0.5-VLA、π0.5、X-VLA、GR00T-N1.7 等），说明接口覆盖了多类现有实现，但不保证所有未来架构都无需额外适配。
 
 ---
 
@@ -276,7 +280,7 @@ def evaluate_sim(policy, seeds=3, trials_per_task=50):
                     else:
                         cfg = default_cfg(task)
                     env = reset(task, cfg, seed=deterministic_seed(task, episode, seed))
-                    policy.reset(task.config)
+                    policy.reset()
                     result = rollout(policy, env)            # success(0/1) + partial progress score
                     episode_results.append(result)
                 per_seed_scores.append(aggregate(episode_results))
@@ -301,7 +305,7 @@ def evaluate_real(policy, robots=("ARX X5", "Piper", "Piper X"), trials_per_task
             for trial in range(trials_per_task):      # 每任务 10 trials
                 target_layout = load_precaptured_layout(task, trial)
                 operator_reset_via_transparent_overlay(target_layout)   # 3.3 节的复位机制
-                policy.reset(task.config)
+                policy.reset()
                 video, action_log = execute_policy_on_hardware(policy, robot)
                 # 3 位评委 double-blind 独立打分（含最终成功 + 中间子步骤进度）
                 scores = [judge_i.score(video, action_log) for judge_i in judges]
@@ -321,7 +325,7 @@ def evaluate_real(policy, robots=("ARX X5", "Piper", "Piper X"), trials_per_task
   3. 必须通过 hidden verification layouts 的一致性检查
   4. 必须公开 checkpoint / 训练部署代码 / 配置 / 复现说明（经由 XPolicyLab 标准化格式）
   5. 必须发布评测视频
-不满足 → 单列展示，标注为"非认证 (non-certified)"，不进入官方主榜排序
+不满足 → 单独放入 closed-source / unverified track，不视为官方 verified leaderboard 条目
 ```
 
 `hidden verification layouts` 的作用：公开 layouts 是主评测集，允许策略方在其上调参；但额外在一批**不公开**的 layouts 上跑一遍，如果两者性能差异异常（例如公开集上手调过拟合、刷榜），就能被检测出来——这是"benchmark 治理"层面的工程化手段，而不是算法层面的创新，但对榜单公信力至关重要。榜单本身由公益组织 **AI MMLab Club** 维护。
@@ -333,14 +337,14 @@ def evaluate_real(policy, robots=("ARX X5", "Piper", "Piper X"), trials_per_task
 | 风险点 | 具体表现 | 影响 |
 |---|---|---|
 | **Isaac Sim / Isaac Lab 版本依赖** | 仿真平台建立在 NVIDIA Isaac Sim + Isaac Lab 之上，二者迭代较快，YAML 配置驱动的 task spec 与特定版本的 asset schema / physics API 绑定 | 版本升级可能导致已发布任务 YAML 不兼容，复现旧榜单结果需要锁定平台版本 |
-| **异构并行的 GPU 显存/负载均衡** | 每个环境资产不同（不同数量物体、不同铰接/可变形复杂度），batched kernel 内各环境计算量不均衡；多 GPU sharding 需要动态分配避免某些 GPU 因分到"重"场景而拖慢整批 | 显存峰值由最重的场景决定，负载不均会侵蚀 1.94×/1.63× 的加速收益，实际部署需要做场景复杂度感知的调度 |
+| **异构并行的 GPU 显存/负载均衡** | 每个环境资产复杂度不同；论文说明按 seeds 做多 GPU sharding，但没有给出动态负载均衡算法 | “重”场景可能决定显存峰值或拖慢一组环境；场景复杂度感知调度是合理工程方向，但属于推断，不是论文已验证方案 |
 | **Meshy AI 资产的物理保真度** | 用 Meshy AI 从图像/视频重建的真实物体网格，几何细节和真实碰撞体（尤其薄壁、镂空、可变形部分）之间可能有偏差 | 抓取 affordance 标注依赖重建质量，若碰撞体粗糙会导致仿真中"能抓住"但真实世界"抓不住"（或反之），影响 sim 侧 Precision 维度结果的可信度 |
 | **真机硬件成本与复现门槛** | 需要 3 套本体（ARX X5 / Piper / Piper X）+ 标准化夹具 + 双相机规格（Gemini 335L / 305）+ 24 小时 LED 光源等专用硬件 | 独立实验室要严格复现 RoboDojo-RealEval 站点需要非平凡的硬件采购和 3D 打印夹具制作，门槛高于纯仿真 benchmark |
 | **hidden layout 一致性维护** | hidden verification layouts 需要长期保密且跨站点/跨时间保持物理布局可复现（依赖 transparent overlay 复位精度） | 若复位存在系统性视觉对齐误差，会引入"hidden 检查本身不稳定"的噪声，削弱防作弊机制的判别力；且 hidden 集一旦泄漏需要重新构建，维护成本持续存在 |
-| **π0.5 推理与仿真吞吐的耦合** | 论文效率数据显示接入真实策略推理后加速比从 1.94× 降到 1.63×，推理延迟（A800 上）会摊薄仿真侧异构并行的收益 | 复现效率数字时需要注意"零动作 rollout"和"真实策略 rollout"两种测量口径不可混用，且推理硬件（A800）与仿真硬件（RTX 4090）分离的部署方式也是复现条件之一 |
+| **π0.5 推理与仿真吞吐的耦合** | 论文效率数据显示接入真实策略推理后加速比从 1.94× 降到 1.63×，推理服务位于同一局域网的 A800 上 | 复现时不能混用 zero-action 和真实策略口径；网络、推理服务与 8×RTX 4090 仿真共同决定端到端吞吐 |
 
 ---
 
 ## 小结
 
-RoboDojo 的方法论价值不在于一个新模型，而在于把三个此前互相割裂的问题——**仿真任务多样性 vs 效率**、**真机评测可复现性**、**策略生态集成成本**——分别用一个系统级方案解决，并用统一接口把三者缝合进同一条评测流水线。其中**异构并行**是唯一具有明确算法/工程贡献的部分（1.94×/1.63× 加速 + 场景多样性保留），其余两块（RoboDojo-RealEval、XPolicyLab）更偏工程标准化与治理设计。复现该工作的主要难度也相应集中在异构并行的调度实现、真机硬件的标准化制作，以及 hidden layout 机制的长期维护上。
+RoboDojo 的方法论价值不在于新模型，而在于同时处理三个问题：**仿真任务多样性与效率**、**真机评测可复现性**、**策略生态集成成本**。异构并行提供了明确的系统测量（1.94×/1.63×）和场景多样性机制；RoboDojo-RealEval、XPolicyLab 与榜单治理则负责把结果变成可比较、可复查的评测协议。复现难点集中在 Isaac Sim/MagicSim 版本与资产、异构场景的资源调度、三套真机平台的搭建维护，以及 hidden layouts 的长期保密和一致性验证。

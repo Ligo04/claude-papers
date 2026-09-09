@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LBVH Escape Pointer Explorer</title>
+<style>
+:root{--ink:#17212b;--paper:#f5f1e8;--card:#fffdf7;--accent:#b84b2a;--line:#ccbfae;--hit:#28766b;--miss:#a64135}*{box-sizing:border-box}body{margin:0;background:linear-gradient(125deg,#ebe2d1,var(--paper));color:var(--ink);font:16px/1.55 Georgia,"Noto Serif SC",serif}.wrap{max-width:1100px;margin:auto;padding:32px 20px 60px}h1{font-size:clamp(32px,5vw,62px);line-height:1;margin:0 0 12px;letter-spacing:-.03em}.sub{max-width:760px;color:#5e554b}.panel{background:var(--card);border:1px solid var(--line);box-shadow:8px 8px 0 #d8cdbd;padding:20px;margin-top:26px}.controls{display:flex;gap:10px;flex-wrap:wrap}button{border:1px solid var(--ink);background:#fff8eb;color:var(--ink);padding:9px 14px;font:inherit;cursor:pointer}button:hover,button.active{background:var(--ink);color:#fff}.tree{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin:22px 0}.node{min-height:102px;border:2px solid var(--line);padding:10px;text-align:center;transition:.2s}.node.current{transform:translateY(-6px);border-color:var(--accent);box-shadow:0 7px 0 #e6b29e}.node.visited{background:#e8f2ed;border-color:var(--hit)}.node.skipped{opacity:.42}.kind{font-size:12px;text-transform:uppercase;letter-spacing:.1em}.idx{font-size:28px;font-weight:bold}.meta{font:12px/1.35 ui-monospace,monospace}.status{display:grid;grid-template-columns:1fr 1fr;gap:16px}.readout{border-left:5px solid var(--accent);padding:10px 14px;background:#f3eadc}.trace{font:14px/1.6 ui-monospace,monospace;min-height:84px}.legend{font-size:13px;color:#655b50}.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.step{padding:12px;border-top:4px solid var(--accent);background:#f4eadb}.step b{display:block}@media(max-width:720px){.tree{grid-template-columns:repeat(2,1fr)}.pipeline{grid-template-columns:1fr}.status{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main class="wrap">
+<h1>LBVH / Escape Pointer</h1>
+<p class="sub">基于文档图 2、图 8 和算法 16 的七节点真实示例。切换查询情形，再逐步执行：命中内部节点走 <code>idx+1</code>，miss 或处理完 leaf 走 <code>escape</code>。</p>
+<section class="panel"><div class="controls">
+<button data-case="all" class="active">全部命中</button><button data-case="missLeft">跳过左子树</button><button data-case="onlyL3">只命中 L3</button><button id="step">单步</button><button id="reset">重置</button>
+</div><div id="tree" class="tree"></div>
+<div class="status"><div class="readout" id="readout">点击“单步”开始。</div><div class="trace" id="trace">trace: []</div></div>
+<p class="legend">布局：[I0, I1, L2, L3, I4, L5, L6]；escape：[-1, 4, 3, 4, -1, 6, -1]</p></section>
+<section class="panel"><h2>构建管线</h2><div class="pipeline"><div class="step"><b>1 Morton</b>中心归一化，每轴 10 bit</div><div class="step"><b>2 Radix tree</b>最长公共前缀决定范围</div><div class="step"><b>3 Subtree size</b>第二个孩子负责向上</div><div class="step"><b>4 Pre-order</b>每节点回溯到 root</div><div class="step"><b>5 Escape</b>解析首个左祖先的右子树</div></div></section>
+</main><script>
+const nodes=[['I0',-1,-1],['I1',-1,4],['L2',2,3],['L3',3,4],['I4',-1,-1],['L5',5,6],['L6',6,-1]];
+const cases={all:Object.fromEntries(nodes.map(n=>[n[0],true])),missLeft:{I0:true,I1:false,I4:true,L5:true,L6:false},onlyL3:{I0:true,I1:true,L2:false,L3:true,I4:false}};
+let selected='all',idx=0,trace=[],done=false;
+const tree=document.querySelector('#tree'),readout=document.querySelector('#readout'),traceEl=document.querySelector('#trace');
+function render(){tree.innerHTML=nodes.map((n,i)=>`<div class="node ${trace.includes(i)?'visited':''} ${i===idx&&!done?'current':''}"><div class="kind">${n[1]<0?'internal':'leaf'}</div><div class="idx">${n[0]}</div><div class="meta">array=${i}<br>data=${n[1]}<br>escape=${n[2]}</div></div>`).join('');traceEl.textContent='trace: ['+trace.map(i=>nodes[i][0]).join(' -> ')+']'}
+function reset(){idx=0;trace=[];done=false;readout.textContent='从 root I0 开始。';render()}
+function step(){if(done)return;const [name,data,escape]=nodes[idx],hit=!!cases[selected][name];trace.push(idx);if(!hit){readout.textContent=`${name}: AABB miss，整棵子树跳到 ${escape}`;idx=escape}else if(data<0){readout.textContent=`${name}: 命中内部节点，进入紧邻的左孩子 ${idx+1}`;idx++}else{readout.textContent=`${name}: 报告 primitive ${data}，然后跳到 ${escape}`;idx=escape}if(idx===-1){done=true;readout.textContent+='；遍历完成。'}render()}
+document.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>{selected=b.dataset.case;document.querySelectorAll('[data-case]').forEach(x=>x.classList.toggle('active',x===b));reset()});document.querySelector('#step').onclick=step;document.querySelector('#reset').onclick=reset;render();
+</script></body></html>

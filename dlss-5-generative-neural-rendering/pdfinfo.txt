@@ -1,0 +1,17 @@
+Creator:         LaTeX with hyperref
+Producer:        xdvipdfmx (0.1)
+CreationDate:    Tue Sep  1 19:48:27 2026 CST
+Custom Metadata: no
+Metadata Stream: no
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           24
+Encrypted:       no
+Page size:       595.28 x 841.89 pts (A4)
+Page rot:        0
+File size:       293609507 bytes
+Optimized:       no
+PDF version:     1.5

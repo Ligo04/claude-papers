@@ -1,0 +1,88 @@
+{
+  "id": "univtac-unified-visuo-tactile-manipulation",
+  "title": "UniVTAC: A Unified Simulation Platform for Visuo-Tactile Manipulation Data Generation, Learning, and Benchmarking",
+  "slug": "univtac-unified-visuo-tactile-manipulation",
+  "authors": [
+    "Baijun Chen",
+    "Weijie Wan",
+    "Tianxing Chen",
+    "Xianda Guo",
+    "Congsheng Xu",
+    "Yuanyang Qi",
+    "Haojie Zhang",
+    "Longyan Wu",
+    "Tianling Xu",
+    "Zixuan Li",
+    "Yizhe Wu",
+    "Rui Li",
+    "Xiaokang Yang",
+    "Ping Luo",
+    "Wei Sui",
+    "Yao Mu"
+  ],
+  "affiliations": [
+    "ScaleLab, Shanghai Jiao Tong University",
+    "D-Robotics",
+    "ViTai Robotics",
+    "The University of Hong Kong",
+    "Nanjing University",
+    "Shenzhen University",
+    "Wuhan University",
+    "Fudan University",
+    "Tsinghua University"
+  ],
+  "arxiv": "2602.10093v1",
+  "arxiv_url": "https://arxiv.org/abs/2602.10093",
+  "doi": "10.48550/arXiv.2602.10093",
+  "year": 2026,
+  "date": "2026-02-10",
+  "submitted_date": "2026-02-10",
+  "pageCount": 13,
+  "subjects": [
+    "Robotics (cs.RO)",
+    "Visuo-tactile manipulation",
+    "Simulation and representation learning"
+  ],
+  "abstract": "UniVTAC 是一个面向视触觉机器人操作的统一仿真平台。它支持三类常用视触觉传感器，能够大规模、可控地生成接触交互数据；在此基础上，作者提出使用形状重建、接触形变预测和物体位姿回归进行多路径预训练的 UniVTAC Encoder，并构建包含八项任务的 UniVTAC Benchmark。实验报告显示，接入该编码器后仿真基准平均成功率从 30.9% 提升到 48.0%，真机三项任务平均成功率从 43.3% 提升到 68.3%。",
+  "abstractOriginal": "Robotic manipulation has seen rapid progress with vision-language-action (VLA) policies. However, visuo-tactile perception is critical for contact-rich manipulation, as tasks such as insertion are difficult to complete robustly using vision alone. At the same time, acquiring large-scale and reliable tactile data in the physical world remains costly and challenging, and the lack of a unified evaluation platform further limits policy learning and systematic analysis. To address these challenges, we propose UniVTAC, a simulation-based visuo-tactile data synthesis platform that supports three commonly used visuo-tactile sensors and enables scalable and controllable generation of informative contact interactions. Based on this platform, we introduce the UniVTAC Encoder, a visuo-tactile encoder trained on large-scale simulation-synthesized data with designed supervisory signals, providing tactile-centric visuo-tactile representations for downstream manipulation tasks. In addition, we present the UniVTAC Benchmark, which consists of eight representative visuo-tactile manipulation tasks for evaluating tactile-driven policies. Experimental results show that integrating the UniVTAC Encoder improves average success rates by 17.1% on the UniVTAC Benchmark, while real-world robotic experiments further demonstrate a 25% improvement in task success.",
+  "tags": [
+    "视触觉操作",
+    "多路径表示学习"
+  ],
+  "githubLinks": [
+    "https://github.com/univtac/UniVTAC"
+  ],
+  "codeLinks": [
+    "https://univtac.github.io/",
+    "https://huggingface.co/datasets/byml/UniVTAC",
+    "https://modelscope.cn/datasets/byml2024/UniVTAC"
+  ],
+  "sourceUrls": [
+    "https://arxiv.org/abs/2602.10093",
+    "https://arxiv.org/pdf/2602.10093",
+    "https://arxiv.org/html/2602.10093v1",
+    "https://univtac.github.io/"
+  ],
+  "sourcePdfSha256": "073c5bdbef9ff06d21c7217c0b25fc059281632f6eb3f0e871c811539303b688",
+  "difficulty": "Advanced",
+  "nature": "System design and empirical evaluation",
+  "methodologicalComplexity": "Multi-sensor simulation, multi-task representation learning, benchmark design, and sim-to-real validation",
+  "fullTextAvailable": true,
+  "contentFile": "paper.txt",
+  "equalContribution": [
+    "Baijun Chen",
+    "Weijie Wan",
+    "Tianxing Chen",
+    "Xianda Guo"
+  ],
+  "correspondingAuthors": [
+    "Wei Sui",
+    "Yao Mu"
+  ],
+  "codeSnapshot": {
+    "repository": "https://github.com/univtac/UniVTAC",
+    "commit": "05bcd3edb92237107efa40105292a24f1a9fd761",
+    "observed": "2026-09-02",
+    "note": "Public README currently states that data collection and evaluation support GelSight Mini only; see sources.md."
+  }
+}

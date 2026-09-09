@@ -1,0 +1,40 @@
+{
+  "id": "meshfem-block-accelerated-solver",
+  "title": "MeshFEM: A Block-accelerated Solver for Nonlinear Finite Elements",
+  "slug": "meshfem-block-accelerated-solver",
+  "authors": [
+    "Haleh Mohammadian",
+    "Xinzhuo Hu",
+    "Roi Poranne",
+    "Julian Panetta"
+  ],
+  "venue": "ACM Transactions on Graphics, volume 45, issue 4, Article 121 (SIGGRAPH 2026)",
+  "doi": "10.1145/3811386",
+  "abstract": "MeshFEM presents a high-performance framework for nonconvex optimization problems in simulation and geometry processing. The unknowns are spatial coordinates in R^d and the objective is a sum of small-stencil element energies, so the Hessian is block sparse with dense d x d blocks. The framework accelerates the full Newton pipeline: sparsity-pattern construction, system assembly, matrix factorization, and linear solves. Its BlockCatamari solver is a block-accelerated multifrontal sparse Cholesky implementation. The paper evaluates the approach on injective surface parametrization and elasticity simulation with contact, while keeping it convenient to define new energies.",
+  "sourceStatus": "公开摘要 + 官方代码仓库；ACM 正文在当前环境返回 403，未声称已读取全文",
+  "sourceUrls": [
+    "https://doi.org/10.1145/3811386",
+    "https://api.crossref.org/works/10.1145/3811386",
+    "https://github.com/MeshFEM/MeshFEM",
+    "https://github.com/MeshFEM/MeshFEMSparse",
+    "https://github.com/MeshFEM/BlockCatamari"
+  ],
+  "year": 2026,
+  "date": "2026-07-03",
+  "tags": [
+    "nonlinear FEM",
+    "block sparse Cholesky"
+  ],
+  "githubLinks": [
+    "https://github.com/MeshFEM/MeshFEM",
+    "https://github.com/MeshFEM/MeshFEMSparse",
+    "https://github.com/MeshFEM/BlockCatamari",
+    "https://github.com/MeshFEM/MeshFEMDemos"
+  ],
+  "codeLinks": [
+    "https://github.com/MeshFEM/MeshFEM/tree/master/python/experiments/benchmark_block_symbolic_factorizations.py"
+  ],
+  "difficulty": "Advanced",
+  "nature": "System design + numerical linear algebra",
+  "fullTextAvailable": false
+}

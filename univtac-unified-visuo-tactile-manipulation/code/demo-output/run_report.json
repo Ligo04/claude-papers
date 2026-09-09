@@ -1,0 +1,85 @@
+{
+  "demo": "conceptual-surrogate-not-univtac",
+  "controls": {
+    "shape": "star",
+    "indentation": 0.65,
+    "shear": 0.35,
+    "yaw_deg": 18.0
+  },
+  "observation_shapes": {
+    "marked_rgb": [
+      3,
+      240,
+      320
+    ],
+    "pure_rgb": [
+      3,
+      240,
+      320
+    ],
+    "depth": [
+      240,
+      320
+    ],
+    "markers": [
+      2,
+      63
+    ],
+    "pose": [
+      7
+    ]
+  },
+  "pathways": {
+    "shape_pathway": {
+      "area_fraction": 0.40641927083333335,
+      "marker_artifact_mse": 0.00303475708988048
+    },
+    "contact_pathway": {
+      "depth_mean": 0.14900945621911701,
+      "depth_max": 0.6481649162837366,
+      "marker_displacement_mean": 0.006051894622138952,
+      "shear_control": 0.35
+    },
+    "pose_pathway": {
+      "translation_xyz": [
+        0.006299999999999999,
+        0.0039000000000000003,
+        0.01625
+      ],
+      "quaternion_xyzw": [
+        0.0,
+        0.0,
+        0.15643446504023087,
+        0.9876883405951378
+      ],
+      "yaw_deg": 18.0
+    },
+    "full_latent_fields": [
+      "shape",
+      "contact",
+      "pose"
+    ],
+    "interpretation": {
+      "shape": "双视图 RGB 让表示区分物体形状与 marker/光照伪影",
+      "contact": "深度与 marker 位移把局部像素变化连接到压入和剪切",
+      "pose": "平移与四元数把局部触觉放回外部度量空间"
+    }
+  },
+  "adaptive_grasp": {
+    "no_contact_qdot": 0.08,
+    "contact_qdot": 0.012,
+    "inputs": {
+      "d_min_no_contact": 1.0,
+      "d_min_contact": 0.84,
+      "d_max": 1.0,
+      "delta_th": 0.72
+    },
+    "note": "无接触快速接近，接触后以 v_slow 和 δ_th 限制闭合；这是数据生成安全机制。"
+  },
+  "files": [
+    "tactile_marked.ppm",
+    "tactile_pure.ppm",
+    "gelpad_depth.pgm"
+  ],
+  "note": "Hand-crafted features illustrate supervision semantics; no Isaac Sim, TacEx, PyTorch, weights, or real sensor data are used."
+}

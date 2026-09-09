@@ -1,0 +1,1985 @@
+                                                   CONVERGENT INCREMENTAL POTENTIAL CONTACT∗
+                                           MINCHEN LI† , ZACHARY FERGUSON‡ , TESEO SCHNEIDER§ , TIMOTHY LANGLOIS¶,
+                                              DENIS ZORIN‡ , DANIELE PANOZZO‡ , CHENFANFU JIANG† , AND DANNY M.
+                                                                          KAUFMAN¶
+
+                                               Abstract. Recent advances in the simulation of frictionally contacting elastodynamics with the
+                                           Incremental Potential Contact (IPC) model have enabled inversion and intersection-free simulation
+                                           via the application of mollified barriers, filtered line-search, and optimization-based solvers for time
+arXiv:2307.15908v1 [math.NA] 29 Jul 2023
+
+
+
+
+                                           integration. In its current formulation the IPC model is constructed via a discrete constraint model,
+                                           replacing non-interpenetration constraints with barrier potentials on an already spatially discretized
+                                           domain. However, while effective, this purely discrete formulation prohibits convergence under refine-
+                                           ment. To enable a convergent IPC model we reformulate IPC potentials in the continuous setting and
+                                           provide a first, convergent discretization thereof. We demonstrate and analyze the convergence be-
+                                           havior of this new model and discretization on a range of elastostatic and dynamic contact problems,
+                                           and evaluate its accuracy on both analytical benchmarks and application-driven examples.
+
+                                               Key words. elastodynamics, finite elements, frictional contact
+
+                                               AMS subject classifications. 74B20, 74H15, 74S05, 74M15, 74M10
+
+
+                                                1. Introduction. The robust and accurate modeling of large-deformation fric-
+                                           tionally contacting elastodynamics remains a challenging problem in simulation. The
+                                           recently proposed Incremental Potential Contact (IPC) model [8] enables inversion
+                                           and intersection-free simulation of contacting elastodynamics via the application of
+                                           mollified barriers, filtered line-search, and optimization-based solvers for time inte-
+                                           gration. As originally formulated, IPC begins with a discrete model, replacing non-
+                                           interpenetration constraints with locally-supported C 2 barrier potentials, on an al-
+                                           ready spatially discretized domain. Each barrier potential, in turn, evaluates unsigned
+                                           distances between boundary mesh-primitive pairs to obtain intersection-free trajec-
+                                           tories for complex multibody simulations where domains can have arbitrarily sharp
+                                           geometries and undergo large deformation. Subsequent work has extended the IPC
+                                           model to solve problems in rigid and multibody dynamics [4, 6, 1], codimensional
+                                           simulation of shells and rods [9], subspace modeling [7], embedded interfaces [16],
+                                           viscoelasticity and elastoplasticity [11], and coupled MPM-FEM modeling [10].
+                                                However, while effective, the original IPC model’s purely discrete formulation
+                                           prohibits convergence under refinement. To enable a convergent IPC model we re-
+                                           formulate IPC potentials in the continuous setting and provide a first, convergent
+                                           discretization thereof. We focus on providing a consistent frictional contact model
+                                           that converges under refinement of discretization, while retaining the original IPC
+                                           model’s non-interpenetration and global convergence properties for both highly re-
+                                           fined and coarse models — regardless of problem complexity. To do so we re-derive
+                                           contact barrier and dissipative friction, beginning from a continuous formulation while
+                                           addressing short-comings in the original handling of the max operator and so physical
+
+                                              ∗ Submitted to arXiv August 1, 2023.
+
+                                               Funding: This work was funded by the Fog Research Institute under contract no. FRI-454.
+                                              † Department of Mathematics, University of California, Los Angeles (minchernl@gmail.com, cf-
+
+                                           fjiang@math.ucla.edu).
+                                               ‡ Courant Institute of Mathematical Science,       New York University           (zfergus@nyu.edu,
+                                           dzorin@cs.nyu.edu, panozzo@nyu.edu).
+                                               § Department of Computer Science, University of Victoria (teseo@uvic.ca).
+                                               ¶ Adobe Research (tlangloi@adobe.com, kaufman@adobe.com).
+
+                                                                                              1
+2                                          LI ET AL.
+
+
+forces.
+    2. Contact Model. We begin construction of our contact model with the barrier
+energy,                   (          2  
+                     ˆ      −κ ddˆ − 1 ln ddˆ , 0 < d < dˆ
+                b(d, d) =
+                            0                              ˆ
+                                                      d ≥ d,
+evaluated on unsigned distances d, with a stiffness parameter κ in units of Pa · m. Note
+that for larger distances the barrier is not active, it then activates when d decreases
+below the small activation threshold dˆ > 0. The barrier diverges as the distances tend
+to zero, preventing interpenetrations.
+     Assigning the barrier to distances d(x1 , x2 ) = ∥x1 − x2 ∥ evaluated between ma-
+terial point pairs x1 and x2 , we define the corresponding smoothed, contact energy
+density
+                                    b d(x1 , x2 ), dˆ .
+                                                     
+
+For contact between a point x ∈ Rd and a curve c(s) : [0, 1] → Rd the barrier is
+likewise defined by the unsigned distance between the point and curve
+                                                     
+                              d(x, c) = min d x, c(s) .
+                                             s∈[0,1]
+
+This gives us a corresponding point-to-curve barrier energy
+                                                    ˆ
+                                         b(d(x, c), d),
+
+or equivalently, as b is monotonically decreasing, we can define it as
+
+                                 max b d x, c(s) , dˆ .
+                                                  
+                                 s∈[0,1]
+
+    The contact energy for a curve c1 , with respect to a curve c2 , is then
+                             Z                                 
+                                                             
+                P→c2 (c1 ) =                                   ˆ
+                                      max b d c1 (t), c2 (s) , d dt.
+                               t∈[0,1]     s∈[0,1]
+
+
+We correspondingly define the total contact potential between the two curves as
+                                                               
+                       P (c1 , c2 ) = 12 P→c2 (c1 ) + P→c1 (c2 ) .
+
+    Remark: in the limit, as dˆ → 0, the energies P→c2 (c1 ) and P→c1 (c2 ) equivalently
+measure the total contact potential between the curves c1 and c2 while, for finite d,  ˆ
+we take their average.
+    With deformation we must consider self-contact. For a single curve c the self-
+contact energy is then
+                        Z                                   
+                      1                                
+                                                          ˆ
+                                  max b d c(t), c(s) , d       dt,
+                      2 t∈[0,1] s∈[0,1]\r t
+
+where we define \r : {x | a ≤ x ≤ b} × R × R 7→ P(R) as
+
+                         [a, b] \r t := {s ∈ [a, b] | |t − s| > r},
+
+with r → 0.
+                 CONVERGENT INCREMENTAL POTENTIAL CONTACT                                  3
+
+     With self-contact defined we are now able to directly generalize the contact poten-
+tial to an arbitrary number of curves C = {ci } by treating all contacts in the domain
+as self-contacts. We first (re)parameterize the domains across all curves in C with
+s ∈ [0, 1] so that C(s) traverses the material points across all curves {ci } contiguously.
+The total contact potential is then simply
+                              Z                                    
+                            1                                 
+                                                                  ˆ
+                   P (C) =              max b d C(t), C(s) , d dt.
+                            2 t∈[0,1] s∈[0,1]\r t
+
+    For contact in R3 , we extend our barrier potential to a set of surfaces S = {Si }.
+We parameterize these surfaces by common (possibly discontinuous) coordinates u ∈
+M̃ ⊂ R2 , so that S(u) traverses the material points across all surfaces {Si } contigu-
+ously. The total contact potential is then
+                            Z                                   !
+                          1                               
+                                                             ˆ
+(2.1)            P (S) =              max b d S(u), S(v) , d      du,
+                          2 u∈M̃ v∈M̃ \r u
+
+where we overload the operator \r : P(R2 ) × R × R2 7→ P(R2 ) to be
+
+                           M̃ \r u := {v ∈ M̃ | ∥u − v∥2 > r},
+
+with r → 0.
+     Remark: within an infinitesimal region around each point at coordinate u (re-
+spectively t), we do not resolve contact; this region is empty in the limit. In turn
+                   ˆ → 0 to ensure that the contact potential will not diverge for all
+this requires that d/r
+configurations. In the discrete setting, with finite dˆ and spatial mesh resolution, this
+requirement simplifies.
+     3. Friction. Frictional contact adds contact-driven dissipative forcing that op-
+poses sliding. The magnitude and direction of these frictional forces, generated across
+contacting codomains are determined by choice of a friction model that is, in turn,
+parameterized by the sliding velocity field, the normal pressures exerted by contact,
+and the frictional coefficient between the contacting codomains.
+     We model friction via the Maximal Dissipation Principle [12] which posits fric-
+tional forces maximize the rate of dissipation in sliding up to a maximum magnitude
+imposed by a limit surface; e.g., Coulomb’s constraint.
+     For contacts k formed between any two surface (alternately curve) points x1 and
+x2 , with corresponding velocities ẋ1 and ẋ2 , we extract the sliding velocity as
+
+                                 vk = P (x1 , x2 )(ẋ1 − ẋ2 ),
+
+where the sliding projection is P = T (x1 , x2 )T (x1 , x2 )T ∈ R3×3 with T (x1 , x2 ) ∈ R3×2
+constructed from the unit column vectors orthogonal to x1 − x2 .
+    Maximizing dissipation rate subject to the Coulomb constraint defines friction
+forces fk ∈ R3 applied at k as
+
+(3.1)                     fk = argmin f T vk s.t. ∥f ∥ ≤ µk λk ,
+                                    f
+
+with µk the local frictional coefficient and λk the magnitude of the normal force
+exerted by the contact barrier between points x1 and x2 . Equivalently we have
+
+(3.2)                                   fk ∈ −∂Fk (vk ),
+4                                                LI ET AL.
+
+
+with a nonsmooth energy
+                                           Fk (vk ) = µk λk ∥vk ∥
+encoding the transitions between sticking and sliding behaviors corresponding to the
+varying active sets of (3.1).
+    3.1. Smoothed friction. We formulate friction
+with a smooth dissipative pseudo-potential. We start by
+                                                                                           mεᵥ     m'εᵥ    m"εᵥ
+mollifying Fk with
+                                                                                   2
+                 Dk (vk ) = µλk mϵv (∥vk ∥),                                     1.5
+                                                                                   1
+where                                                                            0.5
+                                                                                   0
+                                3      2
+                       (
+                             s
+                           − 3ϵ     s
+                                2 + ϵ  + ϵ3v ,         s < ϵv                   −0.5
+(3.3)      mϵv (s) =            v    v
+                                                                                 −1
+                           s,                          s ≥ ϵv                      −2      −1      0       1      2
+                                                                                                 s (m/s)
+approximates the jump conditions (see Figure 3.1) and
+ϵv (in units of m/s) defines the range below which small            Fig. 3.1. Plot of (3.3)
+sliding velocities are resolved as static. Friction forces are and its derivatives (ϵv = 1 for
+then                                                           better visualization).
+                                     fk = −∇Dk (vk ),
+and better approximate the nonsmooth slip-stick transitions as ϵv → 0.
+    3.2. Integration. For a pair of contacting points x1 and x2 the dissipative en-
+ergy is then
+                                                                                    
+             D(ẋ1 , ẋ2 , x1 , x2 ) = µ λ(x1 , x2 ) mϵv ∥P (x1 , x2 ) (ẋ1 − ẋ2 )∥ ,
+
+where                                                   
+                                          ∂b d(x1 , x2 )
+                                    λ(x1 , x2 ) = −       ,
+                                               ∂d
+is the (positive) contact force magnitude between points x1 and x2 , and the friction
+force applied between points x1 and x2 is correspondingly
+
+                       f (ẋ1 , ẋ2 , x1 , x2 ) = −∇(ẋ1 ,ẋ2 ) D(ẋ1 , ẋ2 , x1 , x2 ).
+
+    We next parameterize collections of curves C = {ci } and surfaces S = {Si } in both
+space (respectively s ∈ [0, 1] and u ∈ M̃ ⊂ R2 ) and time t ∈ R. In the following we
+continue to reserve overdots for time derivatives and, unless needed, do not explicitly
+include time parameters, e.g. we have c(s) = c(s, t) and ċ(s) = ċ(s, t) = ∂c(s, t)/∂t.
+Then, the total, dissipative friction potential for a system of curves is
+                            Z
+                  ˙       1           
+                                        ˙    ˙
+                                                                  
+              D(C, C) =             D C(s), C(ℓ[s]), C(s), C(ℓ[s]) ds with
+                          2 s∈[0,1]
+                                                        
+                            ℓ[s] = argmin d C(s), C(u) ,
+                                           u∈[0,1]\r s
+
+while the corresponding dissipative friction potential for surfaces is
+                          Z
+                        1                                       
+             D(Ṡ, S) =          D Ṡ(u), Ṡ(ℓ[u]), S(u), S(ℓ[u]) du with
+                        2 u∈M̃
+                                                      
+                          ℓ[u] = argmin d S(u), S(v) .
+                                           v∈M̃ \r u
+                CONVERGENT INCREMENTAL POTENTIAL CONTACT                              5
+
+     4. Contact Spatial Discretization. In the discrete setting we apply piecewise
+linear, compatible discretizations of curves with edges, areas (2D) and surfaces (3D)
+with triangles, and volumes (3D) with tetrahedra. Here we have two tasks. First,
+we integrate the contact potentials over boundary (edge and triangle) elements and
+second, we smoothly approximate the max operator in these integrals so that we
+can efficiently solve the resulting nonlinear problems (see section 7) for statics and
+dynamic time-stepping with second-order, Newton-type methods.
+     In the following we denote the computational mesh for contact and friction poten-
+tials over the set of boundary vertices V , boundary edges E, and boundary triangles
+(3D) T .
+    4.1. Discretization and Numerical Integration. We begin by defining our
+curve discretization with polyline geometry. As in the smooth case we can param-
+eterize the domain across all polylines with s ∈ [0, 1] so that p(s) : [0, 1] → Rd
+traverses all material points, across all edges e ∈ E in the polylines contiguously. The
+corresponding curve contact potential is then
+                          Z                                 
+                        1                                 ˆ
+                                                           
+(4.1)                                 max b d(p(s), e), d      ds,
+                        2 s∈[0,1] e∈E\p(s)
+
+where E \ p is the set of boundary edges that do not contain the point p.
+    Applying polyline vertices as nodes (and quadrature points), we numerically in-
+tegrate the curve contact potential. For each nodal position x ∈ V we then have a
+corresponding material space coordinate x̄ ∈ V̄ . Piecewise linear integration of the
+curve barrier is then
+                                                          
+                        1X                            
+                              wx̄     max b d x(x̄), e , dˆ ,
+                        2           e∈E\x(x̄)
+                             x̄∈V̄
+
+where wx̄ are the quadrature weights, each given by half the sum of the lengths (in
+material space) of the two boundary edges incident to x̄. Correspondingly, following
+the same steps, piecewise-linear integration of the surface barrier over a triangulated
+boundary mesh in 3D gives the surface contact potential
+                                                           
+                        1X                             
+(4.2)                         wx̄     max b d x(x̄), t , dˆ ,
+                        2           t∈T \x(x̄)
+                             x̄∈V̄
+
+where T \ x is the set of boundary faces that do not contain x, and wx̄ are the
+quadrature weights, each given by one third of the sum of the areas (in material
+space) of the boundary triangles incident to x̄.
+    4.2. Smoothly Approximating the Max Function. Our next step is to
+smoothly approximate the max operator in the contact potentials. A natural op-
+tion to consider would be a softmax approximator. Using the discrete curve energy
+as a concrete example we could smooth the max operator with the p-norm as
+                                                                   1/p
+                      1X                  X                   p
+                                  wx̄            b d x(x̄), e , dˆ  .
+                      2
+                          x̄∈V̄       e∈E\x(x̄)
+
+We note, however, that this would significantly decrease sparsity in subsequent nu-
+merical solves by increasing stencil-size per contact evaluation. At the same time,
+6                                                LI ET AL.
+
+
+
+
+     Fig. 4.1. In this simple two-edge illustration, the yellow and green regions are only counted
+once by the summation, but the blue region and the yellow-green overlap are counted twice. If we
+subtract once the blue region, then for the right-top boundary (convex), it becomes perfect, but for
+the left-bottom boundary (concave), we can still see some overlap that are counted twice.
+
+
+accuracy would require large p and so additional ill-scaling also contributing to sig-
+nificant increase in numerical solver costs. Similar issues arise for LogSumExp ap-
+proximation, while sparsity increase could be addressed in the p-norm formulation,
+by dropping the outer normalizing 1/p term, but doing so would generate increas-
+ingly ill-scaled and ill-conditioned problems with the necessary further increases in p
+required for improved accuracy in the approximation.
+     We leave investigations of these above approximators to future work. Here, to
+smoothly approximate the barrier energies with accuracy and computational efficiency
+we directly consider the boundary geometry. We begin with an evaluation of the max
+barrier at a point x where at least one edge in E \ x (respectively triangle in T \ x)
+is closer than d.ˆ If we consider a rough starting approximation by summation over
+all barriers between x and nonincident boundary elements, clearly one of the nonzero
+summands corresponds to the desired max. In the lucky case, when all other boundary
+elements are farther than d,  ˆ this approximation is sharp. However, in cases where
+more than one boundary element is within the dˆ distance of x this approximation
+will overestimate the max barrier with the incorrect addition of undesirable barriers
+from these close-by elements. We require dˆ small with respect to edge length. Then,
+when this set of “close-enough” boundary elements form a convex curve (respectively
+surface) w.r.t. the evaluation point they each contribute an extra barrier contribution
+that is exactly evaluated by a distance to a vertex (respectively edges) incident to the
+closest boundary edge (respectively boundary triangle). Likewise, when they form a
+nonconvex curve (respectively surface) the extraneous barrier contributions are lower-
+bounded by barriers evaluated with vertices (respectively edges) incident to the closest
+edge (respectively triangle).
+     Our resulting approximators for curves and surfaces are then respectively
+                 X                       X
+      Ψc (x) =                   ˆ −
+                      b(d(x, e), d)                         ˆ ≈ max b(d(x, e), d),
+                                               b(d(x, x2 ), d)                  ˆ
+                                                                                 e∈E\x
+                  e∈E\x                         x2 ∈Vint \x
+
+and
+                  X                             X                                X
+      Ψs (x) =                       ˆ
+                          b(d(x, t), d)   −                          ˆ
+                                                          b(d(x, e), d)   +                              ˆ
+                                                                                            b(d(x, x2 ), d)
+                 t∈T \x                       e∈Eint \x                       x2 ∈Vint \x
+                             ˆ
+            ≈ max b(d(x, t), d),
+                 t∈T \x
+
+where Vint ⊆ V is the subset of internal curve/surface nodes (e.g., vertices with
+valence two for curves) and Eint ⊆ E is the subset of internal surface edges (i.e., edges
+incident to two triangles). For locally convex regions this estimator is tight while
+                    CONVERGENT INCREMENTAL POTENTIAL CONTACT                                            7
+                    Sum [Li et al. 2020]               Exact                Ours
+
+
+
+
+            180∘
+
+
+
+
+            135∘
+
+
+
+
+             90∘
+
+
+
+
+             45∘
+
+
+
+
+     Fig. 4.2. Here we visualize the contact energy field with different approximations to the max
+                                                      ˆ 2 when d < dˆ with dˆ = 0.5 for better visibility.
+operator. The energy visualized is simplified to (d − d)
+
+
+
+remaining smooth. In turn, for nonconvex regions it improves over direct summation
+(see Figures 4.1 and 4.2).
+    The corresponding discrete barrier potentials are then simply
+                                        X
+                              Pc (V ) =    wx Ψc (x),
+                                                       x∈V
+
+for curves, and                                        X
+                                           Ps (V ) =         wx Ψs (x),
+                                                       x∈V
+
+for surfaces, where we simplify with wx = wx̄ defined appropriately, per domain, as
+covered above.
+     Remark: For diminishing d,   ˆ the (naive) direct summation over all contact pair-
+ings, without correction (e.g.,
+                                    P                   ˆ
+                                      t∈T \x b(d(x, t), d)), becomes an increasingly good
+approximation to the max-based barrier energy density as the number of extraneous
+(not closest but still within dˆ distance) surface elements becomes smaller and smaller.
+    4.3. Edge Quadrature. With the above discretization, we ensure that modeled
+geometries will remain free of point-edge and point-triangle interpenetrations inde-
+pendent of the resolution applied. This is because we have defined our barriers on
+point-edge and point-triangle pairings. Likewise, as we show in subsection 9.2.2 this
+discretization converges under refinement so that edge-edge intersections also vanish.
+However, in many practical applications, it is desirable to prevent edge-edge intersec-
+8                                       LI ET AL.
+
+
+tions even at moderate resolution. To do so we additionally construct an alternate,
+edge-based quadrature of the surface barrier.
+    With an edge quadrature we discretize (2.1) with
+
+                                1X                     ˆ
+                                   we ( max b(d(e, t), d)).
+                                2      t∈T \ē
+                                 ē∈E
+
+Here we are the quadrature weights, each given by one-third of the sum of the areas
+(in material space) of the boundary triangles incident to e, using edge-surface distance
+to approximate the average of the point-surface distances for surface points near each
+edge. For efficiency, we then further approximate edge-surface distances in our barriers
+with edge-edge distances,
+
+                               1X                       ˆ
+                                  we ( max b(d(e, e2 ), d)),
+                               2      e2 ∈E\e
+                                e∈E
+
+where E \ e is the set of surface edges non-adjacent to e. Approximating max with
+our summation we then obtain the edge-edge barriers
+                      X                     X
+                                        ˆ −                               ˆ
+                                                            
+          Ψw (e) =         b(d(e, e2 ), d)        ρ(x1 ) − 1 b(d(x1 , e), d)
+                     e2 ∈E\e                 x1 ∈V \e
+                                      ˆ
+                   ≈ max b(d(e, e2 ), d),
+                     e2 ∈E\e
+
+
+
+
+where ρ(x1 ) gives the number of surface edges incident to node x1 , and V \ e is
+the set surface nodes that are not incident to edge e. The corresponding wireframe
+edge-barrier potential is then
+
+                                            1X
+                                 Pw (E) =      we Ψw (e).
+                                            2
+                                             e∈E
+
+    4.3.1. Combined Discretization. When desired, to ensure complete non-in-
+tersection of 3D surfaces, independent of discretization resolution, we then jointly
+employ the above edge-based quadrature in combination with our node-based quad-
+rature. The total, combined contact potential for surfaces is then
+
+                                 αPs (V ) + (1 − α)Pw (E),
+
+where α ∈ (0, 1] (averaging with α = 1/2 is sufficient) so that under combined spatial
+                   ˆ refinement both energies converge. Alternately when small edge-
+(x) and distance (d)
+edge intersections are acceptable for modeling errors we can apply solely the node-
+based potential Ps (V ).
+    4.4. Positivity of Φc , Φs , and Φw . Modeling contact via barrier representation
+                               ˆ Here, for the purposes of demonstrating positivity of
+requires a sufficiently small d.
+our barrier energies, we further define an acceptably small scale for d:    ˆ
+    Definition 4.1. For any point x, we call dˆ acceptable if, every connected compo-
+nent of the intersection of ball Bdxˆ of radius dˆ centered on x with the boundary contains
+at most one vertex.
+                 CONVERGENT INCREMENTAL POTENTIAL CONTACT                                              9
+
+We remark that, if the rest mesh is not in contact, then dˆ is acceptable. However, dˆ
+must be acceptable for every time step, which can be achieved by shrinking.
+    Before showing the positivity of the contact barriers, we settle on a few simple
+statements.
+    Remark 4.2. Let x1 and x2 be the endpoints of an edge e; for any point x in two
+and three dimension, d(x, e) ≤ min(d(x, x1 ), d(x, x2 )),
+    Remark 4.3. Let e1 , e2 and e3 be the edges of a triangle t; for any point x in two
+and three dimension, d(x, t) ≤ min(d(x, e1 ), d(x, e2 ), d(x, x3 )),
+and
+    Remark 4.4. Let e2 be an edge and x be one of its endpoints; for any edge e1 in
+two and three dimensions, d(e1 , e2 ) ≤ d(x, e1 ).
+We are now ready to show the positivity of the different barrier potentials.
+   Proposition 4.5. If dˆ is acceptable, then Ψc ≥ 0.
+      Proof. We show that
+                             X                            X
+                  Ψc (x) =                      ˆ −
+                                     b(d(x, e), d)                                ˆ
+                                                                     b(d(x, x2 ), d)
+                             e∈E\x                     x2 ∈Vint \x
+
+
+is positive for every connected component C in the intersection between Bdxˆ and the
+boundary. Note that if C = ∅, then Ψc (x) = 0. We now count the number of possible
+edges and vertices in C:
+      1. C contains only one edge and no vertices.
+      2. C contains only two edges and one vertex.
+No other cases are possible as the boundary is manifold, C contains only one connected
+component, and Bdxˆ can contain at most a vertex. For case 1, Ψc (x) ≥ 0 is trivial as
+it contains only positive terms. For case 2, it follows from Remark 4.2 and b being a
+monotonically decreasing function, that for the vertex x̃ shared by the two edges e1
+and e2
+                                      ˆ − b(d(x, x̃), d)
+                         b(d(x, e1 ), d)              ˆ = ∆b ≥ 0,
+
+therefore
+                         ˆ + b(d(x, e2 ), d)
+   Ψc (x) = b(d(x, e1 ), d)               ˆ − b(d(x, x̃), d)
+                                                          ˆ = ∆b + b(d(x, e2 ), d)
+                                                                                ˆ ≥ 0.
+
+The proof for Ψs follows a similar idea.
+   Proposition 4.6. If dˆ is acceptable, then Ψs ≥ 0.
+      Proof. We show that
+                 X                        X                               X
+        Ψs (x) =                ˆ −
+                     b(d(x, t), d)                             ˆ +
+                                                    b(d(x, e), d)                                 ˆ
+                                                                                     b(d(x, x2 ), d)
+                t∈T \x                  e∈Eint \x                      x2 ∈Vint \x
+
+
+is positive for every connected component C in the intersection between Bdxˆ and the
+boundary. Note that if C = ∅, then Ψs (x) = 0. We now count the number of possible
+triangles, edges, and vertices in C:
+      1. C contains only one triangle and no edges or vertices.
+      2. C contains only two triangles, one edge, and no vertices.
+      3. C contains only n triangles, m edged, and one vertex x̃.
+10                                        LI ET AL.
+
+
+No other cases are possible as the boundary is manifold, C contains only one connected
+component, and Bdxˆ can contain at most a vertex. For case 1, Ψs (x) ≥ 0 is trivial as
+it contains only positive terms. For case 2, it follows from Remark 4.3 and b being a
+monotonically decreasing function, that for the vertex ẽ shared by the two triangles
+t1 and t2
+                                      ˆ − b(d(x, ẽ), d)
+                         b(d(x, t1 ), d)              ˆ = ∆b ≥ 0,
+therefore
+                            ˆ + b(d(x, t2 ), d)
+      Ψs (x) = b(d(x, t1 ), d)               ˆ − b(d(x, ẽ), d)
+                                                             ˆ = ∆b + b(d(x, t2 ), d)
+                                                                                   ˆ ≥ 0.
+For case 3, we first note that the number of triangles n is always larger or equal to
+the number of edges m. This is the case since the edges need to be in the interior
+(no boundary edges), and if an edge is included in C, then the two adjacent triangles
+are. Following a similar argument as for case 2, we can bound every edge barrier
+           ˆ with one of the adjacent triangles’ barriers b(d(x, t), d).
+b(d(x, e), d)                                                        ˆ Since n ≥ m,
+                   X                    X
+                                  ˆ −
+                       b(d(x, t), d)                     ˆ = ∆b′ ≥ 0,
+                                              b(d(x, e), d)
+                    t∈T \x               e∈Eint \x
+
+and
+                                                        ˆ ≥ 0.
+                             Ψs (x) = ∆b′ + b(d(x, x̃), d)
+Finally, we show the positivity of the edge-edge energy.
+    Proposition 4.7. If dˆ is acceptable, then Ψw ≥ 0.
+      Proof. We show that
+                       X                   X
+             Ψw (e) =                  ˆ −
+                          b(d(e, e2 ), d)                             ˆ
+                                             (ρ(x1 ) − 1)b(d(x1 , e), d)
+                        e2 ∈E\e                 x1 ∈V \e
+
+is positive for every connected component C in the intersection between Bdxˆ and the
+boundary. We now count the number of possible edges and vertices in C (excluding
+the trivial case C = ∅):
+      1. C contains only one edge and no vertices.
+      2. C contains ne,x̃ edges and one vertex x̃.
+No other cases are possible as the boundary is manifold, C contains only one connected
+component, and Bdxˆ can contain at most a vertex. For case 1, Ψw (x) ≥ 0 is trivial
+as it contains only positive terms. For case 2, it follows from Remark 4.4 that for x̃
+shared by the ne,x̃
+                                         ˆ − b(d(x̃, e), d)
+                            b(d(e, e2 ), d)              ˆ ≥ 0,
+for every edge e2 ∈ C. Therefore for an e⋆ ∈ E \ e
+                     X
+        Ψw (e) =                         ˆ − b(d(x̃, e), d))
+                           (b(d(e, e2 ), d)              ˆ + b(d(e, e⋆ ), d)
+                                                                          ˆ ≥ 0.
+                   e2 ∈E\(e∪e⋆ )
+
+
+    4.5. Quality of the smooth approximation. We just showed that our ap-
+proximations to the actual maximum distance share the positivity property of the
+actual non-smooth max. By looking into the previous proofs, we can estimate how
+and where our approximations break down. In all cases, if the set C contains more
+than one connected component, the approximation is poor. For instance, this can
+happen when dˆ is acceptable but larger than the high-frequency details of the mesh.
+In the following, we will focus on the case where C contains only one component. If
+C contains only one primitive (case 1 in the proofs), our approximation is trivially
+exact as the sum contains only one term, which coincides with the maximum.
+                  CONVERGENT INCREMENTAL POTENTIAL CONTACT                                   11
+
+     Vertex-edge case. In the proof of Proposition 4.5, we arbitrary select e1 to bound
+                               ˆ Let e⋆ = argmin
+the point distance b(d(x, x̃), d).                                               ⋆
+                                                    ei ={e1 ,e2 } (d(x, ei )), ē the other edge
+                        ˆ − b(d(x, x̃), d).
+and ∆b = b(d(x, ē⋆ ), d)               ˆ It is now clear to see that the error in the
+approximation is exactly ∆b, which happens when x is closer to the edge ē⋆ than to
+the vertex x̃ as shown in Figure 4.1.
+     Vertex-triangle case. Case 2 in the proof of Proposition 4.6 follows the same
+argument as the vertex-edge case. We call t⋆ the triangle closest to x, t̄⋆ the other
+                            ˆ
+one, and ∆b = b(d(x, t̄⋆ ), d)−b(d(x,      ˆ In this case, the error is ∆b, which happens
+                                      ẽ), d).
+                                    ⋆
+when x is closer to the triangle t̄ than to the edge ẽ (imagine an extruded version
+of Figure 4.1). For the sake of simplicity, we exclude the case where the surface has
+boundaries; therefore, in case 3, we have the same number of edges and faces. Let us
+call t⋆ the triangle closest to x and T̄ the triangles in C excluding t⋆ . If there exists
+one edge e⋆ such that d(x, e⋆ ) = d(x, x̃) (i.e., x is sufficiently far from concavities),
+then the error is the sum of the differences between the barriers on the triangles and
+their adjacent edges. This is the case in concave parts of the mesh.
+     Edge-edge case. In the proof of Proposition 4.7, we clearly see that our approxi-
+mation is related to the errors introduced if the distances between the edges and the
+vertex are non-zero. This happens when more than one edge is closer to the vertex x̃
+which is the case when e is large or next to x̃.
+    5. Time Discretization. After spatial discretization we start with n nodal
+positions x ∈ Rd in the computational mesh, concatenated as degrees of freedom in
+the vector, x ∈ Rdn . Correspondingly, we have a finite element mass matrix, M , and
+total deformation energy, U (x ), defined on the material domain.
+    Discretizing in time, we solve time steps variationally (see section 7 below). To do
+so we minimize discrete energies whose stationary points give each applied numerical
+time integration method’s positional update [14]. At time t, we have prior nodal
+positions x t , x t−1 , ... and velocities v t , v t−1 , ... . Applying a time step size of h,
+we then compute the time step update for the next nodal positions x t+1 as the
+minimization of an appropriately constructed Incremental Potential (IP) [5], E (x , h),
+over valid x ∈ Rdn so that
+                                  x t+1 = argmin E (x , h) .
+                                                 x
+
+For each such IP we accompany it with a velocity update function v(·), that corre-
+spondingly defines the time step method’s velocity update,
+                                      v t+1 = v (x t+1 ),
+or, applied per node as v t+1 = v(xt+1 ).
+     As a particular example consider Newmark with β = 14 and γ = 12 . With applied
+external forces, fext , we have the Newmark IP,
+                                                     2
+(5.1)            E (x , h) = 21 ∥x − x̃ ∥2M + h4 W (x ), with
+                                             2                 2
+(5.2)                   x̃ = x t + hv t + h2 M −1 f ext − h4 M −1 ∇W (x t ),
+and its corresponding velocity update
+                                  v (x ) = h2 (x − x t ) − v t ,
+with W (x ) the sum of internal (U ), barrier (see section 4) and (when applicable)
+friction (see section 6) energies.
+12                                                   LI ET AL.
+
+
+    6. Friction Discretization. Following our contact barrier discretization we
+next smoothly approximate friction forces so the we can continue to employ Newton-
+type methods to solve contact with friction and numerically integrate the correspond-
+ing contact-coupled energy over the curve and surface domains to form a dissipative
+potential.
+    We first construct discrete friction potentials corresponding with piecewise-linear
+discretizations corresponding to our barrier discretizations. On the polyline and tri-
+angular surface meshes they are respectively
+ 1X                                               
+       wx̄ D v x(x̄) , v ℓc [x(x̄)] , x(x̄), ℓc [x(x̄)] with ℓc [x1 ] = argmin d(x1 , x2 ),
+ 2                                                                     x2 ∈e, e∈E\x1
+     x̄∈V̄
+
+and
+ 1X                                                     
+             wx̄ D v x(x̄) , v ℓs [x(x̄)] , x(x̄), ℓs [x(x̄)] with ℓs [x1 ] =            argmin         d(x1 , x2 ).
+ 2                                                                                     x2 ∈t, t∈T \x1
+     x̄∈V̄
+
+    Following the above smooth approximation of the max operator in the contact
+barrier via differences, our corresponding curve and surface friction energies are then
+respectively
+                X                                   X
+    Φc (x) =        D(v(x), v(e, x), x, p(e, x)) −         D (v(x), v (x2 ) , x1 , x2 )
+                     e∈E\x                                            x2 ∈Vint \x
+
+                 ≈ D (v(x), v (ℓe [x(x̄)]) , x, ℓe [x(x̄)]) ,
+
+and
+                      X                                               X
+        Φs (x) =              D(v(x), v(t, x), x, p(t, x)) −                  D(v(x), v(e, x), x, p(e, x))
+                     t∈T \x                                       e∈Eint \x
+                        X
+                 +                 D (v(x), v (x2 ) , x, x2 )
+                     x2 ∈Vint \x
+
+                 ≈ D (v(x), v (ℓs [x]) , x, ℓs [x]) ,
+
+where v(s, x) and p(s, x) respectively return the discrete velocity and position of the
+closest point in a simplex s (edge or face) to a point x. In turn, the final, discrete,
+dissipative friction potential is
+                                            X
+                                  Dc (V ) =   wx Φc (x),
+                                                         x∈V
+
+for curves, and                                          X
+                                             Ds (V ) =          wx Φs (x),
+                                                         x∈V
+
+for surfaces, where we simplify with wx = wx̄ defined appropriately, per domain, as
+covered above. Corresponding total friction forces are then
+                                                         X           ∂Φc (x)
+                                           fc (V ) = −          wx           ,
+                                                                       ∂v
+                                                         x∈V
+
+and
+                                                         X           ∂Φs (x)
+                                           fs (V ) = −          wx           .
+                                                                       ∂v
+                                                         x∈V
+                 CONVERGENT INCREMENTAL POTENTIAL CONTACT                              13
+
+     7. Numerical Solution. As covered in section 5, after discretization each simu-
+lation step solution (dynamic, quasistatic, or static) is generated by locally minimizing
+the applied incremental potential (IP), E(x , h). To minimize E we apply a Projected
+Newton solver customized for handling barrier potentials. Projected Newton (PN)
+methods are second-order unconstrained optimization strategies for minimizing non-
+linear, nonconvex functions where the Hessian may be indefinite. At each Newton
+iteration, we project all local energy stencils’ (including barrier and friction) Hessians
+to the cone of symmetric positive semi-definite (PSD) matrices prior to assembly.
+     While our barrier energies diverge at contact, this alone does not guarantee that
+a Newton iteration process will not violate the distance constraints (d > 0) for all
+possible contact pairs. Standard line search [13], e.g., back-tracking with Wolfe con-
+ditions, can find an energy decrease in configurations that have passed through in-
+tersection, resulting in a step that takes the geometry out of the admissible set. To
+ensure feasibility for all position updates internal to the solver we apply a continuous,
+intersection-aware line search filter for 3D meshes. In each line search we first apply
+a continuous collision detection (CCD) [9] to conservatively compute a large, but al-
+ways feasible, step size along the descent direction. We then apply back-tracking line
+search from this step size upper bound to obtain energy decrease. CCD then certifies
+that each step taken is always valid. When we apply friction we follow Li et al.’s
+[8] lagged-iteration method and supplement the incremental potential over successive
+iterated Newton solves, per time step, with a pre-scaled pseudo-potential energy that
+holds contact-force magnitudes and sliding projections fixed from the prior Newton
+solve, until convergence with current contact forces and projections. When we ap-
+ply barrier-based energy densities for our elasticity potential, U , e.g., neo-Hookean,
+we combine an inversion-aware line search filter [15] that additionally pre-filters the
+search direction for a large but always inversion-free step size. In combination this
+guarantees that every step of every position change in the Newton iteration process
+(and so simulation) applies an intersection- and (when desired) inversion-free update.
+     Termination. For termination of the solver we check convergence with the infinity
+norm of the Newton search direction (Newton decrement) scaled by time step (but
+unscaled by line-search step size). Specifically we solve each time step’s barrier IP to
+an accuracy satisfying h1 ∥H −1 ∇E(x)∥∞ < ϵd . This provides affine invariance and a
+characteristic measure using the Hessian’s natural scaling as metric. Accuracy is then
+directly defined by ϵd in physical units of velocity (and so is independent of time-step
+size applied) and consistently measures quadratically approximated distance to local
+optima across examples with varying scales and conditions.
+     Solution accuracy. Each such numerically converged time-step solution satisfies
+accuracy criteria for choice of applied numerical time integration method. Discrete
+momentum balance is directly satisfied as standard after convergence. For example,
+in a simple illustrative case with implicit Euler we have
+                                                          
+                                                  x − x̂
+                    ∇x E(x , h) = 0 =⇒ M                       = −∇W (x),
+                                                   h2
+
+Comparable discrete momentum balance follows when we apply alternate time inte-
+gration methods, e.g. implicit Newmark. Here contact forces, per surface vertex (and,
+when applied, edge) stencils k are then
+
+                                           ∂Ψk (xk )
+                                     −wk             .
+                                             ∂xk
+14                                       LI ET AL.
+
+
+In turn positivity, of these forces is covered in detail in Section 4.4 above. Line-search
+filtering then guarantees admissibility (non-intersection) and, when applicable, for
+barrier-type elasticity energy densities, global injectivity. Finally, our barrier definition
+ensures that a discrete complimentarity is always satisfied as contact forces can not
+be applied at distance more than dˆ away.
+
+     8. Benchmark Evaluation. We begin our evaluation with two benchmark
+problems treating the transient impact of linearly elastic bars in one dimension. Im-
+portantly, both problems are equipped with analytic solutions. This allows us to
+compare results with prior methods analyzed by Doyen and colleagues [2] and to
+also demonstrate convergence of our contact model to known elastodynamic impact
+solutions.
+     Following Doyen et al. [2], both problems resolve the dynamics of a one-dimen-
+sional linearly elastic bar of length L = 10 m, Young’s modulus E = 900 N, and density
+ρ = 1 kg/m, initialized (undeformed) at a height of h0 = 5 m above a rigid ground.
+Each bar is spatially discretized with a uniform mesh size of ∆x via linear finite
+elements. With this common framework there are then two benchmark problems.
+     The first, an impact problem, resolves a single impact of an elastic bar by initial-
+izing the bar’s velocity to v0 = −10 m/s and eliminating gravitational acceleration
+(g0 = 0). This benchmark has been widely applied in prior analyses and enables com-
+parison of the numerical oscillation artifacts generated by differing contact models [2].
+     The second, a bouncing problem, resolves a periodic sequence of elastic bar im-
+pacts and free-flights. To do so, with the above chosen material parameters, we
+initialize the bar at rest (v0 = 0) with a gravitational acceleration of g0 = −10 m/s2 .
+This obtains a periodic trajectory of alternating contacts and free-flight for the bar
+described by an analytic solution. This benchmark, introduced by Doyen et al. [2],
+further enables us to analyze the energy evolution and longer-term trajectories gen-
+erated by contact models over sequential impacts.
+     Below we cover the results of our benchmark testing in detail. Here, we first
+quickly summarize our key takeaways. In brief we note that the following tests demon-
+strate that EIPC qualitatively follows the the displacement and contact pressure be-
+havior of a penalty-based contact model. However, unlike penalty-based methods,
+we confirm that EIPC additionally provides interpenetration-free trajectories inde-
+pendent of choice of discretization and contact-stiffness parameters. We then show
+convergence of our model under refinement to the benchmarks’ analytical solutions.
+To our knowledge, these are the first results to demonstrate this convergence.
+
+     8.1. Comparison with Doyen et al.’s benchmark. For a direct, side-by-side
+comparison with Doyen et al.’s evaluation we begin by applying implicit Newmark
+(β = 41 , γ = 12 ) time integration, spatial discretization with ∆x = 0.1 m, and calculate
+                           p
+time steps h = νC ∆x/ E/ρ with a Courant number of νC = 1.5. We comparably
+set our contact model with dˆ = ∆x and κ = 0.1E, and so effectively treat the contact
+barrier as an additional hyperelastic potential.
+     We summarize simulation results for the impact and bouncing problems in Fig-
+ures 8.1 and 8.4 respectively. Here we observe that EIPC generates displacement (bot-
+tom node), contact pressure, and energy trajectories with closely comparable profiles,
+and so qualitatively similar error behaviors, to penalty methods in both magnitude
+and over time.
+     However, in these benchmarks we also see key differences between penalty meth-
+ods and EIPC. As demonstrated in the top-left plot of Figure 8.1 we observe EIPC
+                                                  CONVERGENT INCREMENTAL POTENTIAL CONTACT                                                                                                                                                               15
+
+preserves a penetration-free (more generally interpenetration-free) trajectory inde-
+pendent of choice of contact stiffness. This is in contrast to penalty methods where
+penetration errors are uncontrollable for a fixed contact stiffness. Here EIPC’s dis-
+placement error is controllable with a curve remaining above the analytic solution
+during contact by no more than d.   ˆ Following this observation, we next evaluate
+EIPC’s behavior over variations in the contact model’s threshold and stiffness, as well
+as for alternate choices of numerical time integration.
+
+                                        Penalty method [2]                                                                                                  Ours with dˆ = ∆x and κ = 0.1Y
+                   0.4                                                               500                                                           0.4                                                                500
+                                                                                                                   Analytical                                                                                                                       Analytical
+
+
+
+
+                                                                                                                                                                                               Contact Pressure (N)
+                                                              Contact Pressure (N)
+
+
+
+
+                                                                                     400                                                                                                                              400
+
+
+
+
+                                                                                                                                Displacement (m)
+Displacement (m)
+
+
+
+
+                                                                                                                   Penalty                                                                                                                          IPC
+
+                   0.2                                                               300                                                           0.2                                                                300
+                                                                                     200                                                                                                                              200
+                                                                                     100                                                                                                                              100
+                     0                                                                                                                               0
+                                                                                       0                                                                                                                                0
+                                                 Analytical                                                                                                                       Analytical
+                                                 Penalty                             -100                                                                                         IPC                                 -100
+                   -0.2                                                                                                                            -0.2
+                      0.4   0.6   0.8        1       1.2                                0.4   0.6   0.8        1       1.2                            0.4    0.6   0.8        1       1.2                                0.4   0.6   0.8        1       1.2
+                                  Time (s)                                                          Time (s)                                                       Time (s)                                                          Time (s)
+
+
+
+     Fig. 8.1. Impact of an elastic bar. Comparison between the penalty-based contact method
+in Doyen et al. [2] (left) our method (right), both with Newmark time integration and same other
+settings.
+
+
+     8.2. Varying barrier stiffness, threshold, and time-integration. While
+there is no need to change EIPC’s contact model parameters in order to avoid in-
+terpenetration, reducing the threshold parameter dˆ (and/or the contact stiffness κ)
+will improve the complementarity accuracy (decreased gap at contact) in simulation
+results. At the same time varying these parameters has direct implications for the
+contact-pressure oscillations produced, and so on the stability of the solutions ob-
+tained. In turn it is then also important to consider choice of the time integration
+method applied.
+     In Figure 8.2, top and middle, we see that varying EIPC’s contact stiffness by 0.1×
+or 10× introduces significantly smaller variations in contact pressure when compared
+to the large jumps obtained by varying contact stiffness with the penalty method
+(as observed in Doyen et al. [2]). However, varying dˆ in the EIPC model similarly
+reproduces comparably large contact pressure oscillations to varying stiffness in the
+penalty model. This is because the EIPC barrier has local support in the distance
+              ˆ while the sharpness of this potential is more sensitive to changes in dˆ
+range of (0, d),
+than κ.
+     This increase in generated contact pressure oscillation, as we decrease d,ˆ implies
+an important tradeoff. We obtain improved gap accuracy (given by smaller d)         ˆ at
+the cost of a sharper contact potential. In turn, generated pressure oscillations are
+artifacts from time-integration with these increasingly sharp potentials. Simulations
+are then significantly improved if we step away from employing marginally stable
+time integrators like implicit Newmark with β = 14 , γ = 21 . For example, switching
+to A-stable integrators like BDF-2 and implicit Euler (IE) provides smooth contact
+pressures with reduced dˆ = 0.1∆x (see Figure 8.3) without decreasing timestep size.
+If we then additionally lower the time step size of the IE solution by 0.1× for less
+numerical dissipation, we see the contact pressure profile (Figure 8.3 middle) then
+closely follows many discretizations proposed for improved stability (i.e., see methods
+4.1, 4.3, 4.6, 4.7, 6.2, 7.1 in [2]). Similarly, in terms of accuracy, we see BDF-2
+generates a solution more than 2× closer to the analytical solution than IE, with
+significantly less numerical dissipation of the total system’s energy.
+16                                                                         LI ET AL.
+
+                                      500                                                                 2000
+                                                                      Analytical
+
+
+
+               Contact Pressure (N)
+
+
+
+
+                                                                                   Contact Pressure (N)
+                                      400                             Penalty
+                                                                                                          1500
+                                      300
+                                                                                                          1000
+                                      200
+                                      100                                                                  500
+
+                                        0                                                                    0
+                                                                                                                                        Analytical
+                                      -100                                                                                              Penalty
+                                                                                                          -500
+                                         0.4     0.6   0.8        1       1.2                                0.4   0.6   0.8        1       1.2
+                                                       Time (s)                                                          Time (s)
+                               Penalty method [2] with 0.1× (left) and 10× (right) stiffness
+
+                                      500                                                                 500
+                                                                      Analytical
+               Contact Pressure (N)
+
+
+
+
+                                                                                   Contact Pressure (N)
+                                      400                             IPC                                 400
+                                      300                                                                 300
+                                      200                                                                 200
+                                      100                                                                 100
+                                        0                                                                   0
+                                                                                                                                        Analytical
+                                      -100                                                                -100                          IPC
+                                         0.4     0.6   0.8        1       1.2                                0.4   0.6   0.8        1       1.2
+                                                       Time (s)                                                          Time (s)
+                                                Ours with κ = Y (left) and κ = 0.01Y (right)
+
+                                      500                                                                 2000
+                                                                      Analytical                                                        Analytical
+               Contact Pressure (N)
+
+
+
+
+                                                                                   Contact Pressure (N)
+
+
+
+
+                                      400                             IPC                                                               IPC
+                                                                                                          1500
+                                      300
+                                                                                                          1000
+                                      200
+                                      100                                                                  500
+                                        0                                                                    0
+                                      -100
+                                                                                                          -500
+                                         0.4     0.6   0.8        1       1.2                                0.4   0.6   0.8        1       1.2
+                                                       Time (s)                                                          Time (s)
+                                               Ours with dˆ = 10∆x (left) and dˆ = 0.1∆x (right)
+
+     Fig. 8.2. Impact of an elastic bar – different contact stiffness. From top to bottom: penalty
+                                                                                                ˆ all
+method with different stiffness [2], our method with different κ, and our method with different d,
+with Newmark time integration and same other settings. Results in the right column has sharper
+energy than the left column, and so less smooth contact pressure profile.
+
+
+
+     8.3. Refinement Analysis. As covered above, reduction in h smooths the bar-
+                    ˆ and so improves stability. This is unsurprising as the contact
+rier for decreasing d,
+pressure oscillations we observe are artifacts generated by refining the spatial dis-
+cretization dˆ without accompanying temporal refinement. Correspondingly, to im-
+prove accuracy, both of EIPC’s spatial parameters, ∆x and d, ˆ must jointly be refined
+with h. Here we next analyze convergence under refinement for both the impact
+problem and bouncing problems, refining by successively halving ∆x, setting the rela-
+tionship to the threshold as dˆ = cB ∆x (with parameter cB ) and time step (as above)
+with, h = νC √∆x .
+                                      E/ρ
+     Impact Problem. In Figure 8.5, we consider implicit Newmark time integration
+for the impact problem with cB = 4, and observe that both displacement and con-
+tact pressure converge to the analytic solution. Displacement converges linearly while
+contact pressure converges sublinearly (rate of ∼ 0.5). Both rates follow reasonable
+expectations with contact gap error decreasing linearly w.r.t. dˆ and contact pressure
+                                                               CONVERGENT INCREMENTAL POTENTIAL CONTACT                                                                                                                                                                                              17
+
+                                         Implicit Euler                                                                              Implicit Euler                                                                                                                 BDF-2
+                                           dˆ = 0.1∆x                                                                             dˆ = 0.1∆x and 0.1h                                                                                                             dˆ = 0.1∆x
+                               0.4                                                                                          0.4                                                                                                           0.4
+        Displacement (m)
+
+
+
+
+                                                                                                     Displacement (m)
+
+
+
+
+                                                                                                                                                                                                              Displacement (m)
+                               0.2                                                                                          0.2                                                                                                           0.2
+
+
+                                   0                                                                                          0                                                                                                            0
+                                                                         Analytical                                                                                                        Analytical                                                                                      Analytical
+                                                                         IPC                                                                                                               IPC                                                                                             IPC
+                               -0.2                                                                                         -0.2                                                                                                   -0.2
+                                  0.4        0.6        0.8         1                   1.2                                    0.4        0.6        0.8                               1         1.2                                  0.4                         0.6       0.8        1       1.2
+                                                        Time (s)                                                                                     Time (s)                                                                                                               Time (s)
+                               400                                                                                          400                                                                                                           400
+                                                                         Analytical                                                                                                        Analytical
+        Contact Pressure (N)
+
+
+
+
+                                                                                                     Contact Pressure (N)
+
+                                                                                                                                                                                                                                                                                           Analytical
+
+
+
+
+                                                                                                                                                                                                                   Contact Pressure (N)
+                                                                         IPC                                                                                                               IPC                                                                                             IPC
+                               300                                                                                          300                                                                                                           300
+
+                               200                                                                                          200                                                                                                           200
+
+
+                               100                                                                                          100                                                                                                           100
+
+
+                                   0                                                                                          0                                                                                                             0
+                                   0.4       0.6        0.8        1                    1.2                                   0.4         0.6        0.8                               1         1.2                                        0.4                   0.6       0.8        1       1.2
+                                                        Time (s)                                                                                     Time (s)                                                                                                               Time (s)
+
+
+    Fig. 8.3. Impact of an elastic bar – different time discretizations. Our results with implicit
+                                                                                        ˆ middle:
+Euler (left two columns) and BDF-2 (right column) time integration. Left: 0.1× smaller d,
+0.1× smaller dˆ with 0.1× smaller h, right: 0.1× smaller d.
+                                                         ˆ
+
+
+
+                                                    Penalty method [2]                                                                                                                     Ours with dˆ = ∆x and κ = 0.1Y
+                       6                                                               510                                                                                    6                                                                                   510
+Displacement (m)
+
+
+
+
+                                                                                                                                                           Displacement (m)
+
+
+
+
+                                                                                       500
+                       4                                                                                                                                                      4                                                                                   500
+                                                                          Energy (J)
+
+
+
+
+                                                                                                                                                                                                                                                     Energy (J)
+
+
+
+
+                                                                                       490                                                                                                                                                                        490
+                       2                                                                                                                                                      2
+                                                                                       480                                                                                                                                                                        480
+                       0                                                                                                                                                      0
+                                                           Analytical                  470                                                                                                                                                                        470
+                                                                                                                                                                                                                          Analytical
+                                                           Penalty                                                                                                                                                        IPC
+                   -2                                                                  460                                                                                    -2                                                                                  460
+                               0         5         10     15        20                       0   5                           10      15         20                                 0         5          10           15                         20                      0     5     10        15        20
+                                             Time (s)                                                           Time (s)                                                                           Time (s)                                                                       Time (s)
+
+
+
+     Fig. 8.4. Bounces of an elastic bar. Comparison between the penalty based contact method
+in Doyen et al. [2] (left) our method (right), both with Newmark time integration and same other
+settings.
+
+
+
+
+given by the barrier energy derivative. Next we consider BDF-2 time integration with
+cB = 4. To support BDF-2 (wider time stencil) we provide consistent initialization
+of displacement and velocity history with the analytic solution at time t = −h. In
+Figure 8.6, we see BDF-2 provides comparable convergence to IE for both the displace-
+ment and contact pressure. We also note that if we decrease our stability criterion for
+dˆ to cB = 1, convergence rates significantly degrade for both Newmark and BDF-2
+due to lack of smoothness in the barrier.
+     Bouncing Problem. Next in Figure 8.7, to look at longer, time-varying behavior
+with multiple impacts we consider implicit Newmark time integration for the bounc-
+ing problem with cB = 8. Here we observe both displacement (bottom node) and
+total energy converge linearly to analytical solution. To achieve comparable (linear)
+convergence with BDF-2 (Figure 8.8) time-integration in this problem requires setting
+νC = 0.75 so that respective time step sizes are halved suggesting that Newmark’s
+improved energy conservation helps in capturing the longer-term behavior of repeated
+elastic bouncing.
+18                                                                                                                          LI ET AL.
+
+
+     Comparison to Constraint-based IPC. In contrast to constraint-based contact
+model of the original IPC [8] formulation, EIPC provides a consistent discretiza-
+tion of the contact potential in the smooth setting. Here we consider the resulting,
+improved convergence behavior for EIPC by considering the original IPC’s behavior
+on the impact problem benchmark (same settings as EIPC above). We begin with Li
+et al. [8] original model which augments the unconstrained incremental potential with
+an uncalibrated barrier energy. Instead the barrier stiffness is adaptively and auto-
+matically updated to gain improved numerical conditioning of the Hessian. For this
+original formulation we observe no convergence for both displacement (order=0.2334)
+and contact pressure (order=0.0823) in the impact problem. Alternately, if we update
+the original IPC model to keep the contact barrier stiffness fixed (stiffness selected to
+match EIPC simulation at coarsest resolution), convergence improves (displacement
+order=0.6997, contact pressure order=0.2745) but is still far from satisfactory.
+
+                   0.4                                                                                                                                          500
+                                    dx=0.1                                               0.15
+                                                                                                                                         Contact Pressure (N)
+
+
+
+
+                                                                                                                                                                                                                       Contact Pressure (N)
+                                    dx=0.05                                                                                                                     400                                                                           300
+Displacement (m)
+
+
+
+
+                                                                      Displacement (m)
+
+
+
+
+                                    dx=0.025
+                   0.2              dx=0.0125                                                                                                                   300
+                                                                                          0.1                                                                                                                                                 200
+                                    dx=0.00625
+                                                                                                                       dx=0.1                                   200                   dx=0.1                                                           dx=0.1
+                                    Analytical
+                                                                                                                       dx=0.05                                                        dx=0.05                                                          dx=0.05
+                                                                                         0.05                                                                   100                   dx=0.025                                                100      dx=0.025
+                     0                                                                                                 dx=0.025
+                                                                                                                       dx=0.0125                                         0            dx=0.0125                                                        dx=0.0125
+                                                                                                                       dx=0.00625                                                     dx=0.00625                                                       dx=0.00625
+                                                                                                                                                                                                                                                0
+                                                                                           0                           Analytical                               -100                  Analytical                                                       Analytical
+                   -0.2
+                      0.4    0.6    0.8          1         1.2                              1.1        1.15           1.2       1.25                                     0.4   0.6     0.8         1        1.2                                      1.12      1.14        1.16    1.18
+                                    Time (s)                                                               Time (s)                                                                   Time (s)                                                                      Time (s)
+
+
+
+     Fig. 8.5. Impact of an elastic bar – convergence under refinement (Newmark). Conver-
+                                                                                              ˆ ∆x,
+gence of displacement (left, rate = 1.0389) and contact pressure (right, rate = 0.4709) under d,
+and h refinement with Newmark time integration. Second and fourth column contains zoom-in views
+of the first and third column plots respectively.
+
+
+
+                   0.4                                                                                                                                          500
+                                    dx=0.1                                               0.15
+                                                                                                                                         Contact Pressure (N)
+
+
+
+
+                                                                                                                                                                                                                       Contact Pressure (N)
+
+
+
+
+                                    dx=0.05                                                                                                                     400                                                                           300
+Displacement (m)
+
+
+
+
+                                                                      Displacement (m)
+
+
+
+
+                                    dx=0.025
+                   0.2              dx=0.0125                                                                                                                   300
+                                                                                          0.1                                                                                                                                                 200
+                                    dx=0.00625
+                                                                                                                       dx=0.1                                   200                   dx=0.1                                                           dx=0.1
+                                    Analytical
+                                                                                                                       dx=0.05                                                        dx=0.05                                                          dx=0.05
+                                                                                         0.05                                                                   100                   dx=0.025                                                100      dx=0.025
+                     0                                                                                                 dx=0.025
+                                                                                                                       dx=0.0125                                         0            dx=0.0125                                                        dx=0.0125
+                                                                                                                       dx=0.00625                                                     dx=0.00625                                                       dx=0.00625
+                                                                                                                                                                                                                                                0
+                                                                                           0                           Analytical                               -100                  Analytical                                                       Analytical
+                   -0.2
+                      0.4    0.6    0.8          1         1.2                              1.1        1.15           1.2       1.25                                     0.4   0.6     0.8         1        1.2                                      1.12      1.14        1.16    1.18
+                                    Time (s)                                                               Time (s)                                                                   Time (s)                                                                      Time (s)
+
+
+
+      Fig. 8.6. Impact of an elastic bar – convergence under refinement (BDF-2). Convergence
+                                                                                        ˆ ∆x, and h
+of displacement (left, rate = 1.0669) and contact pressure (right, rate = 0.4402) under d,
+refinement with BDF-2 time integration. Second and fourth column contains zoom-in views of the
+first and third column plots respectively.
+
+
+
+                                                                                                                                                                6                                                                             5.5
+                   500                                                                   500                                                                                                                                                                       dx=0.1      dx=0.0125
+                                                                                                                                                                                                                       Displacement (m)
+
+
+
+
+                                                                                                                                                                                                                                                                   dx=0.05     dx=0.00625
+                                                                                                                                         Displacement (m)
+
+
+
+
+                                                                                                                                                                4                                                                                                  dx=0.025    Analytical
+                                                                                                                                                                                                                                               5
+Energy (J)
+
+
+
+
+                                                                      Energy (J)
+
+
+
+
+                                                                                         480
+                   450
+                                                                                                  dx=0.1                                                        2
+                                                                                         460      dx=0.05                                                                                                                                     4.5
+                                                                                                  dx=0.025                                                      0
+                   400        dx=0.1          dx=0.0125                                           dx=0.0125                                                                    dx=0.1          dx=0.0125
+                              dx=0.05         dx=0.00625                                 440      dx=0.00625                                                                   dx=0.05         dx=0.00625
+                                                                                                                                                                -2                                                                             4
+                              dx=0.025        Analytical                                          Analytical                                                                   dx=0.025        Analytical
+                         0    5          10          15          20                        19                  19.5                 20                               0         5          10        15            20                                18.2    18.4    18.6   18.8   19
+                                   Time (s)                                                                Time (s)                                                                  Time (s)                                                                       Time (s)
+
+
+
+      Fig. 8.7. Bounces of an elastic bar – convergence under refinement (Newmark). Con-
+                                                                                       ˆ ∆x, and
+vergence of energy (top, rate = 0.9877) and displacement (bottom, rate = 1.0092) under d,
+h refinement with Newmark time integration. Second and fourth column contains zoom-in views of
+the first and third column plots respectively.
+                                              CONVERGENT INCREMENTAL POTENTIAL CONTACT                                                                                                                                         19
+
+                                                                                                                         6                                                             5.5
+             500                                                      500                                                                                                                                  dx=0.1      dx=0.0125
+
+
+
+
+                                                                                                                                                                    Displacement (m)
+                                                                                                                                                                                                           dx=0.05     dx=0.00625
+
+
+
+
+                                                                                                      Displacement (m)
+                                                                                                                         4                                                                                 dx=0.025    Analytical
+                                                                                                                                                                                        5
+Energy (J)
+
+
+
+
+                                                         Energy (J)
+                                                                      480
+             450
+                                                                             dx=0.1                                      2
+                                                                      460    dx=0.05                                                                                                   4.5
+                                                                             dx=0.025                                    0
+             400       dx=0.1          dx=0.0125                             dx=0.0125                                            dx=0.1          dx=0.0125
+                       dx=0.05         dx=0.00625                     440    dx=0.00625                                           dx=0.05         dx=0.00625
+                                                                                                                         -2                                                             4
+                       dx=0.025        Analytical                            Analytical                                           dx=0.025        Analytical
+                   0   5          10        15      20                  19                19.5   20                           0   5          10        15      20                            18.2   18.4    18.6   18.8   19
+                            Time (s)                                                  Time (s)                                         Time (s)                                                             Time (s)
+
+
+
+     Fig. 8.8. Bounces of an elastic bar – convergence under refinement (BDF-2). Convergence
+                                                                              ˆ ∆x, and h refinement
+of energy (left, rate = 0.9384) and displacement (right, rate = 0.9661) under d,
+with BDF-2 time integration. Second and fourth column contains zoom-in views of the first and third
+column plots respectively.
+
+
+
+     9. Evaluation in 2D and 3D. In two and three-dimensions, frictional contact
+now becomes possible and we must consider the contact-interaction of meshed inter-
+faces. Here we first examine the sliding and bouncing behavior of an elastic square
+on a fixed analytical ground and show that the maximal energy dissipation and dis-
+placement and contact pressure curves all converge under refinement just as in our 1D
+evaluation above. We then demonstrate the accurate capture of stick and slip behav-
+iors under varying friction coefficients by EIPC with an analytical slope test and show
+that with EIPC’s consistent smooth approximation to the max operator, the vertical
+displacement of a square slipping on a fixed meshed ground can converge to a straight
+line with only spatial refinement of the mesh boundary. We then further consider fric-
+tional benchmark tests and close with challenging geometric collision “stress-tests”,
+a large-deformation high-speed dynamic collision problem, and an application to the
+analysis of compressed microstructure testing.
+     9.1. Refinement in 2D.
+     Block on ground. We first consider refinement of a slower-speed contact problem
+in 2D with a 2 m-wide square, initialized to a height immediately (d) ˆ above a fixed
+analytical ground without friction. We use a nonlinear (neo-Hookean) material with
+Young’s: E = 4000 N/m, Poisson: ν = 0.2, and density ρ = 100 kg/m2 ; gravity is g =
+−5 m/s2 , and time step is set by νC = 1.5. The square is uniformly and symmetrically
+tessellated with ∆x. Under gravity, this soft square will compress while its bottom
+interface slides periodically back and forth along the ground. Fixing the relations
+dˆ = 0.5∆x and h = νC √∆x , we perform refinements by half down to ∆x = 0.0125m.
+                                                                            E/ρ
+We measure system energy, (central top node’s) vertical displacement, and (at center
+bottom node) contact pressure over time. Applying BDF-2 time integration, all above
+measures converge linearly (to finest solution – no analytic model is available) as
+resolution increases despite the nonlinear elasticity applied (Figure 9.1).
+     Impact and bouncing on ground. We next consider refinement with higher-speed
+impacts and repeated bouncing in 2D. We extrude the bouncing benchmark problem
+from 1D (subsection 8.1), setting the stiffness 2× as large, νC = 0.75, and apply BDF-2
+time integration. This gives a 10 m-wide square initialized 5 m above a fixed analytical
+ground (again no friction). The square is uniformly and symmetrically tessellated by
+∆x, with ρ = 1 kg/m2 , E = 1800 N/m, ν = 0.2, applying neo-Hookean elasticity
+(ensuring no element inversion). Gravity is set to g = −10 m/s2 and κ = 0.1E.
+During simulation, over repeated bounces, gravitational energy progressively transfers
+to elasticity energy as the highest bouncing point decreases and high-frequency elastic
+waves become more pronounced. Repeating the same refinement as for the “block-
+on-ground” above, we now observe that all measurements converge with resolution
+20                                                                             LI ET AL.
+
+                                                                                                        1.5
+                                                                                                                                                                                8000
+
+
+
+
+                                                                                                                                                       Contact Pressure (N/m)
+                                    0                                                                                 dx=0.2    dx=0.025                                                       dx=0.2     dx=0.025
+
+
+
+
+                                                                                   y-Displacement (m)
+                                                                                                                      dx=0.1    dx=0.0125                                                      dx=0.1     dx=0.0125
+          2m                     -100
+                                                                                                                      dx=0.05                                                   6000           dx=0.05
+
+
+
+
+                    Energy (J)
+                                                                                                         1
+
+                                 -200                                                                                                                                           4000
+
+                                                                                                        0.5
+                                            dx=0.2        dx=0.025                                                                                                              2000
+                                 -300
+                                            dx=0.1        dx=0.0125
+                                            dx=0.05                                                                                                                                0
+                                 -400                                                                    0
+                                        0     1           2        3       4   5                              0   1        2     3       4   5                                         0   1         2    3        4   5
+      Ground                                              Time(s)                                                          Time(s)                                                                   Time(s)
+
+
+
+
+     Fig. 9.1. Static block on ground. From left to right: experiment setup (∆x = 0.1m) and
+convergence of energy (rate = 1.5688), displacement (rate = 1.3850), and contact pressure (rate
+                 ˆ ∆x, and h refinement with BDF-2 time integration.
+= 1.1952) under d,
+
+
+increase (Figure 9.2). However, as the simulation continues, high-frequency elastic
+waves magnify, so that the simulation becomes less stable and the curves at changing
+resolution diverge increasingly from accumulated errors.
+          10 m
+                                    0                                                                    8                                                                2000
+
+
+
+
+                                                                                                                                                 Contact Pressure (N/m)
+                                                                                                                      dx=1      dx=0.125                                                       dx=1       dx=0.125
+                                                                                   y-Displacement (m)
+
+
+
+
+                                                                                                         6            dx=0.5    dx=0.0625                                                      dx=0.5     dx=0.0625
+                              -1000                                                                                   dx=0.25                                             1500                 dx=0.25
+                 Energy (J)
+
+
+
+
+                                                                                                         4
+                              -2000
+                                                                                                         2                                                                1000
+                              -3000
+                                                                                                         0
+                                            dx=1              dx=0.125                                                                                                          500
+                              -4000         dx=0.5            dx=0.0625                                 -2
+     5m                                     dx=0.25
+                              -5000                                                                     -4                                                                        0
+                                        0             2                4       6                             0         2             4       6                                        0          2             4       6
+      Ground                                              Time(s)                                                          Time(s)                                                                   Time(s)
+
+
+
+
+     Fig. 9.2. Dynamic block on ground. From left to right: experiment setup (∆x = 0.5m) and
+convergence of energy (rate = 1.0718), displacement (rate = 1.1527), and contact pressure (rate
+                 ˆ ∆x, and h refinement with BDF-2 time integration.
+= 0.5065) under d,
+
+
+      9.2. Tessellation Error: A Sliding Block on Meshed Boundary.
+    9.2.1. 2D. To compare and verify the direct summation approximation [8] and
+our consistent approximation to the max operator, we test an example with a 2 m-
+wide square sliding on a fixed 16 m-wide meshed ground (µ = 0). The square is placed
+right dˆ = 0.1 m above the ground in the middle with an initial velocity v0 = 1 m/s.
+It has Young’s modulus E = 2 × 1011 N/m, Poisson’s ratio ν = 0.3, and density
+ρ = 8000 kg/m2 , nearly rigid. The gravity is g = −5 m/s2 , and we set κ = 1×106 N/m
+and fix the time step size at h = 0.01 s. Both the square and the single layer ground
+are uniformly tessellated with ∆x.
+    With ∆x = 2 m, after the initial drop for acquiring contact forces in IPC frame-
+work, we clearly see the jumps on the horizontal displacement curve given by direct
+summation everytime when the square corner is crossing a node on the ground (Fig-
+ure 9.3 top). The arc between the jumps are due to the ground point to square edge
+contact pair, which hold the square at different location at bottom, forming unbal-
+anced force distributions during slipping. Note that these all only happen within the
+scale of 10−3 m, nearly 2 orders-of-magnitude smaller than d.ˆ Our consistent approx-
+imation still have jumps but the magnitude is much smaller (Figure 9.3 bottom), and
+the arcs have very similar profile.
+    This is because with a slipping square, the jumps also come from the activation
+of the ground point to square edge pairs during slipping in addition to the duplicate
+                                                     CONVERGENT INCREMENTAL POTENTIAL CONTACT                                                                                                                                                                                                                21
+
+                                    Direction summation [8]                                                                                                                         Our subtraction-based method
+                                                                                        10-3                                                                               0                                                                                          10-3
+                     0                                                         -2
+                               dx=2       d=0.25                                                                                                                                         dx=2     d=0.25                                                                           dx=2         d=0.25
+                               dx=1       dx=0.125                                                   dx=2         d=0.25
+                 -0.002                                                                                                                                                -0.002            dx=1     dx=0.125                                                  -6                     dx=1         dx=0.125
+                                                                                                     dx=1         dx=0.125
+
+
+
+
+                                                                                                                                                      y-Displacement
+                               dx=0.5
+
+
+
+
+                                                                                                                                                                                                                                          y-Displacement
+                                                                                                                                                                                         dx=0.5   analytical
+y-Displacement
+
+
+
+
+                                                                                                                                                                                                                                                                                   dx=0.5       analytical
+
+
+
+
+                                                             y-Displacement
+                                                                               -4                    dx=0.5                                                            -0.004
+                 -0.004                                                                                                                                                                                                                                    -6.5
+                 -0.006                                                                                                                                                -0.006
+                                                                               -6                                                                                                                                                                           -7
+                 -0.008                                                                                                                                                -0.008
+                                                                                                                                                                                                                                                           -7.5
+                  -0.01                                                        -8                                                                                       -0.01
+                                                                                                                                                                                                                                                            -8
+                 -0.012                                                                                                                                                -0.012
+                                                                              -10                                                                                                                                                                          -8.5
+                          0    1      2     3        4   5                          3          3.5            4               4.5                5                              0   1       2     3          4                       5                            3          3.5            4         4.5          5
+                                   x-Displacement                                                x-Displacement                                                                         x-Displacement                                                                         x-Displacement
+
+
+
+     Fig. 9.3. Sliding block on meshed boundary (2D). Displacement plots of a block sliding on
+a meshed plane with the max operator approximated via direct summation [8] (left, nonconvergent)
+and our subtraction-based method (right, converging to the straight line at order = 1.0761). Second
+and fourth column contains zoom-in views of the first and third column plots respectively.
+
+
+square point to ground edge pair when applying direct summation. As we show in
+Figure 9.3 bottom, our approximation with only the first source of jumps generates
+results converging to a straight line under only ∆x refinement with dˆ and time step
+size h fixed at 0.1m and 0.01s respectively. But the second source of jumps does not
+converge as shown in Figure 9.3 top with direct summation. Although by refining
+dˆ at fixed ∆x, the portion of the duplication in direct summation vanishes, once a
+                       ˆ
+refinement has a fixed d/∆x  ratio, the portion is then also fixed and thus not vanishing.
+      9.2.2. 3D. In 3D, it becomes more complicated with edge-edge stencils. We
+extrude the sliding experiment setup in 2D to 3D to check the convergence behavior
+for a cube sliding on a 3D plane with both point-triangle and edge-edge stencils.
+      We set dˆ = 10−3 m, orders-of-magnitude smaller than ∆x, so that no extra du-
+plication of the potential field from nearby edges is possible from edge-edge stencils.
+This enables convergence to a straight line, but not the reference solution obtained
+by sliding with ∆x = 0.25 and dˆ = 10−3 m on an analytical plane (Figure 9.4 left).
+This is because for two meshed planes touching each other, each edge would result in
+multiple edge-edge stencils, thus over integrating the quantity using our edge weights.
+If dˆ is also refined starting from 10−3 m linearly w.r.t. ∆x, our results converge to the
+analytical solution y = 0 nearly linearly (Figure 9.4 right).
+
+                                                                                                                                               10-5                                                                                      10-5
+                                                                                                                                      0                                                                                     1
+                                                                                                                                                                                           dx=2                                                                                                       dx=2
+                                                                                                                                                                                           dx=1                             0                                                                         dx=1
+                                                                                                                                                                                                                                                                                                      dx=0.5
+                                                                                                                     y-displacement
+
+
+
+
+                                                                                                                                                                                                           y-displacement
+
+
+
+
+                                                                                                                                      -2                                                   dx=0.5
+                              2m                                                                                                                                                           dx=0.25                          -1                                                                        dx=0.25
+                                                                                                                                                                                           reference                                                                                                  analytical
+                                                                                                                                      -4                                                                                    -2
+                                          v0 = 1m/s
+                                                                                                                                                                                                                            -3
+                                                                                                                                      -6
+                                                                                                                                                                                                                            -4
+
+                                                                                                                                      -8                                                                                    -5
+                                                                                                                                           0                2                        4                 6                         0                                      2                       4              6
+                                                Ground                                                                                                x-displacement                                                                                                  x-displacement
+
+
+
+
+     Fig. 9.4. Sliding block on meshed boundary (3D). Experiment setup (∆x = 0.25m, left)
+and displacement plots (center and right) of a block sliding on a meshed plane in 3D with the max
+operator approximated via our subtraction-based method. The center plot only refines ∆x, and it
+converges to a straight line but not the reference line given by sliding on analytical plane. Both
+∆x and dˆ are refined in the right plot, which converge to the analytical solution y = 0 at a rate of
+0.8879.
+
+
+    9.3. A Frictional Benchmark: Critical Angle on Slope. To verify the
+accuracy of our friction model, an experiment with a stiff cube resting or sliding on
+22                                                                                                                                   LI ET AL.
+
+
+a fixed analytical slope with a certain friction coefficient is created. When a rigid
+cube is placed on a slope with zero initial velocity, its acceleration has the following
+analytical form in the slope’s tangent space:
+                                                          
+                                  g min(0, µ cos θ − sin θ)
+(9.1)                       a=                               .
+                                              0
+
+where µ is the friction coefficient between the cube and the slope, g is the gravity
+acceleration, θ ∈ [0, π/4) is the inclined angle of the slope.
+     The initial configuration of this example is obtained by placing the cube dˆ away
+from the slope, and then simulate under gravity (g = 5.099 m/s2 ) with friction coeffi-
+cient µ = 0.5 for 1 s until the box becomes static. After obtaining the initial config-
+uration, the slope test simulation is performed with different friction coefficients and
+the dynamic-static friction transition velocities ϵv .
+     Here the cube is 0.02 m × 0.02 m × 0.02 m, composed of just 8 nodes with density
+ρ = 1000 kg/m3 , Young’s modulus E = 10 GPa and Poisson’s ratio ν = 0.4. Slopes
+with friction coefficient 0.1, 0.1999, and 0.2 have been tested (Figure 9.5 1st row),
+all with contact active distance dˆ = 10−5 m, contact stiffness κ = 1 MPa, static
+friction velocity threshold ϵv = 10−5 m/s, and with the lagged normal forces in friction
+iteratively updated until converging to a solution with fully-implicit friction. All
+simulations are using implicit Euler time integration with time step size h = 0.01 s,
+and the Newton tolerance is set to ϵd = 10−8 m/s.
+     With sliding velocity and acceleration of the cube’s center of mass plotted over
+time (Figure 9.5), they have all been shown to well match analytical solutions with
+small absolute errors. Even for µ = 0.1999 (99.95% that of the critical coefficient), the
+sliding behavior can still be accurately captured. The dip is formed as our velocity-
+time curve started above the analytical one due to the mollification of static-dynamic
+transition, and then cross and goes below it. For µ = 0.2, it is also confirmed that the
+acceleration vanishes, and the velocity throughout the simulation is around ϵv , the
+static friction velocity threshold in our approximation to provide the static friction
+force in the same magnitude as dynamic friction.
+
+                                                  Variable µ and fixed ϵv                                                                                                            Fixed µ and variable ϵv
+                                                                 Acceleration Error (log10 m/s 2)
+
+
+
+
+                                                                                                                                                                                                                  Acceleration Error (log10 m/s 2)
+
+
+
+
+                             -4.5                                                                   -3                                                                    -4.5                                                                        -2
+                                                                                                                                                                                                                                                                           =10 -5 m/s
+Velocity Error (log10 m/s)
+
+
+
+
+                                                                                                                                             Velocity Error (log10 m/s)
+
+
+
+
+                                                                                                                         =0.1
+                                                                                                                                                                                                v
+                                                                                                                                                                                                 =10 -5 m/s                                                               v
+                              -5                                                                    -4                   =0.1999                                           -5
+                                                                                                                                                                                                 =10 -6 m/s                                                               v
+                                                                                                                                                                                                                                                                           =10 -6 m/s
+                                                                                                                         =0.2                                                                   v                                                     -4
+                             -5.5                                                                   -5                                                                    -5.5                   =10 -7 m/s                                                               v
+                                                                                                                                                                                                                                                                           =10 -7 m/s
+                                                                                                                                                                                                v
+                              -6                                                                    -6                                                                     -6                                                                         -6
+
+                             -6.5                                                                   -7                                                                    -6.5
+                                        =0.1                                                                                                                                                                                                          -8
+                              -7        =0.1999                                                     -8                                                                     -7
+                                        =0.2
+                             -7.5                                                                   -9                                                                    -7.5                                                                       -10
+                                    1               1.5      2                                           1   1.2   1.4      1.6    1.8   2                                       1     1.5                    2                                            1     1.5                    2
+                                                  Time (s)                                                         Time (s)                                                          Time (s)                                                                  Time (s)
+
+
+
+     Fig. 9.5. Critical angle on slope. Velocity (column one and three) and acceleration (column
+two and four) error plots of the 3D slope test. On the left, µ = 0.1, µ = 0.1999, and µ = 0.2
+(the critical value) are tested. On the right, we test convergence w.r.t. ϵv refinement with µ = 0.2,
+where both velocity and acceleration errors converge to 0 with convergence rate 0.9959 and 0.9926
+respectively.
+
+     However, notice that the error of acceleration is always much larger at the first
+time step than the latter steps after release. This is also an error introduced by
+our mollification of the dynamic-static friction transition. For µ = 0.2, the tangent
+velocity needs to increase immediately to nearly ϵv to obtain the static friction force
+for balance, which effectively ends up with a much larger acceleration than the solution
+                                          CONVERGENT INCREMENTAL POTENTIAL CONTACT                                                                                                                                                                         23
+
+    Initial Configuration   Stable Equilibrium
+                                                                            Center of Mass Height (m)                                               Elastic Energy (J)                                                  Contact Pressure (N/m²)
+                                                                  0.035                                                                 0.1                                                                 0.1
+                                                                                      rate of convergence ≈ 1.230                                         rate of convergence ≈ 1.137                                           rate of convergence ≈ 1.962
+                                                                   0.03                              measured                                                            measured                                                              measured
+                                                                                                                                       0.08                                                                0.08
+                                                                  0.025                              polynomial fit                                                      polynomial fit                                                        polynomial fit
+
+
+
+
+                                                 relative error
+
+
+
+
+                                                                                                                      relative error
+
+
+
+
+                                                                                                                                                                                          relative error
+                                                                   0.02                                                                0.06                                                                0.06
+
+                                                                  0.015                                                                0.04                                                                0.04
+                                                                   0.01
+                                                                                                                                       0.02                                                                0.02
+                                                                  0.005
+                                                                     0                                                                   0                                                                   0
+                                                                          0.5   0.4    0.3     0.2      0.1       0                           0.5   0.4   0.3      0.2      0.1       0                           0.5     0.4   0.3       0.2     0.1       0
+                                                                                       Δx (m)                                                             Δx (m)                                                                 Δx (m)
+
+
+
+     Fig. 9.6. A stack of three cubes is simulated until equilibrium. We plot the relative error in the
+center of mass of the second block, elastic energy, and contact pressure at equilibrium for varying
+                                                       f (∆x)−f (∆xref )
+mesh resolutions. We compute the relative error as         f (∆x )
+                                                                         where ∆xref = 2−7 m.
+                                                                                                                                                           ref
+
+
+
+
+(0 m/s2 ). By only refining ϵv , at µ = 0.2 our velocity and acceleration errors (including
+the error in the first time step) both converges nearly linearly to the analytical solution
+(Figure 9.5 2nd row).
+
+     9.4. Refinement in 3D with Self-Contact and Friction. We study the
+static equilibrium of a stack of three blocks under refinement. We choose material
+parameters (E = 2.5 × 105 Pa, ν = 0.4, and ρ = 1000 kg/m3 ) which are able to
+reach stable equilibrium without the stack falling yet produces a visible deformation
+(see Figure 9.6). Each block is 1 × 1 × 1 m3 , and we use five levels of refinement
+∆x = 0.5, 0.25, 0.125, 0.0625, and 0.03125 m. We set dˆ = 0.01∆x and create an
+initial gap of 0.9d.ˆ Additionally, we use friction with a coefficient of µ = 0.5 to
+prevent blocks from sliding off.
+     To solve for the static equilibrium we perform a series of incremental solves (time-
+stepping while zeroing out any velocity components at the start of every step). We
+perform this until convergence of the vertex positions (i.e. ∥xi − xi−1 ∥∞ ≤ ϵ). We
+choose a convergence tolerance of ϵ = 1 × 10−5 m.
+     Figure 9.6 shows the results of this study where we see convergence of the center
+of mass, elastic energy, and contact pressure.
+
+     9.5. Dynamic Collision in 3D. We setup a two spheres colliding experiment
+to test the ability of our method to resolve elasticity and kinetic energy transfer
+caused by high-speed collisions. Two sphere meshes each with 29K nodes, 0.04 m
+wide are placed 0.08 m away from each other (Figure 9.7 a and b), both with Neo-
+Hookean elasticity, Young’s modulus E =1 × 107 Pa, Poisson’s ratio 0.45 , and density
+1150 kg/m3 , exactly the same material with the high-speed golf ball example in Li
+et al. [8], except that we do not apply any damping here. The two spheres are both
+with 30 m/s initial velocity towards each other. We set dˆ to 4 × 10−5 m (0.1% that of
+the sphere’s diameter) and κ to 0.1E as usual. For stability and accuracy, we apply
+BDF-2 time integration at time step size h =2 × 10−5 s.
+     During the simulation, the total x-direction momentum of the system is perfectly
+conserved with the the momentum of each sphere symmetrically and smoothly re-
+versed (Figure 9.8 right). Since BDF-2 time integration is applied, the energy slightly
+dissipates around 10% of the initial total energy (Figure 9.8 left). But nice symmetry
+and coherence on the elasticity and kinetic energy profile of the two spheres are ac-
+curately resolved. With the energy data of the left and right spheres plotted as curve
+and dots respectively, it is clear that the curves are well-aligned. In Figure 9.7 c and
+d, we visualize the Von Mises stress on the spheres at a collision state and right after
+separation. Please see our supplemental video for the nice elastic wave propagation
+captured by our method.
+24                                                                                      LI ET AL.
+
+                    Von Mises Stress
+                                    ≤ 0.1MPa                                                                                                                     5MPa
+30 m/s          30 m/s
+
+
+
+
+     (a) setup, t=0s
+
+
+
+
+         (b) mesh                                   (c) collision, t=0.00156s                                                   (d) separation, t=0.00282s
+
+
+
+
+   Fig. 9.7. Two spheres colliding experiment setup and results with von Mises stress visualized.
+
+                                         80                                                                       3
+                                                                                                                                 Left     Right      Total
+                                                                                                x-Momentum (Ns)   2
+                                         60
+                                                  Elasticity (left)    Elasticity (right)
+                            Energy (J)
+
+
+
+
+                                                                                                                  1
+                                                  Kinetic (left)       Kinetic (right)
+                                         40       Total                Total (Original)                           0
+
+                                                                                                                  -1
+                                         20
+                                                                                                                  -2
+
+                                          0                                                                       -3
+                                              0           2                4                6                          0   2               4                 6
+                                                              Time (s)                 10-3                                    Time (s)               10-3
+
+
+      Fig. 9.8. Two spheres colliding. Energy (left) and momentum (right) plots of the two spheres
+colliding experiment. The total energy is dissipated by approximately 10% with BDF-2 time integra-
+tion at h =2 × 10−5 s, while the momentum is perfectly conserved throughout the simulation. The
+energy plot also shows nice symmetry and coherence on the elasticity and kinetic energy profile of
+the two spheres.
+
+
+    9.6. 3D Unit tests. We reproduce the unit tests presented by Li et al. [8]
+(Figure 9.9).
+    The first unit test tests the ability of our method to handle tight conforming
+contacts. We drop a unit cube into a C-shaped slot. The slot is only 1 × 10−5 m wider
+than the cube. We use a soft material (E = 1×106 Pa, ν = 0.4, and ρ = 1×103 m/kg))
+and a dˆ of 1 × 10−5 m with κ = 0.1E. We also utilize a framerate time step of 0.04 s.
+Our method passes this test without problem demonstrating the ability to handle
+small gaping and conforming contact.
+    Our second test positions two spikes such that they contact at the tips. This
+degenerate case is often challenging for traditional methods [3]. We use the same
+material parameters as the first unit test and set dˆ = 1 × 10−3 m. Again we use a
+large ∆t = 0.025 s. Our method has no difficulty in handling this contact, resolving
+the point-point contact into a downward diagonal motion.
+    9.7. Application: Microstructures. As an illustration of the importance of
+proper contact handling we apply our method to simulate the compression of a 3D
+printed gyroid micro-structure (Figure 9.10). We perform three simulations: (1)
+Dirichlet boundary conditions on the gyroid to compress it without contact resolu-
+tion, (2) the same boundary conditions as (1) but now with contact modeled by our
+formulation, and (3) we apply the boundary conditions to rigid plates, leaving the
+gyroid’s boundaries free (again with contact). For the material parameters we match
+those of an 3D printed elastomeric polyurethane (E = 9 × 106 Pa, ν = 0.48, and
+ρ = 1.1 × 103 m/kg). We plot the strain energy versus compression in Figure 9.11.
+                                 CONVERGENT INCREMENTAL POTENTIAL CONTACT                                             25
+
+
+
+
+      Fig. 9.9. We demonstrate the ability of our method to handle both tight conforming contacts
+ as well as sharp point-point contacts. Dynamic objects are colored in blue while static objects are
+ colored in grey. Left: We drop a unit-sized cube into a static slot that is 1 × 10−5 m wider to than
+ the cube. Right: We drop a dynamic spike onto a static spike where contact occurs between the spike
+ points.
+
+                   Dirichlet BC (No Contact)            Dirichlet BC (Contact)   Free Boundary (Contact)
+                                                                                                                  a
+                                                                                                                MP
+                                                                                                           10
+First Buckle
+
+
+
+
+                                                                                                                      Von Mises Stress
+                                                                                                                Pa
+                                                                                                           5M
+                                        intersections
+50% Compression
+
+
+
+
+                                                                                                             a
+                                                                                                           0P
+Full Compression
+
+
+
+
+       Fig. 9.10. Compressing a gyroid microstructure with and without contact and two different
+ boundary conditions. The von Mises stress is visualized. Without contact, large intersections are
+ visible (highlighted in red in the inset) and the stresses are lower than when accounting for contact.
+ The stresses are larger when using Dirichlet boundary conditions on the gyroid compared to having
+ a free boundary. This is due to preventing the top and bottom of the gyroid from expanding in the
+ plane orthogonal to compression.
+
+
+
+                                                                  REFERENCES
+
+            [1] Y. Chen, M. Li, L. Lan, H. Su, Y. Yang, and C. Jiang, A unified newton barrier method
+                    for multibody dynamics, ACM Trans. Graph. (SIGGRAPH), 41 (2022).
+            [2] D. Doyen, A. Ern, and S. Piperno, Time-integration schemes for the finite element dynamic
+                    signorini problem, SIAM Journal on Scientific Computing, 33 (2011), pp. 223–249.
+            [3] K. Erleben, Methodology for assessing mesh-based contact point methods, ACM Transactions
+                    on Graphics, 37 (2018).
+            [4] Z. Ferguson, M. Li, T. Schneider, F. Gil-Ureta, T. Langlois, C. Jiang, D. Zorin, D. M.
+                    Kaufman, and D. Panozzo, Intersection-free rigid body dynamics, ACM Transactions on
+                    Graphics (Proceedings of SIGGRAPH), 40 (2021).
+            [5] C. Kane, J. E. Marsden, M. Ortiz, and M. West, Variational integrators and the newmark
+26                                                        LI ET AL.
+
+
+                                              Microstructure Compression
+
+                                                      First Contact
+                                250
+
+
+                                200
+            Strain Energy (J)
+
+
+
+
+                                150
+                                       Gyroid Mesh
+
+                                100
+
+                                                                             Dirichlet BC (Contact)
+                                 50
+                                                                             Dirichlet BC (No Contact)
+                                                                             Free Boundary (Contact)
+                                  0                                          First Buckle
+
+                                  0%    10%     20%     30%      40%   50%      60%       70%        80%
+                                                           Compression
+
+     Fig. 9.11. We compress a gyroid micro-structure using two different boundary conditions and
+one without contact. The Dirichlet boundary conditions simulations with and without contact lead to
+agreement in the measured strain energy up to around 26% compression (soon after the first contact
+is detected). These plots quickly diverge for larger compression. When we apply the boundary
+conditions to a bottom and top plate and leave the gyroid’s boundaries free (closely modeling a real
+world setup), it is clear the free boundary model’s strain energy diverges with only 15% compression.
+This demonstrates the importance of modeling the deformation and contact of boundaries.
+
+
+         algorithm for conservative and dissipative mechanical systems, Int. J. for Numer. Meth. in
+         Eng., 49 (2000).
+ [6] L. Lan, D. M. Kaufman, M. Li, C. Jiang, and Y. Yang, Affine body dynamics: Fast, stable
+         & intersection-free simulation of stiff materials, ACM Trans. Graph. (SIGGRAPH), 41
+         (2022).
+ [7] L. Lan, Y. Yang, D. Kaufman, J. Yao, M. Li, and C. Jiang, Medial IPC: Accelerated incre-
+         mental potential contact with medial elastics, ACM Transactions on Graphics (Proceedings
+         of SIGGRAPH), 40 (2021).
+ [8] M. Li, Z. Ferguson, T. Schneider, T. Langlois, D. Zorin, D. Panozzo, C. Jiang, and
+         D. M. Kaufman, Incremental potential contact: Intersection- and inversion-free large
+         deformation dynamics, ACM Transactions on Graphics (Proceedings of SIGGRAPH), 39
+         (2020).
+ [9] M. Li, D. M. Kaufman, and C. Jiang, Codimensional incremental potential contact, ACM
+         Transactions on Graphics (Proceedings of SIGGRAPH), 40 (2021).
+[10] X. Li, Y. Fang, M. Li, and C. Jiang, BFEMP: Interpenetration-free mpm–fem coupling with
+         barrier contact, Computer Methods in Applied Mechanics and Engineering, 390 (2022),
+         p. 114350.
+[11] X. Li, M. Li, and C. Jiang, Energetically consistent inelasticity for optimization time inte-
+         gration, ACM Trans. Graph. (SIGGRAPH), 41 (2022).
+[12] J. J. Moreau, On unilateral constraints, friction and plasticity, New Variational Tech. in
+         Math. Phys., (1973).
+[13] J. Nocedal and S. Wright, Numerical optimization, Springer Science & Business Media,
+         2006.
+[14] M. Ortiz and L. Stainier, The variational formulation of viscoplastic constitutive updates,
+         CMAME, 171 (1999).
+[15] J. Smith and S. Schaefer, Bijective parameterization with free boundaries, ACM Transactions
+         on Graphics (Proceedings of SIGGRAPH), 34 (2015).
+[16] Y. Zhao, J. Choo, Y. Jiang, M. Li, C. Jiang, and K. Soga, A barrier method for frictional
+         contact on embedded interfaces, Computer Methods in Applied Mechanics and Engineering,
+         393 (2022), p. 114820.
+

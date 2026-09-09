@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DLSS 5 · 实时生成式渲染 · 学习探索器</title>
+  <style>
+    :root {
+      --ink: #17221f;
+      --muted: #68746f;
+      --paper: #f3f0e7;
+      --panel: #fbfaf5;
+      --line: #d8d8c9;
+      --moss: #31584d;
+      --moss-dark: #183c35;
+      --amber: #d58d36;
+      --coral: #b65d4c;
+      --blue: #557b85;
+      --shadow: 0 18px 44px rgba(30, 50, 43, .10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(213,141,54,.14), transparent 30rem),
+        linear-gradient(135deg, #f6f3ea 0%, #e9eee7 100%);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    .shell { width: min(1220px, calc(100% - 36px)); margin: 0 auto; }
+    .hero { padding: 62px 0 34px; position: relative; }
+    .hero::after {
+      content: ""; position: absolute; right: 2%; top: 44px; width: 160px; height: 160px;
+      border: 1px solid rgba(49,88,77,.25); border-radius: 50%;
+      box-shadow: 0 0 0 18px rgba(49,88,77,.04), 0 0 0 38px rgba(49,88,77,.025);
+      pointer-events: none;
+    }
+    .eyebrow, .kicker { color: var(--moss); font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { max-width: 800px; margin: 13px 0 11px; font: 700 clamp(40px, 7vw, 82px)/.96 Georgia, "Times New Roman", serif; letter-spacing: -.045em; }
+    h1 span { color: var(--coral); }
+    .dek { max-width: 770px; margin: 0; color: #44524d; font-size: clamp(16px, 2vw, 20px); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 23px; }
+    .chip { border: 1px solid var(--line); background: rgba(251,250,245,.72); padding: 7px 11px; border-radius: 999px; color: #4d5a55; font-size: 12px; }
+    .stat-rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 28px 0 42px; background: var(--line); border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .stat { background: var(--panel); padding: 18px 20px 16px; min-height: 96px; }
+    .stat b { display: block; color: var(--moss-dark); font: 700 27px/1 Georgia, serif; }
+    .stat small { color: var(--muted); font-size: 12px; }
+    main { display: grid; gap: 24px; padding-bottom: 52px; }
+    .panel { background: rgba(251,250,245,.88); border: 1px solid var(--line); box-shadow: var(--shadow); padding: clamp(20px, 4vw, 36px); }
+    .panel-head { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 24px; }
+    .panel h2 { margin: 5px 0 0; font: 700 clamp(25px, 4vw, 39px)/1.05 Georgia, serif; letter-spacing: -.025em; }
+    .panel-intro { max-width: 600px; margin: 0; color: var(--muted); font-size: 14px; }
+    .lab-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(265px, .75fr); gap: 25px; align-items: start; }
+    .canvas-frame { background: #17231f; padding: 10px; border: 1px solid #2e4941; }
+    canvas { width: 100%; display: block; image-rendering: auto; background: #12201c; }
+    .canvas-legend { display: flex; justify-content: space-between; padding: 8px 3px 0; color: #b8c6bd; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .control-card { border-left: 3px solid var(--amber); padding: 0 0 0 18px; }
+    .control-card h3 { margin: 0 0 14px; font: 700 20px Georgia, serif; }
+    .control-row { margin: 15px 0; }
+    .control-row label, .select-label { display: flex; justify-content: space-between; gap: 12px; color: #40514b; font-size: 13px; }
+    output { color: var(--coral); font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    input[type="range"] { accent-color: var(--moss); width: 100%; margin-top: 7px; }
+    select { width: 100%; margin-top: 7px; padding: 8px 9px; border: 1px solid var(--line); background: #fffef9; color: var(--ink); }
+    .radio-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 7px; }
+    .radio-row label { border: 1px solid var(--line); padding: 7px 5px; text-align: center; font-size: 12px; cursor: pointer; background: #fffef9; }
+    .radio-row input { position: absolute; opacity: 0; pointer-events: none; }
+    .radio-row label:has(input:checked) { border-color: var(--moss); color: var(--moss-dark); background: #e6eee8; font-weight: 700; }
+    .switch { display: flex; align-items: center; gap: 9px; font-size: 13px; color: #40514b; margin-top: 16px; }
+    .switch input { accent-color: var(--moss); }
+    .readout { margin-top: 18px; padding: 11px 12px; background: #edf1e9; border: 1px solid #d4dfd3; color: #355148; font-size: 12px; }
+    .note { margin: 18px 0 0; color: var(--muted); font-size: 12px; }
+    .pipeline { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 12px; align-items: stretch; }
+    .stage { position: relative; border: 1px solid var(--line); background: #fffef9; padding: 18px; cursor: pointer; text-align: left; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .stage:hover, .stage.active { transform: translateY(-3px); border-color: var(--moss); background: #e9f0e9; }
+    .stage:not(:last-child)::after { content: "→"; position: absolute; right: -23px; top: 42%; color: var(--amber); font-size: 24px; z-index: 2; }
+    .stage-num { color: var(--coral); font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .stage strong { display: block; margin: 8px 0 4px; font: 700 19px Georgia, serif; }
+    .stage small { color: var(--muted); font-size: 12px; }
+    .stage-detail { min-height: 55px; margin: 18px 0 0; padding: 13px 15px; border-left: 3px solid var(--blue); background: #eef2f0; color: #41524c; font-size: 13px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .tab { border: 1px solid var(--line); background: #fffef9; padding: 8px 12px; color: #53615b; cursor: pointer; font-size: 12px; }
+    .tab.active { background: var(--moss-dark); border-color: var(--moss-dark); color: #f4f3e8; }
+    .metrics-layout { display: grid; grid-template-columns: 1.25fr .75fr; gap: 24px; align-items: start; }
+    .metric-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .metric-table th, .metric-table td { padding: 9px 7px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+    .metric-table th { color: var(--muted); font-weight: 600; }
+    .metric-table td:not(:first-child) { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .metric-table tr:first-child td { color: var(--moss-dark); font-weight: 700; }
+    .bar-stack { display: grid; gap: 13px; }
+    .bar-item label { display: flex; justify-content: space-between; font-size: 12px; color: #50605a; }
+    .bar-track { height: 9px; margin-top: 5px; background: #e0e4dc; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--coral); transition: width .25s ease; }
+    .bar-fill.dlss { background: var(--moss); }
+    .metric-caption { margin-top: 15px; color: var(--muted); font-size: 11px; }
+    .study-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 22px; }
+    .study-card { border-top: 3px solid var(--amber); padding: 13px; background: #fffef9; }
+    .study-card b { display: block; font: 700 24px Georgia, serif; color: var(--moss-dark); }
+    .study-card span { color: var(--muted); font-size: 11px; }
+    .four { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; }
+    .principle { padding: 17px; background: #fffef9; border: 1px solid var(--line); min-height: 150px; }
+    .principle i { display: block; color: var(--coral); font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; font-style: normal; }
+    .principle strong { display: block; margin: 9px 0 5px; font: 700 18px Georgia, serif; }
+    .principle p { margin: 0; color: var(--muted); font-size: 12px; }
+    .limits { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 24px; }
+    .limits h3 { margin: 0 0 8px; font: 700 20px Georgia, serif; }
+    .limits ul { margin: 0; padding-left: 19px; color: #52605a; font-size: 13px; }
+    footer { border-top: 1px solid var(--line); padding: 25px 0 45px; color: var(--muted); font-size: 12px; }
+    footer a { color: var(--moss); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    @media (max-width: 860px) {
+      .hero::after { display: none; }
+      .stat-rail, .four { grid-template-columns: repeat(2, 1fr); }
+      .lab-grid, .metrics-layout, .limits { grid-template-columns: 1fr; }
+      .pipeline { grid-template-columns: 1fr; }
+      .stage:not(:last-child)::after { content: "↓"; right: 48%; top: auto; bottom: -28px; }
+      .study-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 520px) {
+      .shell { width: min(100% - 22px, 1220px); }
+      .hero { padding-top: 35px; }
+      .stat-rail, .four, .study-grid { grid-template-columns: 1fr; }
+      .panel { padding: 19px 15px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="eyebrow">NVIDIA TECHNICAL REPORT · 2026-09-01 · 24 PAGES</div>
+      <h1>DLSS 5<span>：生成式渲染</span></h1>
+      <p class="dek">把渲染器定义的场景当作内容锚点，把照片先验当作外观知识，再用因果、一步、可控的模型把两者放进同一个交互式帧预算。</p>
+      <div class="hero-meta">
+        <span class="chip">实时神经渲染</span>
+        <span class="chip">3D 引导扩散</span>
+        <span class="chip">概念实验台 + 真实论文指标</span>
+      </div>
+    </header>
+
+    <div class="stat-rail" aria-label="论文关键数字">
+      <div class="stat"><b>154M</b><small>Transformer 参数（约）</small></div>
+      <div class="stat"><b>8 ms</b><small>RTX 5090 / 4K 模型执行（约）</small></div>
+      <div class="stat"><b>731 MB</b><small>峰值 GPU 显存（约）</small></div>
+      <div class="stat"><b>109</b><small>对齐评测场景</small></div>
+    </div>
+
+    <main>
+      <section class="panel" id="lab">
+        <div class="panel-head">
+          <div><div class="kicker">01 / CONCEPT LAB</div><h2>调节“哪里改、改多少”</h2></div>
+          <p class="panel-intro">右侧控制会实时改变左侧合成 CG 帧与右侧概念输出。它只演示接口语义，不调用 NVIDIA 权重。</p>
+        </div>
+        <div class="lab-grid">
+          <div class="canvas-frame">
+            <canvas id="scene" width="720" height="420" aria-label="概念性 CG 输入与外观增强输出"></canvas>
+            <div class="canvas-legend"><span>CG INPUT · 内容锚点</span><span>CONCEPT OUTPUT · 照片外观代理</span></div>
+          </div>
+          <div class="control-card">
+            <h3>艺术指导面板</h3>
+            <div class="control-row"><label for="structure">结构强度 <output id="structureOut">0.65</output></label><input id="structure" type="range" min="0" max="1" step="0.01" value="0.65"></div>
+            <div class="control-row"><label for="tone">色调强度 <output id="toneOut">0.55</output></label><input id="tone" type="range" min="0" max="1" step="0.01" value="0.55"></div>
+            <div class="control-row"><label for="chroma">色度增强 <output id="chromaOut">0.20</output></label><input id="chroma" type="range" min="0" max="1" step="0.01" value="0.20"></div>
+            <div class="control-row"><label for="frame">流中的第几帧 <output id="frameOut">0</output></label><input id="frame" type="range" min="0" max="12" step="1" value="0"></div>
+            <div class="control-row"><div class="select-label"><span>外观模型子集</span><output id="modelOut">A</output></div><select id="model"><option value="A">A · 暖色/皮肤</option><option value="B">B · 中性/植被</option><option value="C">C · 冷色/高对比</option></select></div>
+            <div class="control-row"><div class="select-label"><span>掩码模式</span><output id="maskOut">manual</output></div><div class="radio-row"><label><input type="radio" name="mask" value="global">全局</label><label><input type="radio" name="mask" value="manual" checked>手工</label><label><input type="radio" name="mask" value="skin">皮肤</label></div></div>
+            <label class="switch"><input id="temporal" type="checkbox" checked> 携带因果状态（只看当前与过去）</label>
+            <div class="readout" id="labReadout">增强只作用于内容锚点允许的外观变化；S/T=0 时输出回到输入。</div>
+          </div>
+        </div>
+        <p class="note">概念替代物说明：画面由浏览器现场合成，结构/色调/掩码的变化是教学代理；真实 DLSS 5 是约 154M 参数、一步像素空间扩散 Transformer，且报告没有公开权重与 SDK。</p>
+      </section>
+
+      <section class="panel" id="pipeline">
+        <div class="panel-head"><div><div class="kicker">02 / SYSTEM MAP</div><h2>一帧如何穿过系统</h2></div><p class="panel-intro">点击阶段卡片，查看它在论文中承担的责任。</p></div>
+        <div class="pipeline">
+          <button class="stage active" data-stage="renderer"><span class="stage-num">A · SOURCE</span><strong>传统渲染器</strong><small>几何、材质、相机、光照、动画与 RGB</small></button>
+          <button class="stage" data-stage="model"><span class="stage-num">B · ONE STEP</span><strong>DLSS 5</strong><small>RGB + motion + state + controls</small></button>
+          <button class="stage" data-stage="display"><span class="stage-num">C · DISPLAY</span><strong>最终显示帧</strong><small>不写回几何、场景状态或 G-buffer</small></button>
+        </div>
+        <div class="stage-detail" id="stageDetail">渲染器是内容和物理正确性的权威：它决定画面里有什么、在哪里以及如何运动。DLSS 5 不替换这条事实来源。</div>
+      </section>
+
+      <section class="panel" id="metrics">
+        <div class="panel-head"><div><div class="kicker">03 / EVIDENCE BOARD</div><h2>把三种“好”分开看</h2></div><p class="panel-intro">下方数字全部来自报告表 1–3；柱形宽度只做相对可读化，不是新的统计量。</p></div>
+        <div class="tabs" role="tablist"><button class="tab active" data-metric="alignment">内容 / 结构对齐</button><button class="tab" data-metric="study">盲法真实感</button><button class="tab" data-metric="runtime">速度 / 显存</button></div>
+        <div id="metricPanel"></div>
+      </section>
+
+      <section class="panel" id="principles">
+        <div class="panel-head"><div><div class="kicker">04 / DESIGN CONTRACT</div><h2>四条同时成立的要求</h2></div><p class="panel-intro">论文的贡献是把生成能力放进渲染器、时序和艺术工作流的共同约束里。</p></div>
+        <div class="four">
+          <article class="principle"><i>01 · FIDELITY</i><strong>保留艺术意图</strong><p>保持几何结构、物体/角色身份、材质身份、构图和光影组织；这是训练倾向，不是运行时形式化证明。</p></article>
+          <article class="principle"><i>02 · STREAMING</i><strong>因果逐帧</strong><p>当前帧就绪就推理，不等未来帧；运动向量与携带状态负责跨帧稳定，工作集对序列长度近似 O(1)。</p></article>
+          <article class="principle"><i>03 · BUDGET</i><strong>一次去噪</strong><p>一步像素空间生成、FP8/FP16、TMA 与硬件协同，把 4K 推理压进消费级 GPU 的单帧预算。</p></article>
+          <article class="principle"><i>04 · DIRECTION</i><strong>艺术可编排</strong><p>外观模型、结构/色调、色度、手工掩码和自动 skin 掩码决定变化的方向、强度与区域。</p></article>
+        </div>
+        <div class="limits">
+          <div><h3>阅读时要保留的边界</h3><ul><li>照片真实感 ≠ 物理渲染 ground truth。</li><li>低质量输入中的缺失几何不会被可靠修复。</li><li>当前目标偏向照片式游戏，不保证适合体素、插画或卡通风格。</li></ul></div>
+          <div><h3>从报告无法得知</h3><ul><li>完整训练集、损失权重、层数/宽度和状态张量。</li><li>公开权重、SDK、kernel 代码及跨 GPU 性能。</li><li>用户研究的原始样本、方差和独立复现实验。</li></ul></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div><span class="mono">SOURCE</span> · <a href="https://research.nvidia.com/labs/adlr/DLSS5/" target="_blank" rel="noreferrer">NVIDIA ADLR / DLSS 5</a> · Technical Report, 2026</div>
+      <div style="margin-top:7px">本页面的合成画面和“相对柱形”是教学可视化；论文真实数字、方法边界与复现说明见同目录的 <span class="mono">summary.md</span>、<span class="mono">method.md</span>、<span class="mono">sources.md</span>。</div>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const $ = (id) => document.getElementById(id);
+      const state = { structure: 0.65, tone: 0.55, chroma: 0.20, frame: 0, model: "A", mask: "manual", temporal: true };
+      const style = { A: [0.055, 0.002, -0.018], B: [0.000, 0.040, 0.018], C: [-0.030, 0.018, 0.065] };
+      const clamp = (x) => Math.max(0, Math.min(1, x));
+      const luma = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+      function blank(w, h) { return new Float32Array(w * h * 3); }
+      function put(px, w, h, x, y, color) {
+        x = Math.floor(x); y = Math.floor(y);
+        if (x < 0 || y < 0 || x >= w || y >= h) return;
+        const i = (y * w + x) * 3;
+        px[i] = color[0]; px[i + 1] = color[1]; px[i + 2] = color[2];
+      }
+      function rect(px, w, h, x0, y0, x1, y1, c) {
+        for (let y = Math.max(0, Math.floor(y0)); y < Math.min(h, Math.ceil(y1)); y++) for (let x = Math.max(0, Math.floor(x0)); x < Math.min(w, Math.ceil(x1)); x++) put(px, w, h, x, y, c);
+      }
+      function disc(px, w, h, cx, cy, radius, c) {
+        const r2 = radius * radius;
+        for (let y = Math.floor(cy - radius - 1); y <= Math.ceil(cy + radius + 1); y++) for (let x = Math.floor(cx - radius - 1); x <= Math.ceil(cx + radius + 1); x++) if ((x - cx) ** 2 + (y - cy) ** 2 <= r2) put(px, w, h, x, y, c);
+      }
+      function baseFrame(w, h, frame) {
+        const px = blank(w, h), phase = frame * 0.18;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+          const v = y / (h - 1), u = x / (w - 1); let c;
+          if (v < .62) { const k = v / .62; c = [.12 + .10 * (1 - k), .19 + .12 * (1 - k), .27 + .16 * (1 - k)]; }
+          else { const k = (v - .62) / .38, grain = .018 * Math.sin(x * .31 + y * .17 + phase); c = [.20 + .16 * k + grain, .18 + .11 * k + grain, .12 + .07 * k]; }
+          put(px, w, h, x, y, c.map(clamp));
+        }
+        rect(px, w, h, w * .06, h * .12, w * .09, h * .62, [.28, .24, .20]);
+        rect(px, w, h, w * .91, h * .08, w * .95, h * .64, [.25, .22, .19]);
+        [.25, .42, .59].forEach((f) => rect(px, w, h, w * .05, h * f, w * .95, h * f + 1, [.34, .29, .23]));
+        for (let i = 0; i < 18; i++) disc(px, w, h, w * .13 + (i % 5) * w * .026, h * .30 + Math.floor(i / 5) * h * .08, Math.max(2, w * .018), [.08, .24 + .01 * (i % 3), .13]);
+        const shift = Math.sin(phase) * w * .008, left = w * .38 + shift, right = w * .66 + shift;
+        rect(px, w, h, left, h * .58, right, h * .96, [.25, .19, .16]);
+        disc(px, w, h, w * .52 + shift, h * .40, w * .105, [.55, .29, .20]);
+        disc(px, w, h, w * .52 + shift, h * .34, w * .118, [.11, .07, .055]);
+        [w * .49 + shift, w * .55 + shift].forEach((x) => { disc(px, w, h, x, h * .39, Math.max(1, w * .008), [.82, .86, .90]); disc(px, w, h, x, h * .39, Math.max(.5, w * .003), [.03, .03, .03]); });
+        disc(px, w, h, w * .52 + shift, h * .70, Math.max(2, w * .018), [.72, .45, .12]);
+        for (let i = 0; i < 6; i++) rect(px, w, h, left + w * .025, h * .64 + i * h * .042, right - w * .025, h * .64 + i * h * .042 + 1, [.38, .28, .22]);
+        return px;
+      }
+      function blur(px, w, h, x, y) {
+        let sum = 0, n = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = Math.max(0, Math.min(w - 1, x + dx)), yy = Math.max(0, Math.min(h - 1, y + dy)), i = (yy * w + xx) * 3; sum += luma(px[i], px[i + 1], px[i + 2]); n++; }
+        return sum / n;
+      }
+      function maskWeight(kind, x, y, w, h) {
+        const u = x / (w - 1), v = y / (h - 1);
+        if (kind === "global") return 1;
+        if (kind === "manual") { const character = Math.max(0, 1 - Math.hypot((u - .52) / .20, (v - .53) / .45)); const hero = Math.max(0, 1 - Math.hypot((u - .80) / .22, (v - .72) / .28)); return clamp(Math.max(character, .65 * hero)); }
+        return clamp(1 - Math.hypot((u - .52) / .115, (v - .40) / .13));
+      }
+      function enhance(src, w, h) {
+        const out = blank(w, h), st = style[state.model]; let mean = 0;
+        for (let i = 0; i < w * h; i++) mean += luma(src[i * 3], src[i * 3 + 1], src[i * 3 + 2]);
+        mean /= w * h;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 3, r = src[i], g = src[i + 1], b = src[i + 2], lum = luma(r, g, b), low = blur(src, w, h, x, y), high = lum - low, mw = maskWeight(state.mask, x, y, w, h);
+          const historical = state.temporal ? .92 * lum + .08 * mean : lum;
+          const td = state.tone * mw * (.10 * (historical - .42) + .07);
+          let rr = r + td + state.tone * mw * st[0], gg = g + td + state.tone * mw * st[1], bb = b + td + state.tone * mw * st[2];
+          const detail = state.structure * mw * .72 * high; rr += detail; gg += detail; bb += detail;
+          const sat = 1 + state.chroma * mw; rr = lum + (rr - lum) * sat; gg = lum + (gg - lum) * sat; bb = lum + (bb - lum) * sat;
+          out[i] = clamp(rr); out[i + 1] = clamp(gg); out[i + 2] = clamp(bb);
+        }
+        return out;
+      }
+      function imageData(px, w, h) { const data = new Uint8ClampedArray(w * h * 4); for (let i = 0; i < w * h; i++) { data[i * 4] = Math.round(px[i * 3] * 255); data[i * 4 + 1] = Math.round(px[i * 3 + 1] * 255); data[i * 4 + 2] = Math.round(px[i * 3 + 2] * 255); data[i * 4 + 3] = 255; } return new ImageData(data, w, h); }
+
+      function drawLab() {
+        const canvas = $("scene"), ctx = canvas.getContext("2d"), w = 320, h = 180, source = baseFrame(w, h, state.frame), output = enhance(source, w, h);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.putImageData(imageData(source, w, h), 0, 0, 0, 0, 320, 180);
+        ctx.putImageData(imageData(output, w, h), 400, 0, 0, 0, 320, 180);
+        ctx.fillStyle = "rgba(17,32,28,.78)"; ctx.fillRect(0, 184, 720, 4);
+        ctx.fillStyle = "#d6e2d9"; ctx.font = "12px ui-monospace, monospace"; ctx.fillText("rₜ  ·  RGB anchor", 14, 205); ctx.fillText("xₜ  ·  one-step concept", 414, 205);
+        ctx.fillStyle = "rgba(213,141,54,.88)"; ctx.fillRect(14, 221, 692 * state.structure, 4);
+        ctx.fillStyle = "#9db8aa"; ctx.font = "11px ui-monospace, monospace"; ctx.fillText("structure", 14, 240);
+        ctx.fillStyle = "rgba(182,93,76,.88)"; ctx.fillRect(14, 250, 692 * state.tone, 4); ctx.fillStyle = "#c9aaa0"; ctx.fillText("tone", 14, 269);
+        ctx.fillStyle = "rgba(85,123,133,.88)"; ctx.fillRect(14, 279, 692 * state.chroma, 4); ctx.fillStyle = "#adc3c8"; ctx.fillText("chroma", 14, 298);
+        ctx.fillStyle = "#9db8aa"; ctx.fillText(`mask: ${state.mask} · model: ${state.model} · frame: ${state.frame}`, 14, 330);
+        ctx.fillStyle = state.temporal ? "#d58d36" : "#85918c"; ctx.fillText(state.temporal ? "● causal state carried" : "○ state disabled", 14, 352);
+        const delta = meanDelta(source, output); $("labReadout").textContent = `当前概念帧的平均 RGB 改变量 ${delta.toFixed(4)}；${state.temporal ? "状态只使用当前与历史均值" : "不携带历史状态"}。真实报告把确定性、时序稳定和物理正确性分开。`;
+      }
+      function meanDelta(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; }
+      function syncControls() { $("structureOut").value = state.structure.toFixed(2); $("toneOut").value = state.tone.toFixed(2); $("chromaOut").value = state.chroma.toFixed(2); $("frameOut").value = state.frame; $("modelOut").value = state.model; $("maskOut").value = state.mask; }
+      function bindLab() {
+        [["structure", "structure"], ["tone", "tone"], ["chroma", "chroma"], ["frame", "frame"]].forEach(([id, key]) => $(id).addEventListener("input", (e) => { state[key] = Number(e.target.value); syncControls(); drawLab(); }));
+        $("model").addEventListener("change", (e) => { state.model = e.target.value; syncControls(); drawLab(); });
+        document.querySelectorAll('input[name="mask"]').forEach((el) => el.addEventListener("change", (e) => { state.mask = e.target.value; syncControls(); drawLab(); }));
+        $("temporal").addEventListener("change", (e) => { state.temporal = e.target.checked; drawLab(); });
+      }
+
+      const stageCopy = {
+        renderer: "渲染器是内容和物理正确性的权威：它决定画面里有什么、在哪里以及如何运动。DLSS 5 不替换这条事实来源。",
+        model: "模型读取当前 RGB、运动向量、携带状态和艺术控制；一步像素空间推理把照片外观先验施加到内容保持邻域，不等待未来帧。",
+        display: "输出是最终显示 RGB。模型不写回几何、场景状态或 G-buffer；如果输入缺失结构，增强不能可靠地把它凭空恢复。"
+      };
+      function bindStages() { document.querySelectorAll(".stage").forEach((el) => el.addEventListener("click", () => { document.querySelectorAll(".stage").forEach((x) => x.classList.remove("active")); el.classList.add("active"); $("stageDetail").textContent = stageCopy[el.dataset.stage]; })); }
+
+      const metrics = {
+        alignment: {
+          title: "表 1 · 109 个对齐场景",
+          rows: [
+            ["DINOv2 patch distance ↓", "0.0364", "0.1405", "0.1223"],
+            ["Image LPIPS ↓", "0.0618", "0.3386", "0.3112"],
+            ["Albedo SSIM ↑", "0.888", "0.787", "0.804"],
+            ["Normal mean angle ↓", "12.15°", "18.27°", "17.84°"],
+            ["Normal Acc@11.25° ↑", "70.5%", "57.7%", "58.4%"],
+            ["Depth Spearman ρ ↑", "0.933", "0.919", "0.898"],
+            ["Depth edge Chamfer ↓", "3.16 px", "4.98 px", "3.95 px"]
+          ], bars: [["DINOv2 patch distance", .0364, .1405, .1223], ["Albedo SSIM", .888, .787, .804], ["Depth Spearman ρ", .933, .919, .898]]
+        },
+        study: {
+          title: "表 2 · 794 次有效成对判断（排除 21 次 HUD 偏置）",
+          rows: [["vs GPT · Overall", "50.63%", "49.37%", "394 judgments"], ["vs GPT · Character", "57.74%", "42.26%", "265 judgments"], ["vs Gemini · Overall", "62.00%", "38.00%", "400 judgments"], ["vs Gemini · Character", "66.91%", "33.09%", "272 judgments"]],
+          bars: [["GPT · Overall", 50.63, 49.37], ["GPT · Character", 57.74, 42.26], ["Gemini · Overall", 62.00, 38.00], ["Gemini · Character", 66.91, 33.09]]
+        },
+        runtime: {
+          title: "部署量级（报告当前实现）",
+          rows: [["骨干参数", "≈154M", "—", "Transformer"], ["4K RTX 5090 模型执行", "≈8 ms", "—", "3840×2160"], ["峰值 GPU 显存", "≈731 MB", "—", "与游戏共享 GPU"], ["FP8 相对 FP16 速度", "≈2×", "—", "质量差异小幅"], ["输入分辨率（评测）", "3840×2160", "—", "输出 RGB"]],
+          bars: [["模型执行时间预算", 8, 16.7], ["峰值显存（MB）", 731, 1000], ["参数量（M）", 154, 300]]
+        }
+      };
+      function renderMetrics(kind) {
+        const m = metrics[kind], panel = $("metricPanel");
+        if (kind === "runtime") {
+          panel.innerHTML = `<div class="metrics-layout"><div><h3 style="margin:0 0 9px;font:700 19px Georgia,serif">${m.title}</h3><table class="metric-table"><thead><tr><th>项目</th><th>DLSS 5</th><th>参考</th><th>备注</th></tr></thead><tbody>${m.rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")}</tbody></table></div><div class="bar-stack">${m.bars.map((b,i)=>`<div class="bar-item"><label><span>${b[0]}</span><span>${b[1]}${i===0?" ms":i===1?" MB":" M"}</span></label><div class="bar-track"><div class="bar-fill dlss" style="width:${Math.min(100,b[1]/b[2]*100)}%"></div></div></div>`).join("")}<p class="metric-caption">参考条仅用于显示量级；报告没有把这些参考值定义为统一基准。</p></div></div>`;
+          return;
+        }
+        const header = kind === "alignment" ? ["指标", "DLSS 5", "GPT Image 2", "Gemini 3 Pro"] : ["比较", "DLSS 5", "对手", "判断数"];
+        panel.innerHTML = `<div class="metrics-layout"><div><h3 style="margin:0 0 9px;font:700 19px Georgia,serif">${m.title}</h3><table class="metric-table"><thead><tr>${header.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${m.rows.map(r => `<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="bar-stack">${m.bars.map((b,i)=>{ const max=Math.max(...b.slice(1)); return `<div class="bar-item"><label><span>${b[0]}</span><span>${b[1]} / ${b[2]}</span></label><div class="bar-track"><div class="bar-fill dlss" style="width:${b[1]/max*100}%"></div></div><div class="bar-track" style="margin-top:2px"><div class="bar-fill" style="width:${b[2]/max*100}%"></div></div></div>`; }).join("")}<p class="metric-caption">绿色 = DLSS 5；珊瑚色 = 对照。对齐指标的 ↑/↓ 方向请以表格标题为准。</p></div></div>`;
+      }
+      function bindMetricTabs() { document.querySelectorAll(".tab").forEach((el) => el.addEventListener("click", () => { document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active")); el.classList.add("active"); renderMetrics(el.dataset.metric); })); }
+
+      bindLab(); bindStages(); bindMetricTabs(); syncControls(); drawLab(); renderMetrics("alignment");
+    })();
+  </script>
+</body>
+</html>

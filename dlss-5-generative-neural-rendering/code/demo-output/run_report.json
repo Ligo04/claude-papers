@@ -1,0 +1,35 @@
+{
+  "demo": "conceptual-surrogate-not-DLSS5",
+  "resolution": [
+    256,
+    144
+  ],
+  "frames": 4,
+  "controls": {
+    "structure": 0.7,
+    "tone": 0.5,
+    "chroma": 0.2,
+    "mask": "manual",
+    "model": "A"
+  },
+  "causal_state_mean": [
+    0.23254377269691887,
+    0.23257929846528475,
+    0.23261121184559222,
+    0.2325950559682627
+  ],
+  "mean_absolute_rgb_change": [
+    0.00449992357647979,
+    0.0045329867156831865,
+    0.004527044771104532,
+    0.004528717133784937
+  ],
+  "deterministic_repeat": true,
+  "outputs": [
+    "frame_000_output.ppm",
+    "frame_001_output.ppm",
+    "frame_002_output.ppm",
+    "frame_003_output.ppm"
+  ],
+  "note": "PPM images illustrate control semantics only; no NVIDIA weights or SDK are used."
+}

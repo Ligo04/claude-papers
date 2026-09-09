@@ -1,0 +1,13 @@
+{
+  "title": "Linear Bounding Volume Hierarchy (LBVH): Build and Traversal Implementation Document",
+  "authors": ["Zixuan Vicky Lu"],
+  "abstract": "A CUDA-oriented implementation note covering 30-bit Morton encoding, Karras binary radix-tree construction, bottom-up AABB refit, two-pass and buffered single-pass collision queries, and a pre-order escape-pointer layout for stackless BVH traversal.",
+  "year": 2025,
+  "date": "2025-12-04",
+  "tags": ["碰撞检测", "无栈 LBVH"],
+  "githubLinks": [
+    "https://github.com/ZiXuanVickyLu/culbvh",
+    "https://github.com/jerry060599/KittenGpuLBVH"
+  ],
+  "codeLinks": []
+}
