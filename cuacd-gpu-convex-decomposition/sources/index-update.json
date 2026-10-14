@@ -1,0 +1,8 @@
+{
+  "before_count": 55,
+  "after_count": 56,
+  "before_sha256": "8f1600b9677785829dba8af207f15f73d69f3bc1e477e1650e7fb41cc4086a00",
+  "after_sha256": "df1446d6e7ef8ffb16a21f16664db8390ed6bc50a53814e434e0b9adf28a8281",
+  "existing_entries_unchanged": true,
+  "added_slug": "cuacd-gpu-convex-decomposition"
+}

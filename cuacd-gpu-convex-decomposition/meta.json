@@ -1,0 +1,43 @@
+{
+  "id": "cuacd-gpu-convex-decomposition",
+  "slug": "cuacd-gpu-convex-decomposition",
+  "title": "CuACD: A Fully GPU-Resident Approximate Convex Decomposition",
+  "authors": [
+    "Ruoxi Shi",
+    "Xinyue Wei",
+    "Fanbo Xiang",
+    "Zexiang Xu",
+    "Hao Su"
+  ],
+  "abstract": "CuACD 将搜索式近似凸分解的几何重负载映射到 GPU，以 warp 协作、设备端 heap 和融合阶段减少不规则几何算法的同步与分配开销。论文在三个数据集报告相对 CoACD 约 78–104 倍加速。本学习包同时核对公开源码中仍存在的主机控制和同步。",
+  "abstractType": "Chinese study paraphrase",
+  "year": 2026,
+  "date": "2026-09-23",
+  "studiedAt": "2026-10-14",
+  "version": "arXiv:2609.28731v1",
+  "difficulty": "Advanced",
+  "nature": [
+    "System design",
+    "Empirical-heavy"
+  ],
+  "methodologicalComplexity": "GPU irregular geometry kernels and bounded look-ahead search",
+  "tags": [
+    "凸分解",
+    "Warp协作"
+  ],
+  "arxivId": "2609.28731",
+  "pdfUrl": "https://arxiv.org/pdf/2609.28731",
+  "url": "https://arxiv.org/abs/2609.28731",
+  "doi": "10.1145/3829340.3842217",
+  "githubLinks": [
+    "https://github.com/eliphatfs/cuacd"
+  ],
+  "codeLinks": [
+    "https://github.com/eliphatfs/cuacd"
+  ],
+  "pageCount": 15,
+  "sourceRevision": "13a00e25477f53a3533938b0325e2d575e3fd68b",
+  "pdfSha256": "42e12686861ad6c89f45a380032b0ea0c891f3ea9d85f1acee915cd02bcca461",
+  "contentFile": "paper.txt",
+  "parserStatus": "Title verified; authors and abstract corrected; full text retained in paper.txt"
+}

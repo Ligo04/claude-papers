@@ -1,0 +1,84 @@
+{
+  "teaching_demo": true,
+  "warning": "Toy structural computation; no official weights or photorealistic rendering.",
+  "scene": {
+    "input_points": 512,
+    "embedding_points": 128,
+    "query_count": 24
+  },
+  "first_embedding": {
+    "position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "feature_width": 10
+  },
+  "decoded_queries": [
+    {
+      "query": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "toy_irradiance": 0.09128709291752769,
+      "relation": [
+        -0.09645470528952603,
+        -0.011559017952092385,
+        -0.05656568639022261,
+        -0.0795701420820891,
+        0.0,
+        -0.07362355903512456,
+        -0.0795701420820891
+      ]
+    },
+    {
+      "query": [
+        0.047619047619047616,
+        0.0,
+        0.0
+      ],
+      "toy_irradiance": 0.09128709291752769,
+      "relation": [
+        -0.04803746143407533,
+        -0.009504703337001966,
+        -0.04847030558316549,
+        -0.03912389359002685,
+        0.0,
+        -0.05756172509908746,
+        -0.03912389359002685
+      ]
+    },
+    {
+      "query": [
+        0.09523809523809523,
+        0.0,
+        0.0
+      ],
+      "toy_irradiance": 0.09128709291752769,
+      "relation": [
+        -0.006822416970364622,
+        -0.008647074147768672,
+        -0.0499575855361062,
+        -0.004763430687339608,
+        0.0,
+        -0.0520732333751492,
+        -0.004763430687339608
+      ]
+    }
+  ],
+  "complexity_proxy": {
+    "paper_scene_points_M": 20000,
+    "paper_query_points_N": 262144,
+    "paper_encoder_linear_CM": 5120000,
+    "paper_decoder_local_KN": 8388608,
+    "renderformer_encoder_quadratic_M2": 400000000,
+    "renderformer_decoder_MN_plus_N2": 73962356736
+  },
+  "paper_metrics": {
+    "ours_mse": 0.048,
+    "ours_ssim": 0.912,
+    "encoder_ms": 208,
+    "decoder_ms_512": 368
+  }
+}

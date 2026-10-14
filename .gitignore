@@ -10,3 +10,6 @@ __pycache__/
 
 # OMC 运行时状态(操作性产物,不入库)
 .omc/
+
+# 浏览器验收临时日志
+.playwright-cli/

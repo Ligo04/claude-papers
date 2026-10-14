@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenWAM 设计空间探索器</title>
+<style>
+/* ── 调色板：dataviz 参考实例，双模式均通过六项校验 ───────────────── */
+.viz-root{
+  color-scheme:light;
+  --surface-1:#fcfcfb; --plane:#f9f9f7;
+  --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#8a8880;
+  --rule:#e3e2dd; --grid:#eeede8;
+  --s1:#2a78d6; --s2:#eb6834;
+  --seq-1:#cde2fb; --seq-2:#9ec5f4; --seq-3:#5598e7; --seq-4:#2a78d6; --seq-5:#1c5cab; --seq-6:#104281;
+  --good:#0ca30c; --crit:#d03b3b;
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])) .viz-root{
+    color-scheme:dark;
+    --surface-1:#1a1a19; --plane:#0d0d0d;
+    --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#8c8b82;
+    --rule:#33322e; --grid:#282723;
+    --s1:#3987e5; --s2:#d95926;
+    --seq-1:#184f95; --seq-2:#1c5cab; --seq-3:#256abf; --seq-4:#3987e5; --seq-5:#6da7ec; --seq-6:#9ec5f4;
+    --good:#0ca30c; --crit:#d03b3b;
+  }
+}
+:root[data-theme="dark"] .viz-root{
+  color-scheme:dark;
+  --surface-1:#1a1a19; --plane:#0d0d0d;
+  --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#8c8b82;
+  --rule:#33322e; --grid:#282723;
+  --s1:#3987e5; --s2:#d95926;
+  --seq-1:#184f95; --seq-2:#1c5cab; --seq-3:#256abf; --seq-4:#3987e5; --seq-5:#6da7ec; --seq-6:#9ec5f4;
+  --good:#0ca30c; --crit:#d03b3b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC","PingFang SC",sans-serif}
+.viz-root{background:var(--plane);color:var(--ink-1);min-height:100vh;padding:0 0 64px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+/* ── 头部 ─────────────────────────────────────────────────────── */
+header{border-bottom:1px solid var(--rule);background:var(--surface-1);padding:36px 0 28px;margin-bottom:32px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+h1{font-size:27px;line-height:1.3;margin:0 0 12px;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--ink-2);margin:0;max-width:74ch}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px;font-size:12.5px;color:var(--ink-3)}
+.meta a{color:var(--s1);text-decoration:none}
+.meta a:hover{text-decoration:underline}
+
+/* ── 关键数字 ─────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin:24px 0 0}
+.kpi{background:var(--surface-1);padding:16px 18px}
+.kpi b{display:block;font-size:29px;line-height:1.1;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi span{display:block;font-size:12px;color:var(--ink-2);margin-top:6px;line-height:1.45}
+
+/* ── 版块 ─────────────────────────────────────────────────────── */
+section{margin-bottom:40px}
+h2{font-size:19px;margin:0 0 6px;font-weight:640;letter-spacing:-.005em}
+h2 .q{color:var(--ink-3);font-weight:450;font-size:14px;margin-left:8px}
+.lede{color:var(--ink-2);margin:0 0 20px;max-width:80ch}
+.card{background:var(--surface-1);border:1px solid var(--rule);border-radius:8px;padding:20px 22px;margin-bottom:16px}
+.card>h3{font-size:14.5px;margin:0 0 3px;font-weight:600}
+.card>.axis-note{font-size:12px;color:var(--ink-3);margin:0 0 16px}
+.note{font-size:12.5px;color:var(--ink-2);margin:14px 0 0;padding-top:13px;border-top:1px solid var(--grid);line-height:1.6}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+
+/* ── 点图（区间非零，用位置编码，不用长度） ───────────────────── */
+.dots{display:flex;flex-direction:column;gap:2px}
+.dot-row{display:grid;grid-template-columns:var(--lw,190px) 1fr 52px;align-items:center;gap:12px;padding:3px 0;border-radius:4px;cursor:default}
+.dot-row:hover{background:var(--grid)}
+.dot-row>.lbl{font-size:12.5px;color:var(--ink-2);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot-row.on>.lbl{color:var(--ink-1);font-weight:600}
+.dot-lane{position:relative;height:18px}
+.dot-lane::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--grid)}
+.dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);background:var(--s2);box-shadow:0 0 0 2px var(--surface-1)}
+.dot-row.on .dot{background:var(--s1);width:11px;height:11px}
+.dot-row>.val{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink-1);text-align:right}
+.dot-row.on>.val{font-weight:650}
+.scale{display:grid;grid-template-columns:var(--lw,190px) 1fr 52px;gap:12px;margin-top:7px;font-size:11px;color:var(--ink-3)}
+.scale>div:nth-child(2){display:flex;justify-content:space-between}
+.grp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:12px 0 3px;padding-left:calc(var(--lw,190px) - 0px);}
+
+/* ── 条形图（自 0 起） ───────────────────────────────────────── */
+.bars{display:flex;flex-direction:column;gap:2px}
+.bar-row{display:grid;grid-template-columns:var(--lw,150px) 1fr;align-items:center;gap:12px;padding:2px 0;border-radius:4px}
+.bar-row:hover{background:var(--grid)}
+.bar-row>.lbl{font-size:12.5px;color:var(--ink-2);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row.on>.lbl{color:var(--ink-1);font-weight:600}
+.bar-lane{display:flex;align-items:center;gap:8px}
+.bar{height:13px;border-radius:0 4px 4px 0;background:var(--s2);min-width:2px}
+.bar-row.on .bar{background:var(--s1)}
+.bar-v{font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-1);flex:none}
+.bar-row.on .bar-v{font-weight:650}
+.pair{display:grid;grid-template-columns:var(--lw,150px) 1fr;align-items:center;gap:12px;padding:5px 0}
+.pair>.lbl{font-size:12.5px;color:var(--ink-2);text-align:right}
+.pair-lanes{display:flex;flex-direction:column;gap:2px}
+
+/* ── 图例 ─────────────────────────────────────────────────────── */
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:15px;font-size:12.5px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* ── 控件 ─────────────────────────────────────────────────────── */
+.ctrls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--grid)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.seg button{appearance:none;border:0;background:var(--surface-1);color:var(--ink-2);font:inherit;font-size:12.5px;padding:5px 12px;cursor:pointer;border-right:1px solid var(--rule)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--s1);color:#fff;font-weight:600}
+.ctrl-lbl{font-size:12px;color:var(--ink-3)}
+.sld{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-2)}
+.sld input{width:150px;accent-color:var(--s1)}
+.sld output{font-variant-numeric:tabular-nums;color:var(--ink-1);font-weight:600;min-width:34px}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);cursor:pointer;user-select:none}
+.chk input{accent-color:var(--s1);width:15px;height:15px;cursor:pointer}
+.theme-btn{position:fixed;top:14px;right:14px;z-index:9;appearance:none;border:1px solid var(--rule);background:var(--surface-1);color:var(--ink-2);border-radius:6px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
+
+/* ── 掩码矩阵 ─────────────────────────────────────────────────── */
+.mask-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+table.mask{border-collapse:separate;border-spacing:2px;font-size:11px;font-variant-numeric:tabular-nums}
+table.mask th{font-weight:500;color:var(--ink-3);padding:1px 4px;font-size:10.5px}
+table.mask td{width:22px;height:22px;text-align:center;border-radius:3px;background:var(--grid);color:var(--ink-3)}
+table.mask td.vis{background:var(--s1);color:#fff}
+table.mask td.vis.x{background:var(--s2)}
+table.mask td.self{background:var(--seq-2);color:#fff}
+.verdict{flex:1;min-width:250px}
+.verdict dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.5px}
+.verdict dt{color:var(--ink-3)}
+.verdict dd{margin:0;color:var(--ink-1)}
+.pill{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:99px;font-weight:600}
+.pill.y{background:color-mix(in oklab,var(--good) 16%,var(--surface-1));color:var(--good)}
+.pill.n{background:color-mix(in oklab,var(--crit) 16%,var(--surface-1));color:var(--crit)}
+.big-score{font-size:33px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.1;margin:14px 0 2px}
+.big-score small{font-size:14px;font-weight:450;color:var(--ink-3)}
+
+/* ── 噪声平面 ─────────────────────────────────────────────────── */
+.plane-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+svg.plane{flex:none;background:var(--surface-1);border-radius:4px}
+svg.plane .ax{stroke:var(--rule);stroke-width:1}
+svg.plane .gr{stroke:var(--grid);stroke-width:1}
+svg.plane .diag{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3;opacity:.75}
+svg.plane .path{fill:none;stroke:var(--s1);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.plane .pt{fill:var(--s1);stroke:var(--surface-1);stroke-width:2}
+svg.plane text{fill:var(--ink-3);font-size:10px}
+svg.plane .cloud{fill:var(--s2);opacity:.2}
+
+/* ── 热力图 ───────────────────────────────────────────────────── */
+.heat{overflow-x:auto}
+table.heat-t{border-collapse:separate;border-spacing:2px;font-size:12px;min-width:560px}
+table.heat-t th{font-weight:500;font-size:11.5px;color:var(--ink-2);padding:3px 5px;text-align:center}
+table.heat-t th.rowh{text-align:right;color:var(--ink-2);white-space:nowrap;font-weight:500}
+table.heat-t th.rowh.on{color:var(--ink-1);font-weight:650}
+table.heat-t th.hot{color:var(--s2);font-weight:650}
+table.heat-t td{text-align:center;border-radius:3px;padding:5px 7px;font-variant-numeric:tabular-nums;min-width:44px}
+/* 顺序色阶单元格（5 档）：跳过 --seq-4，因 #2a78d6 属中等亮度，黑白两向对比度都 <4.5。
+   剩余 5 档在两种模式下最差 5.39:1，全部达 AA 正文标准。文字色分界点两模式不同，是选定的而非自动反色。 */
+.viz-root .h1{background:var(--seq-1)} .viz-root .h2{background:var(--seq-2)}
+.viz-root .h3{background:var(--seq-3)} .viz-root .h4{background:var(--seq-5)}
+.viz-root .h5{background:var(--seq-6)}
+.viz-root .h1,.viz-root .h2,.viz-root .h3{color:#0b0b0b}
+.viz-root .h4,.viz-root .h5{color:#ffffff}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])) .viz-root .h1,
+  :root:where(:not([data-theme="light"])) .viz-root .h2,
+  :root:where(:not([data-theme="light"])) .viz-root .h3{color:#ffffff}
+  :root:where(:not([data-theme="light"])) .viz-root .h4,
+  :root:where(:not([data-theme="light"])) .viz-root .h5{color:#0b0b0b}}
+:root[data-theme="dark"] .viz-root .h1,:root[data-theme="dark"] .viz-root .h2,
+:root[data-theme="dark"] .viz-root .h3{color:#ffffff}
+:root[data-theme="dark"] .viz-root .h4,:root[data-theme="dark"] .viz-root .h5{color:#0b0b0b}
+
+/* ── 配方表 ───────────────────────────────────────────────────── */
+table.recipe{width:100%;border-collapse:collapse;font-size:13px}
+table.recipe th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500;padding:0 12px 9px 0;border-bottom:1px solid var(--rule)}
+table.recipe td{padding:12px 12px 12px 0;border-bottom:1px solid var(--grid);vertical-align:top;color:var(--ink-2)}
+table.recipe td:first-child{color:var(--ink-1);font-weight:600;white-space:nowrap}
+table.recipe td:last-child{color:var(--ink-1)}
+table.recipe tr:last-child td{border-bottom:0}
+
+/* ── 数据表 ───────────────────────────────────────────────────── */
+table.data{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+table.data caption{text-align:left;font-size:13px;font-weight:600;color:var(--ink-1);padding:16px 0 8px}
+table.data th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:500;padding:0 14px 7px 0;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.data td{padding:6px 14px 6px 0;border-bottom:1px solid var(--grid);color:var(--ink-2)}
+table.data td.n{text-align:right;padding-right:22px;color:var(--ink-1)}
+table.data tr.on td{color:var(--ink-1);font-weight:600}
+[hidden]{display:none!important}
+
+/* ── 提示条 ───────────────────────────────────────────────────── */
+#tip{position:fixed;pointer-events:none;z-index:20;background:var(--ink-1);color:var(--surface-1);font-size:12px;line-height:1.5;padding:7px 10px;border-radius:5px;max-width:270px;opacity:0;transition:opacity .1s}
+#tip.on{opacity:1}
+#tip b{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="viz-root">
+<button class="theme-btn" id="theme">◐ 主题</button>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">arXiv 2609.07398v1 · cs.RO · 2026-09-07</p>
+    <h1>OpenWAM：把世界–动作模型的设计空间变成受控实验</h1>
+    <p class="sub">现有 WAM 系统都是单体式的——生成骨干、视觉表征、架构、信息流、推理过程、数据配比紧耦合，谁在起作用无从回答。OpenWAM 把设计空间因子化为 <code>C(E, S, M)</code>，逐个变量做受控实验，推导出一套配方，再用 6,369 小时数据训练 OpenWAM-α 验证配方扛得住规模。</p>
+    <div class="meta">
+      <span>NUS · 清华 · 北大 · 港大 · 浙大 · 港中文 · 上交</span>
+      <a href="https://github.com/OpenWAM-Official/OpenWAM" target="_blank" rel="noopener">OpenWAM-Official/OpenWAM</a>
+      <span>本页全部数值取自论文实测，无估算</span>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><b>5<small>点</small></b><span>动作流能否读到世界流的差距<br>92.39 vs 87.63</span></div>
+      <div class="kpi"><b>12<small>点</small></b><span>具身预训练的 OOD 增益<br>而 ID 只有 1.5 点</span></div>
+      <div class="kpi"><b>14<small>点</small></b><span>给 DINOv3 加降维适配器的收益<br>76.42 → 90.18</span></div>
+      <div class="kpi"><b>16<small>种</small></b><span>异步去噪调度全部输给同步<br>无一例外</span></div>
+      <div class="kpi"><b>6,369<small>h</small></b><span>OpenWAM-α 预训练数据<br>518.5M 帧 · 21 种具身</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ══ 配方 ══ -->
+<section>
+  <h2>配方的推导链<span class="q">Table 3</span></h2>
+  <p class="lede">这不是一份「各自最优的超参列表」，而是一个<strong>顺序</strong>：每个决策都在前一个决策创造的条件下检验。下面三节按这个顺序展开。</p>
+  <div class="card">
+    <table class="recipe">
+      <thead><tr><th>阶段</th><th>发现</th><th>带入 OpenWAM-α 的默认值</th></tr></thead>
+      <tbody>
+        <tr><td>继承 Inherit</td><td>足够强的视频骨干与紧凑的表征隐空间传递最强的上游先验</td><td>Wan2.2-TI2V-5B；紧凑隐空间</td></tr>
+        <tr><td>交互 Interact</td><td>专属动作容量与 world→action 可见性是必需的；同步去噪表现最好</td><td>Dual joint self-attention；同步去噪</td></tr>
+        <tr><td>整合 Consolidate</td><td>具身预训练主要改善 OOD 泛化，并一致偏好 mutual 可见性</td><td>单阶段 ego + robot 共训；mutual 掩码</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ Q1 ══ -->
+<section>
+  <h2>Q1 · 该继承什么世界知识<span class="q">§4.1</span></h2>
+  <p class="lede">世界知识经两条通道继承：视频生成骨干里的<strong>生成式世界先验</strong>，以及视觉编码器诱导出的<strong>表征先验</strong>。第一条结论平淡，第二条反直觉。</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>视频骨干规模</h3>
+      <p class="axis-note">RoboTwin2.0-Full 平均成功率 · 点图，横轴区间 89–95%（非零起点，用位置编码）</p>
+      <div id="c-backbone"></div>
+      <p class="note">单调提升，但收益递减：14B 最强，5B 仅落后 <b>1.40</b> 点而参数少近 3 倍 —— 所以后续全部消融采用 5B。四个骨干在架构、预训练数据、目标上也各不相同，所以这确立了「骨干选择是重要设计变量」，而不把全部增益归给参数量。</p>
+    </div>
+    <div class="card">
+      <h3>视觉表征先验</h3>
+      <p class="axis-note">RoboTwin2.0-Full 平均成功率 · 条形自 0 起 · 骨干权重随机初始化以隔离表征贡献</p>
+      <div id="c-encoder"></div>
+      <p class="note">决定隐空间质量的<strong>不是</strong>「重建式 vs 表征式」的类别之分，而是隐变量本身的操作性质：<strong>时间与 token 双维度的紧凑性</strong> + 丰富的世界信息。DiT 是为低维隐变量（Wan2.2-VAE 48 维）优化的，DINOv3 的 768 维、V-JEPA 的 1024 维直接塞进去就是架构不兼容；过一层 S-VAE 压到 48 维，两者双双反超 FLUX.2-VAE。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Q2 ══ -->
+<section>
+  <h2>Q2 · 世界与动作如何协同<span class="q">§4.2</span></h2>
+  <p class="lede">继承对了先验还不够。协同需要三个不同层面的决策：动作专属容量放在哪、训练时开放哪些跨模态通路、推理时是否保持这些通路被学到时的噪声关系。</p>
+
+  <div class="card">
+    <h3>架构容量</h3>
+    <p class="axis-note">Table 1 · 点图，横轴区间 83–94% · 切换评测条件</p>
+    <div class="ctrls">
+      <span class="ctrl-lbl">评测条件</span>
+      <div class="seg" id="arch-seg">
+        <button data-k="clean">Clean</button>
+        <button data-k="rand">Randomized</button>
+        <button data-k="avg" aria-pressed="true">平均</button>
+      </div>
+    </div>
+    <div id="c-arch"></div>
+    <p class="note">容量从 single → dual → tri 单调提升。Tri-System 总体最好（92.60），但只比 dual joint self-attention 高 <b>0.24</b> 点 —— 论文采用后者，为的是把「世界知识与动作学习的交互」从 VLM 理解特征的潜在影响里隔离出来，让后续结论只反映这一个交互。</p>
+  </div>
+
+  <div class="card">
+    <h3>训练时信息流：交互式可见性掩码</h3>
+    <p class="axis-note">式 (1) 的 2×2 块 · 拨动两个跨模态开关，看掩码矩阵、多层可达性与论文实测分数</p>
+    <div class="ctrls">
+      <label class="chk"><input type="checkbox" id="m-av" checked> 动作看视频 <code>M<sub>A←V</sub></code></label>
+      <label class="chk"><input type="checkbox" id="m-va"> 视频看动作 <code>M<sub>V←A</sub></code></label>
+      <span class="ctrl-lbl">模态内块固定：M<sub>V←V</sub> 首帧因果 · M<sub>A←A</sub> 双向</span>
+    </div>
+    <div class="mask-wrap">
+      <div>
+        <div id="mask-matrix"></div>
+        <p class="axis-note" style="margin:9px 0 0;max-width:300px">行 = query，列 = key。V0* 是干净首帧（当前观测的编码），<span style="color:var(--s1)">蓝</span> = 模态内可见，<span style="color:var(--s2)">橙</span> = 跨模态可见。</p>
+      </div>
+      <div class="verdict">
+        <div id="mask-name" style="font-size:15px;font-weight:650;margin-bottom:10px"></div>
+        <dl>
+          <dt>动作 ← 世界</dt><dd id="v-aw"></dd>
+          <dt>世界 ← 动作</dt><dd id="v-wa"></dd>
+          <dt>堆 30 层后</dt><dd id="v-reach"></dd>
+        </dl>
+        <div class="big-score" id="mask-score"></div>
+        <div class="axis-note" id="mask-detail" style="margin:0"></div>
+        <p class="note" id="mask-why" style="margin-top:13px"></p>
+      </div>
+    </div>
+    <p class="note">约 5 点的鸿沟只由一个二值问题决定：<strong>动作 token 能不能 attend 视频 token</strong>。<code>video-sees-action</code> 是个陷阱 —— 它确实建立了跨模态通路，但方向错了，87.63 几乎等于完全隔离的 87.41。而且这不是层数能弥补的：动作流从不 attend 视频流，堆到 100 层可达性依然为假。</p>
+  </div>
+
+  <div class="card">
+    <h3>推理时信息流：交互式联合噪声平面</h3>
+    <p class="axis-note">式 (3) 两族调度曲线 · 训练时 t<sub>v</sub> 与 t<sub>a</sub> 独立采样，覆盖整个平面，所以任何路径都分布内</p>
+    <div class="ctrls">
+      <div class="seg" id="sched-seg">
+        <button data-k="sync" aria-pressed="true">同步</button>
+        <button data-k="vs">variance shift</button>
+        <button data-k="lo">linear offset</button>
+      </div>
+      <div class="seg" id="lead-seg" hidden>
+        <button data-k="video" aria-pressed="true">视频领先</button>
+        <button data-k="action">动作领先</button>
+      </div>
+      <label class="sld" id="vs-sld" hidden>α <input type="range" id="alpha" min="0" max="3" step="1" value="1"><output id="alpha-o">8</output></label>
+      <label class="sld" id="lo-sld" hidden>o <input type="range" id="offset" min="0" max="3" step="1" value="0"><output id="offset-o">0.2</output></label>
+    </div>
+    <div class="plane-wrap">
+      <div id="c-plane"></div>
+      <div class="verdict">
+        <div id="sched-name" style="font-size:15px;font-weight:650;margin-bottom:10px"></div>
+        <div class="big-score" id="sched-score"></div>
+        <div class="axis-note" id="sched-detail" style="margin:0 0 14px"></div>
+        <dl>
+          <dt>vs 同步</dt><dd id="sched-delta"></dd>
+          <dt>该族最佳</dt><dd id="sched-best"></dd>
+        </dl>
+        <p class="note" id="sched-why" style="margin-top:13px"></p>
+      </div>
+    </div>
+    <p class="note">同步 <b>93.0</b> 最优，16 种异步调度<strong>全部落后</strong>。两族的方向偏好还相反（variance shift 偏视频领先，linear offset 偏动作领先）—— 这种不一致本身说明「让哪条流领先」不是一个有真实机制的旋钮。结论支持<strong>表征学习假说</strong>（视频预测作为辅助任务塑造表征），反驳<strong>测试时规划假说</strong>（先想象未来再反推动作）。Table 1 里显式两阶段的 IDM 变体只有 87.95，是同一结论的独立证据。</p>
+  </div>
+</section>
+
+<!-- ══ Q3 ══ -->
+<section>
+  <h2>Q3 · 协同如何跨域扩展<span class="q">§4.3</span></h2>
+  <p class="lede">单域强不等于世界–动作知识可迁移 —— 模型可能只是拟合了目标任务的视觉与动作分布。机器人轨迹提供可执行的动作监督但视觉覆盖有限；第一视角视频视觉多样但没有动作标签。600 小时等预算下的四组对照把这件事分开了。</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>ID：分布内拟合</h3>
+      <p class="axis-note">RoboTwin2.0 Clean2Clean · 点图，区间 86–89.5%</p>
+      <div id="c-pre-id"></div>
+      <p class="note">增益 ≤ <b>1.5</b> 点。Robot-only 的 ID 最强 —— 机器人轨迹提供可执行的动作接地。</p>
+    </div>
+    <div class="card">
+      <h3>OOD：分布外泛化</h3>
+      <p class="axis-note">RoboTwin2.0 Clean2Random · 点图，区间 12–28%</p>
+      <div id="c-pre-ood"></div>
+      <p class="note">增益高达 <b>+12.12</b> 点。两个混合策略的 OOD 都更好 —— 第一视角视频拓宽视觉与交互分布。两阶段（26.50）与单阶段共训（26.62）几乎打平，说明<strong>用不用两种数据比怎么排序重要得多</strong>。</p>
+    </div>
+  </div>
+  <div class="card">
+    <h3>信息流偏好随预训练翻转</h3>
+    <p class="axis-note">Figure 11 · 发散图，中点 0 为中性灰 · 数值 = Mutual − Action-Sees-Video（百分点）</p>
+    <div id="c-flip"></div>
+    <p class="note">from-scratch 时略微偏好单向，预训练后翻转为偏好 mutual。翻转在 C2R 的 ID（+0.70）与 OOD（+0.72）上<strong>幅度相当</strong> —— 若是域偏移伪影两者应不同；两个协议又同向翻转 —— 排除了评测协议伪影。留下的是真实机制：预训练让世界–动作交互变成<strong>真正双向的交换</strong>，预测的未来帧为动作生成提供视觉引导，预测的动作反过来告知那些帧中机械臂运动该怎么合成。数据稀缺时两条流建立不起这种对应，反向通路只是噪声。<br><br>这是「<strong>架构选择依赖数据规模</strong>」的干净案例：小规模消融选出的最优，放大后可能不再最优。论文因此在 Finding 2 里明确把这个接近的选择推迟到预训练阶段再定，而不是在小规模上强行拍板。</p>
+  </div>
+</section>
+
+<!-- ══ α 表现 ══ -->
+<section>
+  <h2>OpenWAM-α：配方扛不扛得住规模<span class="q">§5</span></h2>
+  <p class="lede">Wan2.2-VAE（冻结）+ Wan2.2-TI2V-5B 世界流 + 1B ActionDiT 动作流，30 对层全部桥接做 joint self-attention，mutual 掩码，同步去噪 10 步。518.5M 帧 / 6,369 小时单阶段共训，80 维统一动作空间打通 21 种具身，128 张 H200 训 7 天。</p>
+
+  <div class="card">
+    <h3>八个仿真基准</h3>
+    <p class="axis-note">Figure 13 · 条形自 0 起 · 与该面板中最强基线对比 · 切换排序</p>
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>OpenWAM-α</span>
+      <span><i style="background:var(--s2)"></i>该面板最强基线（悬停看模型名）</span>
+    </div>
+    <div class="ctrls">
+      <span class="ctrl-lbl">排序</span>
+      <div class="seg" id="bench-seg">
+        <button data-k="gap" aria-pressed="true">按领先幅度</button>
+        <button data-k="score">按 α 分数</button>
+      </div>
+    </div>
+    <div id="c-bench"></div>
+    <p class="note">五个基准上是 SOTA（LIBERO、EBench、RoboCasa-GR1、RoboCasa365、VLABench），EBench 领先亚军约 4 点。RoboTwin2.0-Full 差 0.25 点属顶层。<strong>三处仍有差距</strong>：RoboTwin2.0-C2R、RoboDojo 上最强的是 VLA，α 是最强的 WAM；LIBERO-Plus 明显掉队 —— 见下一张图的诊断。<br><br>注：本图基线取自 Figure 13 各面板。Figure 14 显示 RoboDojo 上还有未在此列出的更强 VLA（19.34）。</p>
+  </div>
+
+  <div class="card">
+    <h3>LIBERO-Plus 的例外：像素级预测的鲁棒性签名</h3>
+    <p class="axis-note">Table 5 · 顺序编码热力图（单一蓝色调，浅→深 = 低→高）· 逐扰动成功率 %</p>
+    <div class="heat" id="c-heat"></div>
+    <p class="note">论文用一整页解释自己为什么在这个基准上比最强基线差 20 点，给了双重归因。<br><br><strong>数据视角</strong>：α 的单臂数据仅约 1,100 小时，只有两个来源 —— DROID（固定平台、固定视角）和 InternData-A1 的单臂部分。ABot-M0.5 有 8,000+ 小时、Being-H0.7 有 5,700+ 小时，覆盖多样具身、场景、视角，预训练时已见过接近测试场景的视觉信息。反面印证：α 的混合富含第一视角、双臂、灵巧手数据，对应基准上就都是 SOTA。<br><br><strong>架构视角</strong>：Fast-WAM、ABot-M0.5、OpenWAM-α 共享同一预测目标 —— Wan2.2-VAE 重建式隐空间上的<strong>像素级未来视频</strong>。三者在 <span style="color:var(--s2);font-weight:600">Camera 与 Noise 两列</span>呈现相同的性能签名（明显低于其他扰动），只有 ABot-M0.5 靠数据补回大半。两个旁证：ImageWAM 未预训练却仍强，因为它只预测<strong>单帧</strong>未来 —— 更像编辑而非 rollout，没有跨帧误差累积；Being-H0.7 用 V-JEPA 2.1 编码，隐变量仍是时序的但是<strong>语义级</strong>而非像素重建，因此对这两类扰动明显更鲁棒。<br><br>证据强度：论证链合理且有两个方向的旁证，但<strong>没有做直接控制实验</strong>（比如给 α 补单臂数据看分项能否恢复）。这是一个有说服力的诊断，不是已验证的因果结论。</p>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>真机 · 双臂 RoboDojo-Real</h3>
+      <p class="axis-note">Table 7 · 3 具身 18 任务总体均值 · 条形自 0 起 · Score</p>
+      <div id="c-real"></div>
+      <p class="note">榜首，Score/SR <b>37.6 / 24.4</b>，第二名 π<sub>0.5</sub> 为 22.9 / 12.8。ARX X5 的 store_in_safe 达到 100.0 / 100.0。</p>
+    </div>
+    <div class="card">
+      <h3>真机 · 灵巧手（未见具身）</h3>
+      <p class="axis-note">Table 8 · Wuji 手 + Tianji 臂 · 条形自 0 起 · Score</p>
+      <div class="legend">
+        <span><i style="background:var(--s1)"></i>OpenWAM-α</span>
+        <span><i style="background:var(--s2)"></i>π<sub>0.5</sub></span>
+      </div>
+      <div id="c-dex"></div>
+      <p class="note">该平台与其 9D 末端 + 21 DoF 灵巧手动作空间<strong>从未出现在预训练混合中</strong>，α 在全部任务、ID 与 OOD 全部设置上都超过 π<sub>0.5</sub>。80 维统一动作空间的固定槽位语义让共享结构（末端位置与旋转）落在同一坐标上，预训练知识可直接迁移，只有 21 个灵巧手槽位是微调时新学的。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>VLA 与 WAM：谁更强</h3>
+    <p class="axis-note">Figure 16(a) · 最干净的对照：StarVLA vs Fast-WAM，两者都没有具身预训练 · 条形自 0 起</p>
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>Fast-WAM（WAM）</span>
+      <span><i style="background:var(--s2)"></i>StarVLA（VLA）</span>
+    </div>
+    <div id="c-para"></div>
+    <p class="note"><strong>ID 上 WAM 拟合更好</strong>：三项全胜，C2R Clean 上领先 31 点。机制是 WAM 训练里有<strong>视频隐变量监督</strong>，为参数优化注入了额外信息源，而 VLA 只有动作监督、没有中间隐变量目标。<br><br><strong>OOD 上 VLA 泛化更好</strong>：完全反转，LIBERO-Plus 上 VLA 领先 22.6 点。机制正是 ID 优势的另一面 —— 长时程未来预测在分布偏移下意味着<strong>更重的误差累积</strong>，这是纯动作 VLA 从不背的负担。<br><br>但结论的第二半更重要：两个缺口<strong>都能被足够大且多样的预训练数据补偿</strong>。所以真正的建议是先把数据搞对，再纠结范式。</p>
+  </div>
+</section>
+
+<!-- ══ 数据表 ══ -->
+<section>
+  <h2>数据表</h2>
+  <p class="lede">上面每张图的底层数值。全部取自论文，未做任何插值或估算。</p>
+  <div class="ctrls">
+    <div class="seg" id="tbl-seg"><button data-k="hide" aria-pressed="true">收起</button><button data-k="show">展开</button></div>
+  </div>
+  <div class="card" id="tables" hidden></div>
+</section>
+
+</div><!-- /wrap -->
+</div><!-- /viz-root -->
+<div id="tip"></div>
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════════
+   数据层 —— 全部取自 arXiv 2609.07398v1 实测，无估算
+   ════════════════════════════════════════════════════════════════════ */
+
+// §4.1.1 视频骨干规模（Dual-System joint self-attn，RoboTwin2.0-Full 平均）
+const BACKBONE = [
+  {k:"Wan2.1-VACE 1.3B",      v:90.14, note:"1.3B 参数"},
+  {k:"Cosmos-Predict2.5 2B",  v:91.64, note:"2B 参数"},
+  {k:"Wan2.2-TI2V 5B",        v:92.39, note:"5B 参数 · OpenWAM-α 采用", on:true},
+  {k:"Wan2.1-I2V 14B",        v:93.79, note:"14B 参数 · 最强，但参数多近 3 倍"},
+];
+
+// §4.1.2 视觉表征先验（骨干权重随机初始化）
+const ENCODER = [
+  {k:"DINOv3 裸用",        v:76.42, note:"768 维隐变量直接塞进 DiT"},
+  {k:"V-JEPA 2.1 裸用",    v:80.91, note:"1024 维隐变量直接塞进 DiT"},
+  {k:"FLUX.2-VAE",         v:84.26, note:"重建式，4 帧平均硬压时间维"},
+  {k:"V-JEPA 2.1 + S-VAE", v:88.46, note:"降到 48 维后反超 FLUX.2-VAE"},
+  {k:"DINOv3 + S-VAE",     v:90.18, note:"降到 48 维，+13.76 点，贴住 Wan2.2-VAE"},
+  {k:"Wan2.2-VAE",         v:90.30, note:"原生匹配骨干 + 原生学习的 4× 时间压缩 · OpenWAM-α 采用", on:true},
+];
+
+// Table 1 架构容量
+const ARCH = [
+  {fam:"Single-System", k:"Vanilla",                clean:85.20, rand:85.80, avg:85.50, note:"零模态专属容量"},
+  {fam:"Single-System", k:"MoE",                    clean:86.22, rand:83.04, avg:84.63, note:"动作 token 硬路由到专属 FFN，反而低于 Vanilla"},
+  {fam:"Dual-System",   k:"Joint Self-Attention",   clean:92.34, rand:92.38, avg:92.36, note:"桥接层并成联合序列做双向 token 级交互 · OpenWAM-α 采用", on:true},
+  {fam:"Dual-System",   k:"Joint Cross-Attention",  clean:87.86, rand:88.64, avg:88.25, note:"动作流交叉注意力查询视频特征，端到端"},
+  {fam:"Dual-System",   k:"Detached Cross-Attn",    clean:92.06, rand:91.64, avg:91.85, note:"在视频特征处 detach，隔离动作学习"},
+  {fam:"Dual-System",   k:"IDM",                    clean:87.76, rand:88.14, avg:87.95, note:"显式两阶段：先生成视频再反推动作"},
+  {fam:"Tri-System",    k:"Joint Self-Attention",   clean:92.84, rand:92.36, avg:92.60, note:"加 VLM 理解流，总体最好但仅高 0.24 点"},
+];
+
+// Table 2 训练时信息流（键 = "A←V,V←A"）
+const MASK = {
+  "0,0":{name:"isolated",          clean:88.08, rand:86.74, avg:87.41,
+         why:"两模态独立去噪，没有任何跨流通信。动作生成完全看不到预测出的世界状态。"},
+  "0,1":{name:"video-sees-action", clean:87.92, rand:87.34, avg:87.63,
+         why:"看起来「也建立了跨模态通路」，但方向错了 —— 动作特征暴露给世界流，动作流自己却什么都读不到。分数几乎等于完全隔离，只高 0.22 点。这是实现上最容易踩的陷阱。"},
+  "1,0":{name:"action-sees-video", clean:92.98, rand:91.80, avg:92.39,
+         why:"世界特征暴露给动作流，视频生成不受干扰。from-scratch 设置下的最优。world→action 通路是必需的，不是可选项。"},
+  "1,1":{name:"mutual",            clean:92.50, rand:91.80, avg:92.15,
+         why:"双向。from-scratch 下比单向低 0.24 点 —— 数据稀缺时两条流建立不起可靠的对应，反向通路只是噪声。但预训练后翻转为最优（见 Q3），OpenWAM-α 采用它。", alpha:true},
+};
+
+// §4.2.3 去噪调度（RoboTwin2.0-Full 成功率，mutual 掩码）
+const SCHED = {
+  sync: 93.0,
+  vs: {video:{4:91.8, 8:91.1, 16:91.9, 32:91.5}, action:{4:91.0, 8:90.7, 16:89.7, 32:88.5}},
+  lo: {video:{0.2:91.7, 0.4:91.1, 0.6:91.5, 0.8:91.2}, action:{0.2:92.2, 0.4:92.0, 0.6:92.3, 0.8:92.3}},
+};
+const ALPHAS = [4,8,16,32], OFFSETS = [0.2,0.4,0.6,0.8];
+
+// Figure 10 具身预训练（600 小时等预算）
+const PRETRAIN = [
+  {k:"From Scratch",        id:87.00, ood:14.50, note:"基线"},
+  {k:"Robot Only",          id:88.50, ood:23.80, note:"600h 全部机器人数据 · ID 最强"},
+  {k:"Ego → Robot 两阶段",  id:87.10, ood:26.50, note:"350h 第一视角 + 250h 机器人，分两阶段"},
+  {k:"Ego + Robot 共训",    id:87.68, ood:26.62, note:"同样配比但单阶段 · OpenWAM-α 采用", on:true},
+];
+
+// Figure 11 信息流偏好翻转（Mutual − Action-Sees-Video）
+const FLIP = [
+  {k:"From Scratch · RoboTwin-Full", base:92.39, d:-0.24},
+  {k:"Pretrained · RoboTwin-Full",   base:92.34, d:+0.16},
+  {k:"Pretrained · C2R (ID)",        base:86.98, d:+0.70},
+  {k:"Pretrained · C2R (OOD)",       base:25.70, d:+0.72},
+];
+
+// Figure 13 八个仿真基准（各面板内最强基线）
+const BENCH = [
+  {k:"LIBERO",                 a:99.3,  b:99.2,  bn:"Qwen-RobotManip / Being-H0.7", tag:"SOTA"},
+  {k:"EBench",                 a:49.4,  b:45.6,  bn:"Qwen-RobotManip", tag:"SOTA · 移动双臂"},
+  {k:"RoboCasa-GR1",           a:60.5,  b:49.2,  bn:"Being-H0.7", tag:"SOTA · 灵巧手"},
+  {k:"RoboCasa365",            a:38.2,  b:35.9,  bn:"Qwen-RobotManip", tag:"SOTA · 移动单臂"},
+  {k:"VLABench",               a:58.9,  b:48.1,  bn:"π0.5", tag:"SOTA"},
+  {k:"RoboDojo",               a:11.92, b:6.91,  bn:"π0.5", tag:"面板内最高；Fig14 有更强 VLA 19.34"},
+  {k:"RoboTwin2.0-Full",       a:93.60, b:93.85, bn:"Qwen-RobotManip", tag:"顶层，差 0.25"},
+  {k:"RoboTwin2.0-C2R",        a:69.0,  b:77.1,  bn:"Qwen-RobotManip", tag:"最强 WAM，但 VLA 更强"},
+  {k:"LIBERO-Plus",            a:69.2,  b:89.0,  bn:"Qwen-RobotManip", tag:"明显掉队 → 见诊断"},
+];
+
+// Table 5 LIBERO-Plus 逐扰动
+const PERTURB = ["Camera","Robot","Language","Light","Background","Noise","Layout","Avg"];
+const HEAT = [
+  {k:"Qwen-RobotManip",  fam:"VLA", v:[87.2,75.5,85.6,96.6,97.7,97.7,87.3,89.0]},
+  {k:"ACoT-VLA",         fam:"VLA", v:[72.6,82.6,87.5,97.7,96.5,87.8,88.1,86.6]},
+  {k:"π0.5",             fam:"VLA", v:[78.4,73.6,80.8,96.2,94.1,89.0,84.5,84.4]},
+  {k:"ABot-M0.5",        fam:"WAM", v:[70.5,87.4,88.6,94.0,89.7,75.5,85.2,83.4], px:true},
+  {k:"ImageWAM",         fam:"WAM", v:[80.8,50.3,91.4,98.1,85.5,93.8,80.5,83.1]},
+  {k:"Being-H0.7",       fam:"WAM", v:[82.0,59.0,82.8,97.8,90.0,93.5,88.5,82.1]},
+  {k:"Fast-WAM",         fam:"WAM", v:[16.4,44.5,68.9,78.2,53.7,37.7,60.7,51.5], px:true},
+  {k:"OpenWAM-α",        fam:"WAM", v:[33.8,76.1,88.0,97.0,87.1,39.8,77.5,69.2], px:true, on:true},
+];
+
+// Table 7 RoboDojo-Real 总体（Score）
+const REAL = [
+  {k:"X-VLA",                s:7.6,  sr:3.3},
+  {k:"Xiaomi-Robotics-0",    s:7.9,  sr:3.9},
+  {k:"GalaxeaVLA (G0)",      s:9.0,  sr:4.4},
+  {k:"InternVLA-A1",         s:12.0, sr:7.2},
+  {k:"π0.5",                 s:22.9, sr:12.8},
+  {k:"OpenWAM-α",            s:37.6, sr:24.4, on:true},
+];
+
+// Table 8 灵巧手（Score）
+const DEX = [
+  {k:"Stack Toy Tower (ID)",       a:70.0,  b:53.3},
+  {k:"Stack Toy Tower (OOD)",      a:56.7,  b:40.0},
+  {k:"Collect Shuttlecocks (ID)",  a:82.9,  b:31.4},
+  {k:"Collect Shuttlecocks (OOD)", a:52.6,  b:31.5},
+  {k:"Put Away Clothes (ID)",      a:100.0, b:86.7},
+  {k:"Put Away Clothes (OOD)",     a:91.7,  b:75.0},
+  {k:"Twist off Bottle Cap (ID)",  a:100.0, b:80.0},
+  {k:"Twist off Bottle Cap (OOD)", a:90.0,  b:65.0},
+];
+
+// Figure 16(a) StarVLA vs Fast-WAM（都无具身预训练）
+const PARA = [
+  {k:"LIBERO Avg",              wam:97.6,  vla:96.6,  kind:"ID"},
+  {k:"RoboTwin C2R Clean",      wam:77.8,  vla:46.5,  kind:"ID"},
+  {k:"RoboTwin Full Avg",       wam:91.85, vla:88.25, kind:"ID"},
+  {k:"LIBERO-Plus Avg",         wam:51.5,  vla:74.1,  kind:"OOD"},
+  {k:"RoboTwin C2R Randomized", wam:1.9,   vla:3.2,   kind:"OOD"},
+];
+
+/* ════════════════════════════════════════════════════════════════════
+   渲染层
+   ════════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const tip = $("#tip");
+
+function bindTip(el, html){
+  el.addEventListener("mouseenter", () => { tip.innerHTML = html; tip.classList.add("on"); });
+  el.addEventListener("mousemove", e => {
+    const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + w > innerWidth - 8) x = e.clientX - w - pad;
+    if (y + h > innerHeight - 8) y = e.clientY - h - pad;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  });
+  el.addEventListener("mouseleave", () => tip.classList.remove("on"));
+}
+
+/* 点图：非零区间，用位置编码而非长度 —— 避免截断条形轴 */
+function dots(host, rows, o){
+  const {min, max, lw = 190, unit = "%"} = o;
+  let h = "", lastFam = null;
+  for (const r of rows){
+    if (r.fam && r.fam !== lastFam){ lastFam = r.fam; h += `<div class="grp">${esc(r.fam)}</div>`; }
+    const pos = ((r.v - min) / (max - min)) * 100;
+    h += `<div class="dot-row${r.on ? " on" : ""}" style="--lw:${lw}px" data-tip="${esc(r.k)}|${r.v}|${esc(r.note || "")}">
+      <div class="lbl">${esc(r.k)}</div>
+      <div class="dot-lane"><div class="dot" style="left:${pos.toFixed(2)}%"></div></div>
+      <div class="val">${r.v.toFixed(2)}</div></div>`;
+  }
+  h += `<div class="scale" style="--lw:${lw}px"><div></div><div><span>${min}${unit}</span><span>${max}${unit}</span></div><div></div></div>`;
+  host.innerHTML = h;
+  host.querySelectorAll(".dot-row").forEach(el => {
+    const [k, v, note] = el.dataset.tip.split("|");
+    bindTip(el, `<b>${esc(k)}</b> — ${v}${unit}${note ? "<br>" + esc(note) : ""}`);
+  });
+}
+
+/* 条形图：自 0 起 */
+function bars(host, rows, o){
+  const {max, lw = 150, unit = "%", fmt = v => v.toFixed(1)} = o;
+  let h = "";
+  for (const r of rows){
+    h += `<div class="bar-row${r.on ? " on" : ""}" style="--lw:${lw}px" data-tip="${esc(r.k)}|${fmt(r.v)}|${esc(r.note || "")}">
+      <div class="lbl">${esc(r.k)}</div>
+      <div class="bar-lane"><div class="bar" style="width:${(r.v / max * 100).toFixed(2)}%"></div><span class="bar-v">${fmt(r.v)}</span></div></div>`;
+  }
+  host.innerHTML = h;
+  host.querySelectorAll(".bar-row").forEach(el => {
+    const [k, v, note] = el.dataset.tip.split("|");
+    bindTip(el, `<b>${esc(k)}</b> — ${v}${unit}${note ? "<br>" + esc(note) : ""}`);
+  });
+}
+
+/* 双序列成对条形：两条 2px 间隔的细条，共享一条 0 基线 */
+function pairBars(host, rows, o){
+  const {max, lw = 150, n1, n2, unit = "%"} = o;
+  let h = "";
+  for (const r of rows){
+    h += `<div class="pair" style="--lw:${lw}px" data-tip="${esc(r.k)}|${r.a}|${r.b}|${esc(r.bn || n2)}|${esc(r.tag || "")}">
+      <div class="lbl">${esc(r.k)}</div><div class="pair-lanes">
+      <div class="bar-lane"><div class="bar" style="width:${(r.a / max * 100).toFixed(2)}%;background:var(--s1)"></div><span class="bar-v" style="font-weight:650">${r.a}</span></div>
+      <div class="bar-lane"><div class="bar" style="width:${(r.b / max * 100).toFixed(2)}%;background:var(--s2)"></div><span class="bar-v">${r.b}</span></div>
+      </div></div>`;
+  }
+  host.innerHTML = h;
+  host.querySelectorAll(".pair").forEach(el => {
+    const [k, a, b, bn, tag] = el.dataset.tip.split("|");
+    const d = (parseFloat(a) - parseFloat(b)).toFixed(2);
+    bindTip(el, `<b>${esc(k)}</b><br>${esc(n1)} <b>${a}${unit}</b><br>${esc(bn)} <b>${b}${unit}</b><br>差值 <b>${d > 0 ? "+" + d : d}</b>${tag ? "<br>" + esc(tag) : ""}`);
+  });
+}
+
+/* 发散图：两个色极 + 中性灰零点中点 */
+function diverging(host, rows, o){
+  const {lim, lw = 230} = o;
+  let h = `<div class="dots">`;
+  for (const r of rows){
+    const w = Math.abs(r.d) / lim * 50, pos = r.d >= 0 ? 50 : 50 - w;
+    const col = r.d >= 0 ? "var(--s1)" : "var(--s2)";
+    h += `<div class="dot-row" style="--lw:${lw}px;grid-template-columns:${lw}px 1fr 58px" data-tip="${esc(r.k)}|${r.base}|${r.d}">
+      <div class="lbl">${esc(r.k)}</div>
+      <div class="dot-lane" style="height:20px">
+        <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--ink-3);opacity:.45"></div>
+        <div style="position:absolute;left:${pos}%;top:50%;transform:translateY(-50%);width:${w}%;height:11px;background:${col};border-radius:${r.d >= 0 ? "0 3px 3px 0" : "3px 0 0 3px"}"></div>
+      </div>
+      <div class="val" style="color:${col};font-weight:650">${r.d > 0 ? "+" : ""}${r.d.toFixed(2)}</div></div>`;
+  }
+  h += `</div><div class="scale" style="--lw:${lw}px;grid-template-columns:${lw}px 1fr 58px">
+    <div></div><div><span>−${lim} 单向更好</span><span style="color:var(--ink-3)">0</span><span>Mutual 更好 +${lim}</span></div><div></div></div>`;
+  host.innerHTML = h;
+  host.querySelectorAll(".dot-row").forEach(el => {
+    const [k, base, d] = el.dataset.tip.split("|");
+    bindTip(el, `<b>${esc(k)}</b><br>Action-Sees-Video <b>${base}%</b><br>Mutual <b>${(parseFloat(base) + parseFloat(d)).toFixed(2)}%</b><br>差值 <b>${d > 0 ? "+" + d : d}</b> 百分点`);
+  });
+}
+
+/* 顺序编码热力图：单一蓝色调，浅→深 */
+function heatmap(host){
+  const step = v => "h" + (Math.min(4, Math.max(0, Math.floor((v / 100) * 5))) + 1);
+  let h = `<table class="heat-t"><thead><tr><th></th>`;
+  PERTURB.forEach((p, i) => { h += `<th class="${i === 0 || i === 5 ? "hot" : ""}">${esc(p)}</th>`; });
+  h += `</tr></thead><tbody>`;
+  let lastFam = null;
+  for (const r of HEAT){
+    if (r.fam !== lastFam){ lastFam = r.fam; h += `<tr><th class="rowh" style="color:var(--ink-3);font-size:10.5px;letter-spacing:.06em;padding-top:9px">${r.fam}</th><td colspan="8" style="background:none"></td></tr>`; }
+    h += `<tr><th class="rowh${r.on ? " on" : ""}">${esc(r.k)}${r.px ? " ◆" : ""}</th>`;
+    r.v.forEach((v, i) => {
+      h += `<td class="${step(v)}" data-tip="${esc(r.k)}|${esc(PERTURB[i])}|${v}|${r.px ? 1 : 0}">${v.toFixed(1)}</td>`;
+    });
+    h += `</tr>`;
+  }
+  h += `</tbody></table><p class="axis-note" style="margin:11px 0 0">◆ = 预测目标为 Wan2.2-VAE 隐空间上的像素级未来视频。<span style="color:var(--s2)">Camera 与 Noise</span> 两列是这一族共同的软肋。</p>`;
+  host.innerHTML = h;
+  host.querySelectorAll("td[data-tip]").forEach(el => {
+    const [k, p, v, px] = el.dataset.tip.split("|");
+    bindTip(el, `<b>${esc(k)}</b><br>${esc(p)} 扰动 <b>${v}%</b>${px === "1" ? "<br>像素级未来视频预测" : ""}`);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   交互 1 · 可见性掩码：式 (1) 的 2×2 块 + 多层可达性
+   ════════════════════════════════════════════════════════════════════ */
+const NF = 4, NA = 3;   // 4 个视频隐帧（含干净首帧）、3 个动作步
+
+function buildMask(aSeesV, vSeesA){
+  const N = NF + NA, M = Array.from({length:N}, () => Array(N).fill(false));
+  // M_V←V 首帧因果：噪声帧看所有帧；干净首帧只看自己
+  for (let q = 1; q < NF; q++) for (let k = 0; k < NF; k++) M[q][k] = true;
+  M[0][0] = true;
+  // M_A←A 双向
+  for (let q = NF; q < N; q++) for (let k = NF; k < N; k++) M[q][k] = true;
+  // 跨模态块
+  for (let q = NF; q < N; q++) for (let k = 0; k < NF; k++) M[q][k] = aSeesV;
+  for (let q = 1; q < NF; q++) for (let k = NF; k < N; k++) M[q][k] = vSeesA;
+  return M;
+}
+
+/* 布尔传递闭包：L 层堆叠后的信息可达性 */
+function reach(M, layers){
+  const N = M.length;
+  let R = M.map(r => r.slice());
+  for (let l = 1; l < layers; l++){
+    const T = R.map(r => r.slice());
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++)
+      if (!T[i][j]) for (let m = 0; m < N; m++) if (R[i][m] && M[m][j]){ T[i][j] = true; break; }
+    R = T;
+  }
+  return R;
+}
+const actionGetsWorld = R => R.slice(NF).some(r => r.slice(0, NF).some(Boolean));
+const worldGetsAction = R => R.slice(0, NF).some(r => r.slice(NF).some(Boolean));
+
+function renderMask(){
+  const av = $("#m-av").checked, va = $("#m-va").checked;
+  const M = buildMask(av, va), d = MASK[`${av ? 1 : 0},${va ? 1 : 0}`];
+  const lbl = i => i < NF ? (i === 0 ? "V0*" : "V" + i) : "A" + (i - NF);
+
+  let h = `<table class="mask"><tr><th></th>`;
+  for (let k = 0; k < NF + NA; k++) h += `<th>${lbl(k)}</th>`;
+  h += `</tr>`;
+  for (let q = 0; q < NF + NA; q++){
+    h += `<tr><th style="text-align:right">${lbl(q)}</th>`;
+    for (let k = 0; k < NF + NA; k++){
+      const cross = (q < NF) !== (k < NF);
+      const cls = !M[q][k] ? "" : (q === 0 && k === 0 ? "self" : cross ? "vis x" : "vis");
+      h += `<td class="${cls}" data-tip="${lbl(q)}|${lbl(k)}|${M[q][k] ? 1 : 0}|${cross ? 1 : 0}">${M[q][k] ? "" : "·"}</td>`;
+    }
+    h += `</tr>`;
+  }
+  $("#mask-matrix").innerHTML = h + `</table>`;
+  $("#mask-matrix").querySelectorAll("td[data-tip]").forEach(el => {
+    const [q, k, vis, cross] = el.dataset.tip.split("|");
+    bindTip(el, `<b>${q}</b> 能否 attend <b>${k}</b>：${vis === "1" ? "可见" : "屏蔽"}<br>${cross === "1" ? "跨模态块" : "模态内块（固定）"}`);
+  });
+
+  const R30 = reach(M, 30), aw = actionGetsWorld(R30), wa = worldGetsAction(R30);
+  const pill = b => `<span class="pill ${b ? "y" : "n"}">${b ? "可达" : "不可达"}</span>`;
+  $("#mask-name").innerHTML = esc(d.name) + (d.alpha ? ' <span class="axis-note" style="font-weight:450">· OpenWAM-α 采用</span>' : "");
+  $("#v-aw").innerHTML = pill(aw);
+  $("#v-wa").innerHTML = pill(wa);
+  $("#v-reach").innerHTML = aw
+    ? "第 1 层动作就读到世界特征"
+    : "堆到 100 层动作仍读不到世界特征";
+  $("#mask-score").innerHTML = `${d.avg.toFixed(2)}<small>% 平均</small>`;
+  $("#mask-detail").textContent = `Clean ${d.clean.toFixed(2)}% · Randomized ${d.rand.toFixed(2)}% · RoboTwin2.0-Full`;
+  $("#mask-why").textContent = d.why;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   交互 2 · 联合噪声平面：式 (3) 两族调度曲线
+   ════════════════════════════════════════════════════════════════════ */
+const fAlpha = (s, a) => a * s / (1 + (a - 1) * s);
+const hOff = (s, o) => Math.max((s - o) / (1 - o), 0);
+
+let schedState = {fam:"sync", lead:"video", ai:1, oi:0};
+
+function schedPath(N){
+  const {fam, lead, ai, oi} = schedState, pts = [];
+  for (let i = 0; i <= N; i++){
+    const s = i / N;
+    let tv = s, ta = s;
+    if (fam === "vs"){
+      const w = fAlpha(s, ALPHAS[ai]);
+      lead === "video" ? (tv = w) : (ta = w);
+    } else if (fam === "lo"){
+      const g = hOff(s, OFFSETS[oi]);
+      lead === "video" ? (ta = g) : (tv = g);
+    }
+    pts.push([tv, ta]);
+  }
+  return pts;
+}
+
+function renderPlane(){
+  const S = 268, P = 30, W = S - P * 2;
+  const X = t => P + t * W, Y = t => S - P - t * W;
+  const {fam, lead, ai, oi} = schedState;
+
+  let g = "";
+  // 训练样本云：t_v 与 t_a 独立采样 → 覆盖整个平面
+  let seed = 7;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (let i = 0; i < 150; i++) g += `<circle class="cloud" cx="${X(rnd()).toFixed(1)}" cy="${Y(rnd()).toFixed(1)}" r="2.1"/>`;
+  for (let i = 1; i < 4; i++){
+    g += `<line class="gr" x1="${X(i/4)}" y1="${Y(0)}" x2="${X(i/4)}" y2="${Y(1)}"/>`;
+    g += `<line class="gr" x1="${X(0)}" y1="${Y(i/4)}" x2="${X(1)}" y2="${Y(i/4)}"/>`;
+  }
+  g += `<line class="ax" x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(0)}"/>`;
+  g += `<line class="ax" x1="${X(0)}" y1="${Y(0)}" x2="${X(0)}" y2="${Y(1)}"/>`;
+  g += `<line class="diag" x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}"/>`;
+
+  const pts = schedPath(10);
+  g += `<path class="path" d="${pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ")}"/>`;
+  pts.forEach(p => { g += `<circle class="pt" cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="3.4"/>`; });
+
+  g += `<text x="${X(0)}" y="${S - 9}" text-anchor="middle">0 噪声</text>`;
+  g += `<text x="${X(1)}" y="${S - 9}" text-anchor="middle">1 干净</text>`;
+  g += `<text x="${S / 2}" y="${S - 9}" text-anchor="middle" style="fill:var(--ink-2)">t_v 视频</text>`;
+  g += `<text x="9" y="${Y(0)}" >0</text><text x="9" y="${Y(1) + 4}">1</text>`;
+  g += `<text x="13" y="${S / 2}" text-anchor="middle" transform="rotate(-90 13 ${S / 2})" style="fill:var(--ink-2)">t_a 动作</text>`;
+  $("#c-plane").innerHTML = `<svg class="plane" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" role="img" aria-label="联合噪声平面上的去噪调度路径">${g}</svg>`;
+
+  // 分数与说明
+  let score, name, why, bestOfFam;
+  if (fam === "sync"){
+    score = SCHED.sync; name = "同步（对角线）";
+    why = "两流沿对角线齐步走，每步一次联合前向 + 耦合 Euler 更新。这是 (α, o) = (1, 0) 的特例，不是单独的代码路径 —— 所以每个异步实验都自动有一个对齐的基线。";
+    bestOfFam = "—";
+  } else if (fam === "vs"){
+    const a = ALPHAS[ai]; score = SCHED.vs[lead][a];
+    name = `variance shift · α = ${a} · ${lead === "video" ? "视频领先" : "动作领先"}`;
+    why = "f_α(s) = αs / (1 + (α−1)s)。α > 1 时把领先流抬到对角线上方，使它更早到达干净数据。这一族里视频领先优于动作领先。";
+    bestOfFam = `${Math.max(...Object.values(SCHED.vs.video), ...Object.values(SCHED.vs.action)).toFixed(1)}%（α=16 视频领先）`;
+  } else {
+    const o = OFFSETS[oi]; score = SCHED.lo[lead][o];
+    name = `linear offset · o = ${o} · ${lead === "video" ? "视频领先" : "动作领先"}`;
+    why = "h_o(s) = max{(s − o)/(1 − o), 0}。滞后流在全局进度超过 o 前一直停在纯噪声。这一族里动作领先优于视频领先 —— 与 variance shift 相反。";
+    bestOfFam = `${Math.max(...Object.values(SCHED.lo.video), ...Object.values(SCHED.lo.action)).toFixed(1)}%（o=0.6/0.8 动作领先）`;
+  }
+  const d = score - SCHED.sync;
+  $("#sched-name").textContent = name;
+  $("#sched-score").innerHTML = `${score.toFixed(1)}<small>% 成功率</small>`;
+  $("#sched-detail").textContent = "RoboTwin2.0-Full · mutual 掩码 · N = 10 步";
+  $("#sched-delta").innerHTML = fam === "sync"
+    ? '<span class="pill y">基线</span>'
+    : `<span class="pill n">${d.toFixed(1)} 点</span>`;
+  $("#sched-best").textContent = bestOfFam;
+  $("#sched-why").textContent = why;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   数据表（无障碍：颜色之外的第二条通路）
+   ════════════════════════════════════════════════════════════════════ */
+function renderTables(){
+  const t = (cap, cols, rows) => {
+    let h = `<table class="data"><caption>${esc(cap)}</caption><thead><tr>`;
+    cols.forEach((c, i) => h += `<th${i ? ' style="text-align:right"' : ""}>${esc(c)}</th>`);
+    h += `</tr></thead><tbody>`;
+    rows.forEach(r => {
+      h += `<tr class="${r.on ? "on" : ""}">`;
+      r.c.forEach((c, i) => h += `<td class="${i ? "n" : ""}">${esc(c)}</td>`);
+      h += `</tr>`;
+    });
+    return h + `</tbody></table>`;
+  };
+  const sched = [{c:["同步（对角线）", SCHED.sync.toFixed(1)], on:true}];
+  ALPHAS.forEach(a => sched.push({c:[`variance shift α=${a} 视频领先`, SCHED.vs.video[a].toFixed(1)]}));
+  ALPHAS.forEach(a => sched.push({c:[`variance shift α=${a} 动作领先`, SCHED.vs.action[a].toFixed(1)]}));
+  OFFSETS.forEach(o => sched.push({c:[`linear offset o=${o} 视频领先`, SCHED.lo.video[o].toFixed(1)]}));
+  OFFSETS.forEach(o => sched.push({c:[`linear offset o=${o} 动作领先`, SCHED.lo.action[o].toFixed(1)]}));
+
+  $("#tables").innerHTML =
+    t("视频骨干规模（RoboTwin2.0-Full 平均 %）", ["骨干", "成功率"],
+      BACKBONE.map(r => ({c:[r.k, r.v.toFixed(2)], on:r.on}))) +
+    t("视觉表征先验（RoboTwin2.0-Full 平均 %，骨干随机初始化）", ["编码器", "成功率"],
+      ENCODER.map(r => ({c:[r.k, r.v.toFixed(2)], on:r.on}))) +
+    t("架构容量（Table 1，%）", ["架构", "Clean", "Randomized", "平均"],
+      ARCH.map(r => ({c:[`${r.fam} · ${r.k}`, r.clean.toFixed(2), r.rand.toFixed(2), r.avg.toFixed(2)], on:r.on}))) +
+    t("训练时信息流（Table 2，%）", ["掩码", "Clean", "Randomized", "平均"],
+      Object.values(MASK).map(m => ({c:[m.name, m.clean.toFixed(2), m.rand.toFixed(2), m.avg.toFixed(2)], on:m.alpha}))) +
+    t("去噪调度（RoboTwin2.0-Full %，mutual 掩码）", ["调度", "成功率"], sched) +
+    t("具身预训练（600 小时等预算，%）", ["策略", "ID Clean2Clean", "OOD Clean2Random"],
+      PRETRAIN.map(r => ({c:[r.k, r.id.toFixed(2), r.ood.toFixed(2)], on:r.on}))) +
+    t("信息流偏好翻转（Figure 11，百分点）", ["设置", "Action-Sees-Video", "Mutual", "差值"],
+      FLIP.map(r => ({c:[r.k, r.base.toFixed(2), (r.base + r.d).toFixed(2), (r.d > 0 ? "+" : "") + r.d.toFixed(2)]}))) +
+    t("八个仿真基准（Figure 13，%）", ["基准", "OpenWAM-α", "面板内最强基线", "模型"],
+      BENCH.map(r => ({c:[r.k, r.a, r.b, r.bn], on:r.a >= r.b}))) +
+    t("LIBERO-Plus 逐扰动（Table 5，%）", ["模型", ...PERTURB],
+      HEAT.map(r => ({c:[`${r.k}${r.px ? " ◆" : ""}`, ...r.v.map(v => v.toFixed(1))], on:r.on}))) +
+    t("RoboDojo-Real 双臂总体（Table 7）", ["模型", "Score", "SR %"],
+      REAL.map(r => ({c:[r.k, r.s.toFixed(1), r.sr.toFixed(1)], on:r.on}))) +
+    t("灵巧手真机（Table 8，Score）", ["任务 / 设置", "OpenWAM-α", "π0.5"],
+      DEX.map(r => ({c:[r.k, r.a.toFixed(1), r.b.toFixed(1)], on:true}))) +
+    t("VLA vs WAM 无预训练对照（Figure 16a，%）", ["基准", "Fast-WAM", "StarVLA", "类型"],
+      PARA.map(r => ({c:[r.k, r.wam.toFixed(2), r.vla.toFixed(2), r.kind]})));
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   控件绑定与初始化
+   ════════════════════════════════════════════════════════════════════ */
+function seg(sel, fn){
+  const box = $(sel);
+  box.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    fn(b.dataset.k);
+  });
+}
+
+// 架构图：切换评测条件
+function drawArch(k){
+  dots($("#c-arch"), ARCH.map(r => ({fam:r.fam, k:r.k, v:r[k], note:r.note, on:r.on})),
+       {min:83, max:94, lw:200});
+}
+
+// 基准图：切换排序
+function drawBench(k){
+  const rows = BENCH.slice().sort(k === "gap"
+    ? (x, y) => (y.a - y.b) - (x.a - x.b)
+    : (x, y) => y.a - x.a);
+  pairBars($("#c-bench"), rows, {max:100, lw:172, n1:"OpenWAM-α", n2:"最强基线"});
+}
+
+// 静态图
+dots($("#c-backbone"), BACKBONE, {min:89, max:95, lw:174});
+bars($("#c-encoder"), ENCODER.map(r => ({k:r.k, v:r.v, note:r.note, on:r.on})), {max:100, lw:152, fmt:v => v.toFixed(2)});
+dots($("#c-pre-id"),  PRETRAIN.map(r => ({k:r.k, v:r.id,  note:r.note, on:r.on})), {min:86, max:89.5, lw:150});
+dots($("#c-pre-ood"), PRETRAIN.map(r => ({k:r.k, v:r.ood, note:r.note, on:r.on})), {min:12, max:28,   lw:150});
+diverging($("#c-flip"), FLIP, {lim:1.0, lw:236});
+heatmap($("#c-heat"));
+bars($("#c-real"), REAL.map(r => ({k:r.k, v:r.s, note:`Score ${r.s} / SR ${r.sr}%`, on:r.on})), {max:40, lw:148, unit:""});
+pairBars($("#c-dex"), DEX, {max:100, lw:186, n1:"OpenWAM-α", n2:"π0.5", unit:""});
+pairBars($("#c-para"), PARA.map(r => ({k:`${r.k} · ${r.kind}`, a:r.wam, b:r.vla, bn:"StarVLA（VLA）", tag:r.kind === "ID" ? "分布内：WAM 拟合更好" : "分布外：VLA 泛化更好"})),
+         {max:100, lw:196, n1:"Fast-WAM（WAM）", n2:"StarVLA（VLA）"});
+
+// 交互图
+drawArch("avg");
+drawBench("gap");
+renderMask();
+renderPlane();
+renderTables();
+
+seg("#arch-seg", drawArch);
+seg("#bench-seg", drawBench);
+seg("#tbl-seg", k => { $("#tables").hidden = (k === "hide"); });
+$("#m-av").addEventListener("change", renderMask);
+$("#m-va").addEventListener("change", renderMask);
+
+seg("#sched-seg", k => {
+  schedState.fam = k;
+  $("#lead-seg").hidden = (k === "sync");
+  $("#vs-sld").hidden = (k !== "vs");
+  $("#lo-sld").hidden = (k !== "lo");
+  renderPlane();
+});
+seg("#lead-seg", k => { schedState.lead = k; renderPlane(); });
+$("#alpha").addEventListener("input", e => {
+  schedState.ai = +e.target.value; $("#alpha-o").textContent = ALPHAS[schedState.ai]; renderPlane();
+});
+$("#offset").addEventListener("input", e => {
+  schedState.oi = +e.target.value; $("#offset-o").textContent = OFFSETS[schedState.oi]; renderPlane();
+});
+
+// 主题切换：暗色是从同一批 ramp 里另选的步阶，不是自动反色
+$("#theme").addEventListener("click", () => {
+  const cur = document.documentElement.dataset.theme;
+  const dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  renderPlane();   // SVG 里的云点用 currentColor 之外的变量，重绘一次确保取到新值
+});
+</script>
+</body>
+</html>

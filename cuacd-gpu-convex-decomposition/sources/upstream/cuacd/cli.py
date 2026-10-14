@@ -1,0 +1,376 @@
+"""cuacd — CLI for lookahead convex decomposition of mesh files."""
+
+import argparse
+import multiprocessing
+import os
+import re
+import sys
+import time
+import pathlib
+import numpy as np
+import trimesh
+import cuacd
+
+
+def _parse_pool_bytes(s):
+    """Parse pool size string with optional K/M/G suffix to bytes. '0' means auto."""
+    m = re.fullmatch(r'(\d+(?:\.\d+)?)\s*([KMG])?', s, re.IGNORECASE)
+    if not m:
+        raise argparse.ArgumentTypeError(f"invalid pool size: {s!r} (use e.g. 512M, 2G, or 0 for auto)")
+    val = float(m.group(1))
+    suffix = (m.group(2) or '').upper()
+    mult = {'': 1, 'K': 1024, 'M': 1024**2, 'G': 1024**3}[suffix]
+    return int(val * mult)
+
+
+def _find_meshes(input_path, recursive):
+    """Return list of (abs_path, rel_path) for all mesh files under input_path."""
+    mesh_exts = {'.obj', '.stl', '.ply', '.off', '.glb', '.gltf'}
+    p = pathlib.Path(input_path).resolve()
+    if p.is_file():
+        return [(p, pathlib.Path(p.name))]
+    base = p
+    if recursive:
+        files = [f for f in base.rglob('*') if f.is_file() and f.suffix.lower() in mesh_exts]
+    else:
+        files = [f for f in base.iterdir() if f.is_file() and f.suffix.lower() in mesh_exts]
+    files = sorted(files)
+    return [(f, f.relative_to(base)) for f in files]
+
+
+def _load_mesh(path):
+    """Load mesh using trimesh. Returns (verts, tris) as numpy arrays."""
+    mesh = trimesh.load(str(path), force='mesh')
+    verts = np.ascontiguousarray(mesh.vertices, dtype=np.float32)
+    tris = np.ascontiguousarray(mesh.faces, dtype=np.int32)
+    return verts, tris
+
+
+def _decompose_mesh(ctx, verts, tris, args):
+    """Normalize, (optionally) remesh, decompose, and denormalize. Returns list of (verts, tris)."""
+    pre = getattr(args, 'preprocess', 'off')
+    if pre == 'on' or (pre == 'auto' and ctx.check_mesh(verts, tris)['needs_remesh']):
+        res = getattr(args, "preprocess_resolution", 64)
+        verts, tris = ctx.preprocess(verts, tris, resolution=res)
+
+    lo = verts.min(axis=0)
+    hi = verts.max(axis=0)
+    center = (lo + hi) / 2
+    extent = float((hi - lo).max())
+    scale = extent / 2 if extent > 0 else 1.0
+    norm_verts = ((verts - center) / scale).astype(np.float32)
+
+    parts = ctx.lookahead_decompose(
+        norm_verts, tris,
+        max_iters=args.max_iters,
+        width=args.width,
+        width2=args.width2,
+        depth=args.depth,
+        quick_depth=args.quick_depth,
+        threshold=args.threshold,
+        verbose=args.verbose,
+        debug=args.debug,
+        decompose_components=not args.no_decompose_components,
+        no_decompose_components_per_iter=args.no_decompose_components_per_iter,
+        n_concave_edges=args.n_concave_edges,
+        concave_eps=args.concave_eps,
+        concave_threshold=args.concave_threshold,
+        concave_iters=args.concave_iters,
+        merge_hulls=args.merge_hulls)
+
+    if not args.parts:
+        return [(hv * scale + center, ht) for _, _, hv, ht in parts]
+    else:
+        return [(pv * scale + center, pt) for pv, pt, _, _ in parts]
+
+
+def _save_parts(parts, output_dir, rel_path):
+    """Save decomposition as a single GLB with random per-part colors."""
+    rng = np.random.default_rng(0)
+    scene = trimesh.Scene()
+    stem = pathlib.Path(rel_path).stem
+    for i, (verts, tris) in enumerate(parts):
+        mesh = trimesh.Trimesh(verts, tris)
+        color = (rng.random(3) * 255).astype(np.uint8)
+        mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh)
+        mesh.visual.vertex_colors[:, :3] = color
+        scene.add_geometry(mesh, node_name=f"{stem}_{i}")
+    out_dir = pathlib.Path(output_dir) / pathlib.Path(rel_path).parent
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f'{stem}.glb'
+    scene.export(str(out_path))
+    return out_path
+
+
+# -- Pipeline supervision --
+
+# Size of the shared buffer that tracks which mesh the processor is on.
+# Generous: Windows long paths can run to a few thousand characters.
+_CUR_MESH_BYTES = 1024
+
+
+def _set_cur_mesh(buf, rel_path):
+    """Publish the mesh currently being decomposed, for crash reporting."""
+    buf.value = str(rel_path).encode('utf-8', 'replace')[:_CUR_MESH_BYTES - 1]
+
+
+def _get_cur_mesh(buf):
+    """Read back the mesh last published by the processor worker."""
+    return bytes(buf.value).decode('utf-8', 'replace')
+
+
+def _join_workers(workers):
+    """Wait for every (name, Process) to exit.
+
+    A native crash inside cuacd._gpu kills its worker with no traceback — the
+    remaining workers are then typically blocked on a full/empty bounded queue,
+    so plain join()s would hang forever.  Return (name, exitcode) of the first
+    worker that exits non-zero (after terminating the survivors), or None if
+    all exited cleanly.
+    """
+    while True:
+        for name, p in workers:
+            if not p.is_alive() and p.exitcode != 0:
+                for _, q in workers:
+                    if q.is_alive():
+                        q.terminate()
+                for _, q in workers:
+                    q.join()
+                return name, p.exitcode
+        if all(not p.is_alive() for _, p in workers):
+            return None
+        time.sleep(0.05)
+
+
+_SENTINEL = None  # signals end-of-stream
+
+
+def _loader_worker(mesh_list, load_queue, print_lock):
+    """Load meshes and push (rel_path, verts, tris) into load_queue."""
+    for abs_path, rel_path in mesh_list:
+        try:
+            verts, tris = _load_mesh(abs_path)
+        except Exception as e:
+            with print_lock:
+                print(f'{rel_path}: load error — {e}', file=sys.stderr, flush=True)
+            continue
+        load_queue.put((rel_path, verts, tris))
+    load_queue.put(_SENTINEL)
+
+
+def _processor_worker(load_queue, save_queue, print_lock, args, cur_mesh=None):
+    """Decompose meshes from load_queue, push results into save_queue."""
+    ctx = cuacd.Context(device=args.device, pool_bytes=args.pool)
+    try:
+        while True:
+            item = load_queue.get()
+            if item is _SENTINEL:
+                break
+            rel_path, verts, tris = item
+
+            # Record what we are about to work on so the parent can report it
+            # if this process dies a hard (native, uncatchable) death.
+            if cur_mesh is not None:
+                _set_cur_mesh(cur_mesh, rel_path)
+
+            t0 = time.perf_counter()
+            out_parts = None
+            for attempt in range(2):
+                try:
+                    out_parts = _decompose_mesh(ctx, verts, tris, args)
+                    break
+                except Exception as e:
+                    if attempt == 0:
+                        with print_lock:
+                            print(f'{rel_path}: decompose error — {e}, recreating context and retrying',
+                                  file=sys.stderr, flush=True)
+                        try:
+                            ctx.close()
+                        except Exception:
+                            pass
+                        ctx = cuacd.Context(device=args.device, pool_bytes=args.pool)
+                    else:
+                        with print_lock:
+                            print(f'{rel_path}: decompose error on retry — {e}',
+                                  file=sys.stderr, flush=True)
+
+            if out_parts is None:
+                continue
+
+            elapsed = time.perf_counter() - t0
+            save_queue.put((rel_path, out_parts, elapsed))
+    finally:
+        ctx.close()
+    save_queue.put(_SENTINEL)
+
+
+def _saver_worker(save_queue, output_dir, print_lock):
+    """Save decomposed parts from save_queue."""
+    while True:
+        item = save_queue.get()
+        if item is _SENTINEL:
+            break
+        rel_path, parts, elapsed = item
+        _save_parts(parts, output_dir, rel_path)
+        with print_lock:
+            print(f'{rel_path}  {elapsed:.2f}s  {len(parts)} parts', flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog='cuacd',
+        description='GPU lookahead convex decomposition of mesh files.')
+    parser.add_argument('input', help='Input mesh file or directory.')
+    parser.add_argument('output', help='Output directory.')
+    parser.add_argument('-r', '--recursive', action='store_true', default=False,
+                        help='Recurse into subdirectories (default: false).')
+    parser.add_argument('--width', type=int, default=30,
+                        help='Number of candidate cuts per expansion level (default: 30).')
+    parser.add_argument('--width2', type=int, default=5,
+                        help='Cuts at deeper expansion levels (default: 5).')
+    parser.add_argument('--depth', type=int, default=2,
+                        help='Full expansion depth (default: 2).')
+    parser.add_argument('--quick-depth', type=int, default=0,
+                        help='Quick expansion depth (default: 0).')
+    parser.add_argument('--threshold', type=float, default=0.05,
+                        help='Convergence threshold (default: 0.05).')
+    parser.add_argument('--max-iters', type=int, default=100,
+                        help='Max outer iterations (default: 100).')
+    parser.add_argument('--device', type=int, default=-1,
+                        help='GPU device ordinal (default: -1 = reuse existing context).')
+    parser.add_argument('--pool', type=_parse_pool_bytes, default=0,
+                        help='GPU pool size in bytes (supports K/M/G suffix, e.g. 512M, 2G; 0 = auto).')
+    parser.add_argument('--verbose', type=int, default=0,
+                        help='Verbosity level (0/1/2).')
+    parser.add_argument('--debug', type=int, default=0,
+                        help='Debug level (0/1).')
+    parser.add_argument('--parts', action='store_true', default=False,
+                        help='Save cut parts instead of convex hulls (default: hulls).')
+    parser.add_argument('--no-decompose-components', action='store_true', default=False,
+                        help='Skip connected components decomposition (default: enabled).')
+    parser.add_argument('--no-decompose-components-per-iter', action='store_true', default=False,
+                        help='Disable per-iteration connected components decomposition (default: on).')
+    parser.add_argument('--n-concave-edges', type=int, default=16,
+                        help='Max concave edges to sample per cutting part (default: 16).')
+    parser.add_argument('--concave-eps', type=float, default=0.005,
+                        help='Epsilon offset for edge-based planes (default: 0.005).')
+    parser.add_argument('--concave-threshold', type=float, default=3.49,
+                        help='Dihedral angle threshold in radians for concavity (default: 3.49 ~200deg).')
+    parser.add_argument('--concave-iters', type=int, default=10,
+                        help='Number of first iterations to include concave edge sampling (default: 10).')
+    parser.add_argument('--no-merge-hulls', dest='merge_hulls', action='store_false', default=True,
+                        help='Disable greedy merge-hulls post-processing pass (default: on).')
+    parser.add_argument('--serial', action='store_true', default=False,
+                        help='Serial load-process-save instead of pipelined workers (easier debugging).')
+    parser.add_argument('--preprocess', choices=['auto', 'on', 'off'], default='auto',
+                        help='Mesh preprocess (remesh to watertight manifold) before decomposition. '
+                             'auto (default): only when the audit kernel flags the mesh as '
+                             'non-watertight/non-manifold/misoriented. on: always. off: never.')
+    parser.add_argument('--preprocess-resolution', type=int, default=64,
+                        help='Remesh voxel grid resolution (power of two: 32/64/128/256). '
+                             '64 (default) is the practical default — on the vhacd2 benchmark set it '
+                             'decomposes ~3.3x faster than 128 with comparable or fewer hulls '
+                             '(R128 over-densifies and slows the downstream convex search); '
+                             '128 matches CoACD CPU prep_resolution=50; 256 matches pamo default.')
+    parser.add_argument('--bench', action='store_true', default=False,
+                        help='Benchmark mode: recreate context per object, '
+                             'measure heap memory high-water mark on a first run, '
+                             'then time a second run.')
+    args = parser.parse_args()
+
+    meshes = _find_meshes(args.input, args.recursive)
+    if not meshes:
+        print(f'No mesh files found in: {args.input}', file=sys.stderr)
+        sys.exit(1)
+
+    if args.bench or args.serial:
+        for abs_path, rel_path in meshes:
+            try:
+                verts, tris = _load_mesh(abs_path)
+            except Exception as e:
+                print(f'{rel_path}: load error — {e}', file=sys.stderr, flush=True)
+                continue
+
+            try:
+                ctx = cuacd.Context(device=args.device, pool_bytes=args.pool)
+            except Exception as e:
+                print(f'{rel_path}: context init error — {e}', file=sys.stderr, flush=True)
+                continue
+
+            try:
+                if args.bench:
+                    # Warm-up run
+                    try:
+                        _decompose_mesh(ctx, verts, tris, args)
+                    except Exception as e:
+                        print(f'{rel_path}: decompose error — {e}', file=sys.stderr, flush=True)
+                        ctx.close()
+                        continue
+                    # Timed run
+                    t0 = time.perf_counter()
+                    try:
+                        out_parts = _decompose_mesh(ctx, verts, tris, args)
+                    except Exception as e:
+                        print(f'{rel_path}: decompose error — {e}', file=sys.stderr, flush=True)
+                        ctx.close()
+                        continue
+                    elapsed = time.perf_counter() - t0
+                    heap_mib = ctx.pool_usage() / (1024 * 1024)
+                    _save_parts(out_parts, args.output, rel_path)
+                    print(f'{rel_path}  {elapsed:.2f}s  {len(out_parts)} parts  {heap_mib:.1f} MiB', flush=True)
+                else:
+                    t0 = time.perf_counter()
+                    try:
+                        out_parts = _decompose_mesh(ctx, verts, tris, args)
+                    except Exception as e:
+                        print(f'{rel_path}: decompose error — {e}', file=sys.stderr, flush=True)
+                        continue
+                    elapsed = time.perf_counter() - t0
+                    _save_parts(out_parts, args.output, rel_path)
+                    print(f'{rel_path}  {elapsed:.2f}s  {len(out_parts)} parts', flush=True)
+            finally:
+                ctx.close()
+        return
+
+    mp_ctx = multiprocessing.get_context('spawn')
+    print_lock = mp_ctx.Lock()
+    load_queue = mp_ctx.Queue(maxsize=2)
+    save_queue = mp_ctx.Queue(maxsize=2)
+
+    # Name of the mesh the processor is currently working on; only used to
+    # tell the user *which* mesh killed the run when the worker dies hard.
+    cur_mesh = mp_ctx.Array('c', _CUR_MESH_BYTES)
+
+    loader = mp_ctx.Process(target=_loader_worker, args=(meshes, load_queue, print_lock))
+    processor = mp_ctx.Process(target=_processor_worker,
+                              args=(load_queue, save_queue, print_lock, args, cur_mesh))
+    saver = mp_ctx.Process(target=_saver_worker, args=(save_queue, args.output, print_lock))
+
+    loader.start()
+    processor.start()
+    saver.start()
+
+    failure = _join_workers([("loader", loader),
+                             ("processor", processor),
+                             ("saver", saver)])
+    if failure:
+        name, code = failure
+        where = ''
+        if name == 'processor':
+            mesh = _get_cur_mesh(cur_mesh)
+            if mesh:
+                where = f' while processing {mesh!r}'
+        # A negative code is an OS-level kill (native crash inside cuacd._gpu);
+        # otherwise the worker died on an unhandled Python exception and has
+        # already printed its own traceback to this same stderr.
+        cause = ('a native crash inside cuacd._gpu (no traceback)'
+                 if code is not None and code < 0 else
+                 'an unhandled Python error (traceback above)')
+        print(f'cuacd: {name} worker exited with code {code}{where} — {cause}; '
+              'aborting. Output written so far is kept but may be incomplete.',
+              file=sys.stderr, flush=True)
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

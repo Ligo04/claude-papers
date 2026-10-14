@@ -1,0 +1,1074 @@
+                                         CuACD: A Fully GPU-Resident Approximate Convex Decomposition
+                                         RUOXI SHI, UC San Diego, USA
+                                         XINYUE WEI, UC San Diego, USA
+                                         FANBO XIANG, Sudo GmbH, USA
+                                         ZEXIANG XU, Sudo GmbH, USA
+                                         HAO SU, Sudo GmbH, USA
+arXiv:2609.28731v1 [cs.CG] 23 Sep 2026
+
+
+
+
+                                         Fig. 1. CuACD is a fully GPU-resident approximate convex decomposition method that delivers more than an order of magnitude of speedup over prior search-
+                                         based ACD systems while faithfully preserving fine-grained geometric features. The meshes shown here carry dense fine-grained structure and are decomposed
+                                         at a tight concavity threshold 𝜏 =0.03 (versus the 𝜏 =0.05 default used in Table 1), yielding a higher per-mesh cost than the table reports; even on this harder
+                                         regime, the entire gallery is produced in 17.71 s on a single NVIDIA RTX 4090 GPU. The source code is publicly available at https://github.com/eliphatfs/cuacd.
+
+                                         Approximate convex decomposition (ACD) converts triangle meshes into                    of speedup over prior baselines at matched or better quality. The full source
+                                         small sets of convex parts and is a standard preprocessing step for physics             code of the project is released at https://github.com/eliphatfs/cuacd.
+                                         simulation and large-scale robot learning. Modern ACD methods produce
+                                         high-quality decompositions through an expensive search over candidate                  CCS Concepts: • Computing methodologies → Mesh geometry models;
+                                         cutting planes, with per-mesh runtime of tens of seconds that forces game               Massively parallel algorithms; Collision detection; Graphics processors.
+                                         pipelines into offline asset processing. Prior work has accelerated isolated            Additional Key Words and Phrases: approximate convex decomposition,
+                                         stages, yet the dominant costs—search, mesh cutting, and convex hull                    collision geometry, GPU computing, warp-level parallelism, SIMT, convex
+                                         construction—have remained on the CPU.                                                  hull, computational geometry, mesh processing
+                                            We adopt a two-layer concurrency view: a few hundred independent tasks
+                                         across the GPU’s streaming multiprocessors, with each task implemented
+                                         as a warp—32 lanes executing in lockstep with warp-level vote and shuffle               1   Introduction
+                                         intrinsics. It fits the irregular kernels of computational geometry that con-           Approximate convex decomposition (ACD) is a core primitive of
+                                         ventional thread-block decomposition leaves underfilled, and dissolves the              physical simulation and interactive 3D graphics. Modern physics
+                                         two inefficiencies that kept ACD on the CPU: each kernel boundary ends in               engines rely on convex colliders because intersection and contact
+                                         a tail of stragglers that leaves most of the GPU idle, and variable-sized phase         queries against convex shapes admit fast, near-constant-time algo-
+                                         outputs force the host CPU into the loop simply to size the next launch. A
+                                                                                                                                 rithms [Gilbert et al. 1988; Mirtich 1998] that have no counterpart
+                                         device-side heap allocator sizes inter-phase buffers, allowing ACD’s phases
+                                         to fuse into warp-resident kernels that never leave the GPU. We present
+                                                                                                                                 on arbitrary triangle meshes; consequently, almost every character,
+                                         CuACD (CUDA ACD), the first fully GPU-resident ACD system, together                     prop, and environment asset in a modern video game or robotic sim-
+                                         with reusable GPU components released as drop-in CUDA modules for                       ulator must be decomposed into a small set of convex parts before
+                                         search-based ACD pipelines. On the V-HACD benchmark, PartNet-Mobility,                  it can be used at runtime [Coumans 2015; Tao et al. 2024].
+                                         and an Objaverse subset, CuACD achieves more than an order of magnitude                    Exact convex decomposition is NP-hard [Chazelle 1984] and, in
+                                                                                                                                 practice, produces partitions with orders of magnitude more pieces
+                                         Authors’ Contact Information: Ruoxi Shi, UC San Diego, La Jolla, CA, USA, r8shi@ucsd.   than downstream simulators require [Lien and Amato 2007]. A
+                                         edu; Xinyue Wei, UC San Diego, La Jolla, USA, xiwei@ucsd.edu; Fanbo Xiang, Sudo         decade of research has therefore converged on approximate meth-
+                                         GmbH, La Jolla, USA, fx@sudo.ai; Zexiang Xu, Sudo GmbH, La Jolla, USA, zexiangxu@
+                                         sudo.ai; Hao Su, Sudo GmbH, La Jolla, USA, hao@sudo.ai.                                 ods: HACD [Mamou and Ghorbel 2009], V-HACD [Mamou et al.
+                                                                                                                                 2016], CoACD [Wei et al. 2022], NavACD [Andrews 2024], and the
+                                                                                                                                 recent VisACD [Fokin and Savva 2026]. These works have progres-
+                                                                                                                                 sively improved decomposition quality; while HACD is clustering-
+                                         This work is licensed under a Creative Commons Attribution 4.0 International License.   based, the majority of methods since V-HACD share a common
+2   •   Ruoxi Shi, Xinyue Wei, Fanbo Xiang, Zexiang Xu, and Hao Su
+
+
+                                                                                 (a) Standard CUDA model                                   (b) Warp-centric model
+computational backbone: an expensive search over candidate cut-                          grid (kernel launch)                                   grid (kernel launch)
+ting planes evaluated by an equally expensive concavity objective—a                block b₀                  block b₁               w₀
+scalar measuring how far a piece deviates from convex.                                                                              w₁
+   The speed of that search has become a real bottleneck in modern          threads (virtual lanes)   threads (virtual lanes)                           ⋮
+                                                                            no direct hw mapping      no direct hw mapping
+                                                                                                                                          each warp = 32 lanes in lockstep
+3D content pipelines. Large-scale robot-learning efforts routinely                                    runtime regroups                                      warp = physical
+preprocess articulated-object datasets such as PartNet-Mobility [Xi-                                  threads into warps                                    execution unit
+
+ang et al. 2020] into convex colliders before a simulator can consume                                  GPU streaming multiprocessor (SM)
+                                                                               physical SIMT execution: one warp issues per cycle, 32 lanes share an instruction pointer
+them [Tao et al. 2024]; with single-mesh decomposition times of tens          warp scheduler                            32-wide SIMD execution pipeline (lockstep)
+                                                                             selects ready warp
+of seconds, even medium-sized datasets can occupy a CPU cluster
+for days, and recent large-scale 3D AI pipelines repeatedly identify
+ACD as a dominant preprocessing cost [Fokin and Savva 2026; Tao           Fig. 2. CUDA exposes a three-level grid/block/thread hierarchy in which
+et al. 2024]. In large-scale game development, where artists iter-        threads and blocks are virtual abstractions implicitly regrouped by the
+                                                                          runtime, while only the warp has a hardware counterpart on the streaming
+ate on hundreds of mesh assets per sprint, convex decomposition
+                                                                          multiprocessor (left). The warp-centric view (right) elevates the warp itself
+is typically delegated to offline asset processing rather than inte-      to the unit of algorithm design: each warp is a 32-lane SIMD processor
+grated into interactive authoring, slowing iteration and encouraging      mapped one-to-one onto the SM’s physical execution pipeline.
+workarounds such as hand-authored proxy geometry.
+   ACD can be formulated as a search problem: given an input mesh,        on a modern GPU. However, only the warp—a fixed group of 32
+find a sequence of planar cuts that minimizes a concavity objective       lanes sharing one instruction pointer—has a hardware counterpart
+while respecting a budget on the number of parts. Evaluating that         on the streaming multiprocessor; threads and blocks are virtual
+objective at each candidate cut requires building the convex hulls        abstractions whose mapping to physical lanes is implicit.
+of the two resulting pieces and measuring their deviation from the           Adopting the warp as the unit of algorithm design yields a two-
+input surface. Across a single decomposition this inner loop exe-         layer concurrency picture. On the coarse level, an algorithm exposes
+cutes hundreds of thousands of times, making cutting and convex           a few hundred independent tasks, each pinned to one warp and
+hull construction the clear computational hot spots. VisACD takes a       dispatched across multiprocessors. On the fine level, each warp is a
+first step toward GPU acceleration by offloading ray-based visibility     32-lane SIMD processor whose lanes cooperate through warp-level
+queries onto CUDA and OptiX, achieving roughly a 2× speedup over          intrinsics. The fine cooperation allows much greater flexibility of
+CoACD [Fokin and Savva 2026]; intersection tests and convex hull          processing on most programs, even for workloads with sequential
+construction, however, remain on the CPU, leaving the dominant            dependencies – this is the same idiom by which workloads long held
+cost of an ACD pipeline untouched. We instead present CuACD               to be inherently sequential—JSON parsing [Langdale and Lemire
+(CUDA ACD), a fully GPU-resident ACD algorithm: once the input            2019] and multi-pattern regex matching [Wang et al. 2019]—now
+mesh is uploaded, the worklist, lookahead tree, cutting, hull, and        run on SIMD hardware at gigabytes per second. The parallelism an
+concavity all live in device memory, and the host issues no inter-        algorithm must expose drops accordingly. Filling a modern GPU
+vening synchronization until the decomposition is read back. This         at thread granularity needs ∼104 independent threads, but at warp
+yields orders of magnitude of speedup over CoACD. Porting ACD             granularity the same machine schedules only ∼102 resident warps—
+to the GPU is far from mechanical. The irregular, data-dependent          a budget the 102 –103 active parts of an ACD worklist meet with
+control flow of convex hull construction, polygon boundary tracing,       room to spare. The view was introduced for irregular graph traversal
+ear-clip triangulation, and recursive tree search is a poor fit for the   by Hong et al. [2011]; we adapt it here to code up a computational-
+GPU’s SIMT execution model—single instruction, multiple threads,          geometry pipeline stages into warp-resident kernels, paired with a
+in which 32 hardware lanes share one instruction pointer and ad-          device-side heap allocator that sizes and places the variable-sized
+vance together each cycle [Lindholm et al. 2008]. The natural CUDA        inter-phase buffers on the device. We develop both in Sec. 3.
+response is to split the pipeline phase by phase into a sequence of          In summary, this paper makes the following contributions:
+small, homogeneous kernel launches, but this trades one problem                 • A warp-centric design for the irregular, data-dependent ker-
+for two. First, each kernel ends with a tail of stragglers: as the work           nels of computational geometry: it adapts the warp-unit
+distribution shrinks and reshapes between phases, only a few lanes                view of Hong et al. [2011] from graph traversal, and lowers
+have remaining work, and most of the GPU sits idle until the next                 the concurrency that a SIMT mapping must expose from
+launch [Aila and Laine 2009]. Second, each phase’s variable-sized                 ∼104 independent threads to ∼102 resident warps treated
+output is known only after the producing kernel finishes, so the host             as SIMD processing units, and is paired with a device-side
+CPU must be involved between phases simply to read the output                     heap allocator so that an entire pipeline can run without
+size and allocate the next kernel’s input. Both costs scale with the              leaving the GPU.
+number of kernel boundaries, and together they break the savings                • The first fully GPU-resident ACD algorithm and system.
+that a GPU algorithm was meant to deliver.                                      • A suite of fast, reusable GPU components for computa-
+   A cleaner fit is to treat the warp, rather than the thread or thread           tional geometry—a device-side heap allocator, warp-level
+block, as the unit in which GPU algorithms are expressed (Figure 2).              quick-sort, mesh–plane clipping, convex hull construction,
+CUDA’s programming model exposes a three-level hierarchy of grid,                 connected-component analysis, and Hausdorff distance—
+block, and thread. People familiar with the CPU may assume that                   released as standalone CUDA modules that drop into exist-
+we have hundreds of thousands of independent thread resources                     ing search-based ACD pipelines beyond CuACD; the full
+                                                                                 CuACD: A Fully GPU-Resident Approximate Convex Decomposition   •   3
+
+
+       source code of the project is released at https://github.com/     that accelerates neighbor queries and dynamic updates; CuACD’s
+       eliphatfs/cuacd.                                                  kernels instead work on plain struct-of-arrays buffers so the com-
+     • Orders of magnitude of speedup over CoACD, while also             ponents stay drop-in. Convex hull construction has also received
+       achieving better decomposition quality.                           dedicated GPU treatments [Gao et al. 2013; Tang et al. 2012], but
+                                                                         these algorithms extract parallelism within a single large point cloud
+2   Related Work                                                         (one hull per kernel launch), whereas ACD’s inner loop instead de-
+   Approximate convex decomposition. ACD was introduced by Lien          mands thousands of tiny hulls of tens to a few thousand points each,
+and Amato [2004] for polygons and extended to 3D polyhedra by            built concurrently—a regime in which per-hull launch overhead
+Lien and Amato [2007]. HACD [Mamou and Ghorbel 2009] operates            and block-level coordination dominate. Our work continues this
+directly on the triangle mesh, building a dual graph over triangle       trajectory and extends it to the ACD pipeline as a whole, including
+clusters and iteratively merging adjacent clusters so as to minimize     convex hull construction and lookahead tree search—computations
+the concavity of each cluster’s convex hull. Attene et al. [2008]        previously considered a poor match for SIMT execution.
+offer a bottom-up counterpart, computing hierarchical convex ap-
+                                                                            Learning-based convex decomposition. A complementary line of
+proximations by tetrahedralizing the mesh. V-HACD [Mamou et al.
+                                                                         work uses neural networks to propose cutting planes [Luo et al.
+2016] replaces triangle-level clustering with a voxelized recursive
+                                                                         2025], to represent shapes as differentiable unions of convex prim-
+bisection that repeatedly picks axis-aligned splitting planes min-
+                                                                         itives [Deng et al. 2020], or to cluster learned feature fields into
+imizing a volumetric concavity objective, trading some accuracy
+                                                                         convex parts [Yang et al. 2026]. These methods accelerate the heuris-
+for substantial gains in robustness and speed, and in the process
+                                                                         tic via GPU-resident neural inference; we instead accelerate the
+becoming the de-facto default across game and simulator pipelines;
+                                                                         classical search itself with lightweight hand-designed kernels, and
+Müller et al. [2013] adapt this volumetric formulation to a real-time
+                                                                         the two strategies are complementary.
+GPU implementation for dynamic fracture, and Thul et al. [2018]
+extend ACD to animated meshes via temporal coherence, while also
+introducing concave-edge plane sampling for ACD. CoACD [Wei              3   A Warp-Centric View of Geometry Processing
+et al. 2022] introduces a “collision-aware” concavity built from the     The view that the warp should be the unit in which GPU algorithms
+bidirectional Hausdorff distance so that contact-relevant surfaces       are expressed is not new: Hong et al. [2011] introduced a virtual
+dominate the score, and drives the search with Monte Carlo tree          warp-centric method for irregular graph algorithms, where intra-
+search, markedly lifting decomposition quality at the cost of a longer   warp load imbalance from skewed vertex degrees was the dominant
+runtime. NavACD [Andrews 2024] specializes ACD to navigation             pathology, and Zou and Gao [2024] apply the term to cache-aware
+use cases: it first infers a navigable free-space region and then con-   data layout for lattice triangulation. We adopt the warp as the unit
+strains the decomposition to avoid intruding into it, producing          of algorithm design in the same spirit, but transfer the view to
+fewer and larger hulls well suited to game AI and robot locomotion.      computational geometry and apply it to CuACD. Once the warp is
+VisACD [Fokin and Savva 2026] adopts a visibility-based concavity        taken as the unit, the GPU exposes two layers of concurrency (Sec. 1):
+metric—rotation-equivariant in the sense that rotating the input ro-     a coarse layer, across which independent tasks are dispatched to
+tates the score commutatively—evaluated with OptiX ray queries on        streaming multiprocessors, and a fine layer, in which each task runs
+the GPU, reporting roughly ∼2× end-to-end speedup over CoACD;            as a 32-lane warp in lockstep SIMD. Two facts about ACD then
+however, cutting, hull construction, and the outer search all remain     determine how the algorithm fills these two layers and where the
+on the CPU. Our system belongs to the same search-based lineage          design effort falls. (i) The active worklist holds 102 –103 independent
+but is the first to be fully GPU-resident—cutting, hull construction,    parts, so the coarse layer is saturated. (ii) Evaluating one candidate
+concavity evaluation, and tree search all execute on device—yielding     cut is irregular, variable-size, data-dependent work, so the fine layer
+more than an order of magnitude of throughput improvement while          is the hard part. Sec. 3.1 develops the fine layer; Sec. 3.2 then supplies
+also producing decompositions of higher quality.                         the device-resident memory that lets the two layers fuse without
+                                                                         leaving the GPU.
+   Geometry processing on the GPU.. A line of work starting with
+CUDARaster [Laine and Karras 2011] and parallel bounding volume             Concurrency is the central resource. GPU throughput is governed
+hierarchy construction [Karras 2012; Lauterbach et al. 2009] estab-      by Little’s law: sustained arithmetic rate equals in-flight instructions
+lished that core geometric primitives—rasterization, spatial indexing,   divided by their average latency. The unit in which we count that
+hierarchy building, and traversal—can be mapped efficiently onto         concurrency—thread, warp, or block—determines which algorithms
+the GPU’s SIMT execution model, typically by recasting irregular         we consider GPU-amenable: as Sec. 1 noted, filling a modern GPU
+computations as parallel sorts on spatial keys, parallel construction    at thread granularity needs ∼104 independent threads, but at warp
+of bounding-volume hierarchies (BVHs), or tile-parallel reductions.      granularity the same machine schedules only ∼102 resident warps—
+More recent efforts have pushed this agenda into heavier, globally       a budget the 102 –103 active parts of an ACD worklist meet with
+data-dependent operations: NVIDIA’s lock-free interactive decima-        room to spare. CuACD therefore counts concurrency at the warp.
+tion of large meshes [Gautron and Kubisch 2023], the PaMO pipeline       The coarse layer is the easy half: search-based algorithms expose it
+for parallel intersection-free remeshing and mesh simplification [Oh     trivially, and in CuACD the active worklist and the per-part clipping
+et al. 2025], and the aforementioned VisACD [Fokin and Savva 2026].      candidate pool together saturate it. We detail the fine layer in the
+Mahmoud et al. [2021] offer a general GPU mesh data structure            following subsection.
+4   •    Ruoxi Shi, Xinyue Wei, Fanbo Xiang, Zexiang Xu, and Hao Su
+
+
+3.1       Fine Layer: Evaluating One Candidate as a Warp                           1. Configurable arenas; warp route to arena (b mod A)
+
+The fine layer—coding one candidate’s evaluation as a 32-wide
+                                                                                       Arena 0         Arena 1       Arena 2       Arena 3       ⋯          Arena A−1
+
+
+warp—is where the warp-centric design earns its keep, because                      2. One arena: 32 bins × 2 sub-bins with free-block lists
+that work is irregular, variable-size, and data-dependent. We de-                       bin        sub size range     non-empty?     free-block list (head → ⋯ → null)
+
+compose the body of one candidate evaluation into phases drawn                          Bin 0      a    [256, 384)                                     ∅
+                                                                                                   b    [384, 512)                  ∅
+from the following four primitives, in the listed order of prefer-                      Bin 1      a    [512, 768)                           ∅
+ence; each inherits a structural parallel-programming pattern long                                 b    [768, 1K)                                                ∅
+familiar from the CPU literature, and each has a tight warp-level                         ⋮        ⋮       ⋮              ⋮                  ⋮
+implementation illustrated in Appendix I of the supplemental.                           Bin 4      a    [4K, 6K)                    ∅
+                                                                                                   b    [6K, 8K)                             ∅
+        (1) Traversing an array. The 32 lanes traverse the array cooper-                  ⋮        ⋮       ⋮              ⋮                  ⋮
+            atively at stride 32. We support three modes of operation:             3. Per-arena 64-bit bitmap (bit i = 1 iff sub-bin i has at least one free block)
+            Map, Reduction, and Filtering. See Appendix I for detailed
+                                                                                           bit 0                                                                         bit 63
+            instructions.                                                                 smallest non-empty sub-bin meeting a request → one __ffsll on the bitmap (O(1))
+        (2) Sorting and set operations. These reduce to the warp-
+                                                                                                               Fig. 3. Device-side heap allocator.
+            cooperative quick-sort of Sec. 3.1, whose three-way partition
+            is itself a filter (case 1). Set construction or deduplication ex-
+            tends sort with a filter on adjacent duplicates; membership
+            appends a binary search.                                             shared-memory and static-size constraints that make bitonic and
+        (3) Fine-grained symmetric work. Operations that act in parallel         radix sorts awkward for the small, variable-length segments ACD
+            on a pair of related entities—both directions of a doubly            produces. We naturally benefit from its cache friendliness.
+            linked list, or both endpoints of an edge—partition the warp            We maintain a per-warp stack of segments awaiting partition,
+            into 16 two-lane groups with high SIMD efficiency. CuACD             initialized with the full input. For each segment to process: if the
+            uses this in the convex-hull merge of Sec. 4.3.                      segment has 32 or fewer elements, we apply a bitonic network to
+        (4) Divide and conquer. A 32-way split assigns one branch per            sort them directly. Otherwise, we pick a pivot by taking a systematic
+            lane and recombines the results afterwards; we apply this            sample of size 32 from the array to partition, and using the same
+            to recursive sub-hull construction (Sec. 4.3). It is considered      bitonic network to find the median across the warp as the pivot for
+            last because the data-dependent control flow inside each             partitioning. After that, the warp cooperatively scans and partitions
+            branch is not guaranteed to retain full warp utility.                the segment using warp-vote intrinsics (Appendix I).
+Every primitive is instantiated by a concrete CuACD stage: the                   3.2     Device-Resident Fusion: The Heap Allocator
+mesh-plane clipper is a filter over crossing edges followed by a
+sort-and-dedup (primitives 1–2); the convex-hull build is the divide-            The coarse and fine layers together make each candidate evaluable as
+and-conquer primitive (4), with its merge using the symmetric-                   a single warp, but for the warp-granularity saturation above to actu-
+work primitive (3); the concavity surrogate is a warp reduction                  ally pay off, the per-warp kernels must fuse into one device-resident
+(primitive 1). The structure of Sec. 4 is thus the structure of this list.       pipeline without a host round-trip between phases—the very cost
+                                                                                 that, as Sec. 1 noted, breaks a naive phase-by-phase CUDA port. The
+   Meta-ops. For metadata tracking operations that do not scale                  piece that removes the last host dependency is a device-side heap
+with the input size, we simply do them on thread 0 of a warp with                allocator, because many of CuACD’s intermediate buffers have sizes
+negligible performance penalty.                                                  known only after the producing kernel runs. Examples include ver-
+   The existing literature [Blelloch 1989; Cole 1989; Dean and Ghe-              tex arrays from plane cuts, edge and face arrays for hull construction,
+mawat 2008] suggests that these aspects already cover most patterns              and BVH scratch for Hausdorff queries. CUDA’s built-in device-side
+in a practical algorithm.                                                        malloc/free avoids the host synchronization but serializes through
+   Our implementation has two advantages over existing libraries                 a single global structure. At CuACD’s allocation rate, this serializa-
+like CUB [Merrill 2024]. Firstly, we do not require static-sized input           tion becomes the dominant cost (quantified in Sec. 5.4). Existing
+for any of the primitives, which is fine for use in a thread block,              GPU allocators such as ScatterAlloc [Steinberger et al. 2012] target
+but for warp-centric algorithms, organization becomes impractical.               small-object fast paths and do not coalesce freed blocks. CuACD’s
+Secondly, we do not require temporary scratch in shared memory,                  variable-size mesh buffers therefore fragment their heap quickly.
+which does not scale well with the number of primitive phases in                 The remedy is the coalescing-binned machinery—classical CPU allo-
+the algorithm or the size of the input (see Appendix Table 3).                   cator design, inherited from Hoard [Berger et al. 2000], dlmalloc [Lea
+                                                                                 2000], and Knuth’s boundary-tag scheme [Knuth 1997]. Our con-
+   Primitive (2) illustrated: warp-cooperative quick-sort. GPU sorting
+                                                                                 tribution is the adaptation of that machinery to a warp-scheduled
+usually favors bitonic or radix sort [Yildiz et al. 2013], less often
+                                                                                 SIMT execution model, in which the relevant concurrency unit is a
+merge sort [Merrill 2024]; Cederman and Tsigas [2010] deemed
+                                                                                 warp of co-issued lanes, not a thread.
+quick-sort impractical on GPUs and offloaded its work assignment
+to the CPU. Yet quick-sort aligns naturally with our warp-centric                   Structure. The heap splits into 𝐴 independent arenas; a request
+model: its partition step is exactly the warp-cooperative filter of              from warp 𝑏 routes to arena 𝑏 mod 𝐴, with 𝐴=64 sized to keep
+primitive (1), so it inherits the warp model’s efficiency without the            the critical path contention-free at CuACD’s occupancies (Sec. 5.4).
+                                                                                     CuACD: A Fully GPU-Resident Approximate Convex Decomposition            •   5
+
+
+Each arena holds 32 power-of-two bins split at the midpoint into 64               Input mesh                                    Hull merge    Convex parts
+sub-bins, each owning a linked free list (Figure 3); a per-arena 64-bit
+bitmap flags non-empty lists, so a fitting sub-bin is found in one
+                                                                                                         Main loop — until all parts ≤ τ
+bitwise operation and on free boundary tags coalesce with neighbors
+                                                                                Split connected   Propose candidate         Look-ahead tree     Apply
+in 𝑂 (1). This is the mechanism that lets the entire decomposition               components         cutting planes              search         best cuts
+stay device-resident: the variable-size vertex arrays a plane cut
+emits, the edge and face arrays hull construction needs, and the BVH
+scratch a Hausdorff query needs are all allocated and freed on-device,    Fig. 4. Overview of the CuACD decomposition pipeline. Input mesh is
+so the host issues no synchronization between the initial upload          decomposed by an outer loop that splits multi-component parts, evaluates
+and the final read-back. More details can be found in Appendix E of       concavity, and selects the best cut for any part exceeding the threshold 𝜏
+the supplemental.                                                         via a bounded look-ahead tree search; a greedy hull-merge pass reduces the
+                                                                          final part count after the loop.
+
+4 The CuACD Algorithm                                                        Parallel look-ahead evaluation. Each candidate plane is evaluated
+4.1 The CuACD Pipeline                                                    via a bounded-depth tree search that exposes two levels of GPU par-
+CuACD follows the overall structure of CoACD’s search-based de-           allelism: across parts being cut concurrently, and across candidates
+composition [Wei et al. 2022], but redesigns every stage so that the      within each part. To evaluate a candidate, we apply the cut, hull
+entire pipeline runs on the GPU. Figure 4 summarizes the pipeline.        and score the two resulting sub-parts by the surrogate cost 𝑅𝑣 , then
+The algorithm maintains a worklist of parts that still require further    recursively expand the worse sub-part to depth 𝐷 using a reduced
+decomposition, seeded with the input mesh as a single element. At         axis-aligned branching factor 𝑊sub . The branch whose path-average
+each iteration, in parallel, we select every part whose concavity         worst-sub-part cost is lowest defines the selected cut.
+exceeds 𝜏. For each selected part we choose a cutting plane via a
+tree search, split the part along that plane, and push the resulting
+                                                                          4.2      Mesh–Plane Clipper
+sub-parts back onto the worklist if they remain above the threshold.      For each branching node and each candidate plane, the look-ahead
+The loop terminates when no part remains in the worklist. Then,           evaluator performs one mesh–plane cut. This produces two water-
+a hull-merge post-processing pass, in the spirit of CoACD’s merge         tight sub-meshes, with the cut section re-triangulated to close the
+step, greedily combines pairs of output parts whose joint convex          boundary. Algorithm 1 gives the pipeline; scratch space is allocated
+hull remains below the concavity threshold, reducing the final part       from the heap of Sec. 3.2. Allocation is seen as meta operations
+count without regressing quality; we describe the GPU-resident            executed on lane 0 as the time do not scale with input size.
+version of this pass in Sec. 4.4.                                            The algorithm follows a standard scheme: compute each vertex’s
+   Choosing a cutting plane has two phases: a proposal phase that         sign against the cutting plane, then split the mesh into 𝑇 + and 𝑇 −
+enumerates a pool of candidate planes, and an evaluation phase            by that sign. Step 7 produces the two triangle sets but does not mark
+that scores each candidate by a parallel look-ahead tree search and       which edges lie on the cut, so the boundary must be recovered. We
+returns the lowest-cost plane.                                            use the manifold property—an interior edge is shared by exactly two
+
+   Plane proposal. We combine two candidate families. Axis-aligned
+                                                                          Algorithm 1 Mesh–plane clipping. Each step is tagged by its warp-
+planes sample each principal axis of the part’s bounding box at 𝑊top
+                                                                          centric category from Sec. 3.1.
+evenly spaced positions, as in CoACD. Concave-edge planes target
+contact-relevant features: following Thul et al. [2018], we sample        Require: Vertex set 𝑉 , Triangle set 𝑇 , Cutting plane 𝜋 .
+                                                                          Ensure: Output meshes 𝑀 ± .
+up to 𝑁 ce concave edges with dihedral angle ≥ 200° and emit four
+                                                                           1: // Intersect with cutting plane.
+candidate planes per edge—two aligned to the dihedral bisector and
+                                                                           2: signs[𝑣 ] ← sign(𝜋 · 𝑣), ∀𝑣 ∈ 𝑉                                   ⊲ (1) Map
+shifted by 𝜖𝑐𝑜𝑛𝑐 in both normal directions, two directly aligned to        3: 𝑋 ← { (min, max) keys of edges of 𝑇 crossing 𝜋 }                ⊲ (1) Filter
+the incident faces. The two families form a pool of 𝑊top + 4 𝑁 ce at       4: 𝑋 ← Sort(𝑋 )                                  ⊲ (2) Sort (for set building)
+the tree-search root.                                                      5: Add intersection vertex per unique key of 𝑋         ⊲ (2) Dedup; (1) Filter
+                                                                           6: // Build positive and negative parts without cap.
+  Concavity metric. We adopt CoACD’s concavity metric un-                  7: Split each 𝑡 ∈𝑇 ; append to 𝑇 + ,𝑇 −                            ⊲ (1) Filter
+changed. For a part 𝑃 with convex hull 𝐻 (𝑃), the concavity is             8: // Find boundary edges for cap ear-clipping.
+                                                                          9: 𝐷 ← { (min, max) keys of edges of the smaller of 𝑇 ± }            ⊲ (1) Map
+              cost(𝑃) = max 𝑘 𝑅𝑣 (𝑃), 𝑑𝐻 (𝑃, 𝐻 (𝑃)) ,               (1)   10: 𝐷 ← Sort(𝐷 )                                  ⊲ (2) Sort (for set building)
+                                                                          11: 𝐵 ← {𝐷 [𝑖 ] : 𝐷 [𝑖 ] unpaired with sort neighbor}              ⊲ (2) Dedup
+where 𝑅𝑣 is the radius of a sphere matching the residual volume           12: // Build the intersection caps.
+between hull and mesh, 𝑑𝐻 is the bidirectional Hausdorff distance,        13: Chain 𝐵 into closed loops 𝐿1 , . . . , 𝐿𝑘                     ⊲ (1) Reduce
+and 𝑘 is a calibration coefficient [Wei et al. 2022]. The two are com-    14: Classify each 𝐿𝑖 into outer/inner loop by 2D ray-casting.         ⊲ (1) Map
+plementary: 𝑘𝑅𝑣 captures missing hull volume, while 𝑑𝐻 captures           15: Bridge holes by ear-clipping into cap 𝐶                       ⊲ (1) Reduce
+                                                                          16: // Write back.
+the worst surface deviation in either direction. Similar to CoACD,
+                                                                          17: Heap-allocate output buffers                                         ⊲ Meta
+during the tree search we use the cheaper 𝑘𝑅𝑣 surrogate; the full
+                                                                          18: Compact vertices, remap indices, write 𝑀 + , 𝑀 −                  ⊲ (1) Map
+metric is evaluated only at the termination test.
+6   •   Ruoxi Shi, Xinyue Wei, Fanbo Xiang, Zexiang Xu, and Hao Su
+
+
+triangles: building the sorted edge-key multiset of the smaller part,      the LBVH [Lauterbach et al. 2009] data structure. Sec. 5.4 shows
+any key appearing once is a boundary edge, and steps 9–11 construct        performance comparison against CoACD’s CPU implementation.
+that multiset and isolate the unpaired keys into the boundary set 𝐵
+that the cap-loop chaining consumes.                                       4.4    Post-processing
+   The cap itself uses standard ear-clipping. We classify inner and           Connected-component splitting. CuACD decomposes any part
+outer loops on the cutting plane by ray-casting from the first vertex      along its connected components before adding it to the worklist—
+and counting outer-loop crossings; all primitives here are linear          once on the input mesh, then on the sub-parts produced by every
+traversals parallelizable by item 1 of 3.1. Appendix F walks the cap       accepted cut throughout the search. We implement this as a warp-
+step by step.                                                              parallel union-find over triangles [Tarjan 1975], with two adap-
+                                                                           tations that make it lock-free on the GPU. First, Find omits path
+4.3     Convex Hull and Concavity Evaluation                               compression entirely, becoming a purely read-only parent-chain
+Every concavity computation requires hulling the part. A single            walk; unions are then the sole writers, and finds never conflict. Sec-
+decomposition invokes the hull kernel hundreds of thousands of             ond, union-by-rank is weakened to best-effort: we attempt the rank
+times. Each call operates on anywhere from a few dozen to tens of          update with a single atomicCAS and skip retries on failure, since
+thousands of points. We ship two exact variants sharing a divide-          correctness does not depend on its success. The inner loop is then a
+and-conquer core: a plain D&C path and a hybrid path that prepends         handful of pointer operations with no embedded spin. The kernel is
+a direction-extreme prefilter.                                             lock-free in the strong progress sense (some thread always makes
+                                                                           progress, regardless of scheduling), and on mesh inputs the forest
+   Divide-and-conquer core. The core is a warp-cooperative GPU             height remains within the classical 𝑂 (log 𝑛) envelope.
+port of Preparata and Hong’s 𝑂 (𝑛 log 𝑛) 3D divide-and-conquer al-
+gorithm [Preparata and Hong 1977], in the integer-coordinate formu-          Hull merge. Once the worklist empties, a greedy merge pass al-
+lation of Bullet’s btConvexHullComputer [Coumans 2015]. All pred-          gorithmically identical to CoACD’s combines pairs of output parts
+icates are integer determinants, so the kernel is free of floating-point   whose joint hull stays below threshold 𝜏. On the GPU each candi-
+tolerance decisions. Points are sorted along the longest bounding-         date evaluation composes the hybrid convex hull with the Hausdorff
+box axis with the warp sort of Sec. 3.1, then partitioned into 16          evaluator above, requiring no new geometry kernels, signifying the
+chunks each assigned to a 2-lane hull group (item 4 in Sec. 3.1). A        reusability of our warp-level components.
+sub-warp instance of the model of Sec. 3, with one warp hosting 16
+cooperating pairs. The 16 sub-hulls merge pairwise in four balanced-       5     Results
+tree rounds. The same iterative procedure runs in two places: within       All experiments run on an NVIDIA RTX 4090 GPU paired with an
+each 2-lane chunk, and during the final sub-hull merge. At each step,      Intel Core i9-12900K CPU under CUDA 12.1 unless otherwise noted.
+it extends the merged hull by picking the next face — the one that
+rotates the most around the current bridge edge. The 2-lane group          5.1    Implementation Details
+search from the two bridge endpoints in parallel and resolve by a          All hyperparameters are listed in Appendix A; Appendix B ablates
+single shuffle (item 3 in Sec. 3.1). Appendix G of the supplemental        them.
+illustrates the recursion and the gift-wrap merge step.                       We retain CoACD’s [Wei et al. 2022] threshold default 𝜏 = 0.05
+                                                                           for cross-system comparison, and Fig. 7 surveys CuACD’s behavior
+   Direction-extreme prefilter. For large inputs the D&C path is dom-
+                                                                           across a range of 𝜏 values.
+inated by interior points that cannot appear on the output hull. The
+                                                                              The heap allocator reserves 70% of free VRAM as a sticky-slab
+hybrid variant discards them first: a warp performs 40 parallel lin-
+                                                                           pool at context creation.
+ear scans (item 1 in Sec. 3.1) along the face-normal directions of a
+level-2 icosphere, retaining 80 extreme witnesses. A hull 𝑃0 of these      5.2    Comparison with Baselines
+witnesses is built; 𝑃 0 lies inside the true hull, so any point interior
+to 𝑃0 is non-extreme and dropped, and a final divide-and-conquer              Datasets and setup. We evaluate on three benchmarks: (i) the V-
+call on the survivors ∪ 𝑃 0 ’s vertices produces the output hull. On       HACD benchmark [Mamou et al. 2016], 61 production meshes used
+V-HACD this removes ∼70% of points, yielding >12× speedup over             canonically by CoACD and NavACD; (ii) a PartNet-Mobility [Xi-
+the plain D&C GPU path at 𝑛=65, 536 (Sec. 5.4); below 𝑛=1024 the           ang et al. 2020] slice of 14,085 per-link merged meshes across 2,347
+prefilter’s overhead exceeds its savings and callers route to the D&C      articulated objects, a standard throughput stress test for robotics
+path directly.                                                             preprocessing; and (iii) an Objaverse subset [Deitke et al. 2023] of
+                                                                           1,000 uniformly sampled meshes (subsampled because CPU base-
+  Hausdorff evaluator. The concavity metric (Eq. 1) requires the           lines are too slow to run on the full set; CuACD itself decomposes
+bidirectional Hausdorff distance 𝑑𝐻 between a part’s mesh and its          the full Objaverse without failure), probing in-the-wild geometry be-
+hull. Like CoACD, we uniformly sample a point set on each mesh,            yond curated benchmarks. We compare against NavACD [Andrews
+and compute the maximum distance to the triangles on another               2024], VisACD [Fokin and Savva 2026], and CoACD [Wei et al. 2022],
+mesh for 𝑑𝐻 . Each mesh–hull pair is assigned single warp. The             sweeping each baseline’s concavity threshold until its mean output
+whole algorithm can be seen as a traversal on triangles for sampling,      concavity matches 𝜏 = 0.05 on V-HACD; at this matched-quality
+and another traversal on sampled points for computing distance,            operating point we report mean per-mesh decomposition time and
+both falling in item 1 of Sec. 3.1. For distance queries, we employ        output part count. All methods consume the same PaMO [Oh et al.
+                                                                                         CuACD: A Fully GPU-Resident Approximate Convex Decomposition    •   7
+
+
+
+Table 1. Concavity, number of parts, and decomposition time across three benchmarks, averaged over the per-mesh results. All baselines are operated at the
+threshold sweep that targets CoACD’s default mean concavity (0.05); residual concavity differences reflect the granularity of each system’s threshold knob
+rather than a quality gap. Bold marks the best entry per column; lower is better on all three axes.
+
+                                                     V-HACD                           PartNet-Mobility                       Objaverse subset
+       Method                            Concavity     #Parts    Time (s)    Concavity      #Parts    Time (s)    Concavity       #Parts    Time (s)
+       CoACD [Wei et al. 2022]              0.0495       40.5      18.03       0.0465        21.1        12.82      0.0540          59.0        25.93
+       NavACD [Andrews 2024]                0.0529       79.1      12.13       0.0614        25.6         2.96      0.0950          79.5        40.25
+       VisACD [Fokin and Savva 2026]        0.0604       37.5       9.60       0.0511        22.8         7.42      0.0702          59.9        15.92
+       Ours                                 0.0488       33.6      0.23        0.0458        21.0        0.16       0.0496          48.9        0.25
+
+
+2025]-preprocessed inputs at ratio 0.1 with 10,000 minimum faces to             Table 2. Convex hull construction time on batches of 256 independent point
+remove preprocessing variance. We exclude the PaMO stage from all               sets, in milliseconds. Within each row, bold marks the faster GPU method
+timings. Across every benchmark and ablation, CuACD completes                   and underline the second.
+every input with zero failures, including meshes with degenerate tri-
+angles. Behavior up to million-triangle inputs is reported in Sec. 5.5.               Distribution       𝑛        D&C CPU        D&C GPU        Hybrid
+   We exclude the contemporary learning-based RL-ACD [Luo et al.                                         512        47.73           1.66          1.65
+2025] and Knodt and Gao [2026], as neither releases code, weights,                                       2,048     198.23           6.47          1.33
+                                                                                      Uniform cube
+or training data.                                                                                        16,384    1729.65          59.77         5.00
+                                                                                                         65,536    6839.78         260.76        20.53
+  Quantitative analysis. From Table 1, CuACD is 78×, 80×, and
+                                                                                                         512        44.33           1.60          1.58
+104× faster than CoACD on V-HACD, PartNet-Mobility, and the                                              2,048     188.42           6.35          0.89
+Objaverse subset respectively, at matched or lower mean concavity                     Gaussian
+                                                                                                         16,384    1619.98          60.04         3.33
+and comparable or fewer parts; the gap over VisACD—the fastest                                           65,536    5561.01         243.08        17.61
+prior GPU-assisted baseline—is 40–64×. Even on a laptop RTX 3080
+Mobile, our method averages 0.64 s per mesh on the V-HACD bench-                reproducible on the CPU. On the other hand, this also proves that
+mark — an order of magnitude faster than every CPU baseline.                    CuACD’s speedup mostly comes from our system design that runs
+                                                                                the algorithm efficiently on the GPU.
+   Qualitative comparison. Figure 5 shows CuACD aligning its cuts
+with semantically meaningful features (handles, wheels, articulated               GPU profile. The main kernels sustain 25–50% warp occupancy,
+joints) on par with or cleaner than CPU baselines despite running               bounded by the registers held by intermediate algorithmic state.
+orders of magnitude faster, thanks to searching for more candidates
+than the CPU baselines can afford.
+                                                                                5.4     Reusable Component Performance
+                                                                                   Device-side heap allocator. Figure 6 (left) compares our allocator
+5.3   GPU Gains Versus Algorithmic Gains                                        against CUDA’s malloc/free on a glibc mstress-style stress test
+Table 1 mixes two effects—the GPU implementation and the enriched               (1–1024 blocks, log-uniform sizes in [4 KiB, 256 KiB]): ours scales
+candidate pool—and we separate them here.                                       linearly to the configurable arena count, which is set to 64 in the
+                                                                                experiment, and leads at every grid size, 5× contention-free and
+   Candidate generation. CuACD outperforms CoACD in quality at                  10–11× when arenas are oversubscribed.
+hyperparameters that are nominally weaker (𝐷 = 2 rather than 4,
+                                                                                   Convex hull. Table 2 benchmarks batches of 256 point sets (𝑛=512
+𝑊sub = 5 rather than 60). This is because the root candidate pool
+                                                                                to 65,536) against Bullet’s CPU hull [Coumans 2015]: the hybrid
+is enriched with 4𝑁 ce = 64 concave-edge planes to a total 94 root
+                                                                                variant runs >300× faster than Bullet and >12× faster than the plain
+candidates, which is broader than CoACD’s 60. At a fixed threshold
+                                                                                D&C GPU path at 𝑛=65,536.
+the concave-edge family brings the part count down, while we
+observe deeper branching has minimal impact. The full ablation                    Hausdorff distance. Figure 6 (b) reports our bidirectional Haus-
+results are detailed in supplemental B.                                         dorff timing on bunny and vase batches against the CoACD refer-
+                                                                                ence [Wei et al. 2022] (also used by VisACD).
+   A matched CPU implementation. To further understand our sys-
+tem, we ported CuACD’s concave edge sampling and hyperparam-                      Sorting. Our warp-cooperative quick-sort scales beyond 103 ele-
+eters to CoACD. The algorithm now mostly matches except the                     ments where CUB’s kernels do not. See Appendix C for more details.
+exploration algorithm in the search is still guided by MCTS and not
+a look-ahead tree search. We ran this modifed version of CoACD                  5.5     Scalability and Threshold Sensitivity
+on the same V-HACD benchmark we mentioned before. This CPU                      Beyond the PaMO [Oh et al. 2025] preprocessing setting used in
+port averages 33.7 parts and 0.0481 maximum concavity, largely                  Sec. 5.2, Figure 8(a,b) stress-tests CuACD on substantially heavier
+matching CuACD’s 33.6 and 0.0488. It runs at 20.85 s per mesh,                  inputs. We sweep three PaMO settings of (𝜀, 𝑅) — the simplification
+compared to original CoACD’s 18.03 and CuACD’s 0.23 s. The qual-                tolerance and remesh resolution — from coarse to fine: (10−4, 64),
+ity gain over stock CoACD is therefore the enriched pool and is                 (10−6, 128), and (none, 256), with the finest reaching ∼106 triangles.
+8   •   Ruoxi Shi, Xinyue Wei, Fanbo Xiang, Zexiang Xu, and Hao Su
+
+
+          Original         Ours           CoACD           VisACD     NavACD      Original     Ours       CoACD      VisACD       NavACD
+
+
+
+
+                          13/0.050       57/0.051        26/0.106    17/0.089               17/0.050    25/0.088    28/0.097      43/0.071
+
+
+
+
+                          21/0.049       93/0.056        41/0.194    44/0.056               106/0.050   107/0.050   132/0.045    378/0.044
+
+
+
+
+                          47/0.051       71/0.059        57/0.045    76/0.057               47/0.050    57/0.050    61/0.043      87/0.045
+
+
+
+
+                         112/0.051       131/0.058       159/0.046   426/0.055              169/0.053   184/0.055   381/0.048    243/0.058
+
+
+
+
+                          68/0.051       72/0.050        74/0.044    189/0.066              73/0.049    76/0.049    107/0.044    282/0.032
+
+
+
+
+                          26/0.049       41/0.055        37/0.044    108/0.061              34/0.048    43/0.049    39/0.042      98/0.036
+
+
+
+
+                          34/0.051       41/0.052        74/0.056    57/0.066               36/0.050    43/0.049    39/0.044      60/0.063
+
+
+
+
+                          18/0.053       26/0.054        38/0.045    23/0.054               20/0.047    26/0.052    21/0.041      46/0.052
+Fig. 5. Visual comparison of decompositions produced by CoACD, NavACD, VisACD, and CuACD at matched mean concavity on representative meshes from
+the V-HACD and PartNet-Mobility benchmarks. The two numbers under each decomposition report #parts / max per-part concavity.
+                                                                                                                                                                                                                                                                                  CuACD: A Fully GPU-Resident Approximate Convex Decomposition            •   9
+
+
+                                                                                                                                       103                                                                                                                               5.6    Application: Scene-Scale Decomposition
+                                            Ours                                                                                                                                                                                                          CPU
+                 101                        CUDA                                                                                                                                                                                                          GPU            The most operationally meaningful test of CuACD is to run it on a
+
+
+
+
+                                                                                                                        Time (ms)
+Mops / s
+
+
+
+
+                                                                                                                                       102                                                                                                                               whole scene rather than one mesh at a time. Figure 9 shows CuACD
+                 100                                                                                                                                                                                                                                                     applied to the Amazon Lumberyard Bistro [Amazon Lumberyard
+                                                                                                                                                                                     28.7×
+                                                                                                                                                                                                                                                                         2017] interior (585,299 vertices, 1,043,077 triangles): at 𝜏=0.005,
+                10 1                                                                                                                   101                                                                                                           49.9×               CuACD decomposes the full scene in 18.73 s with 2355.6 MiB peak
+                           1                4                      16 64                     256 1024                                                                   bunny                                                         vase                               GPU memory on a single RTX 4090.
+                                                                    Blocks
+                                                                             (a)                                                                                                                                   (b)
+Fig. 6. Left: allocation throughput w.r.t number of active warps on the
+stress test in log-log scale. Higher is better. Right: bidirectional Hausdorff
+distance timing for a batch of 100 mesh–hull pairs compared against the
+CoACD CPU reference [Wei et al. 2022]; lower is better.
+
+
+Million-triangle inputs are not a realistic ACD use case, but CuACD’s
+runtime grows gracefully into the multi-second regime even at 106
+triangles, and peak GPU memory stays comfortably within a single                                                                                                                                                                                                         Fig. 9. Left: input mesh. Right: CuACD output. CuACD applied to the
+RTX 4090’s 24 GiB envelope.                                                                                                                                                                                                                                              Amazon Lumberyard Bistro [Amazon Lumberyard 2017] interior (585,299
+   Figure 8(c,d) sweeps the concavity threshold 𝜏 from 0.2 down                                                                                                                                                                                                          vertices, 1,043,077 triangles): at 𝜏=0.005, CuACD decomposes the full scene
+                                                                                                                                                                                                                                                                         in 18.73 seconds with 2355.6 MiB peak GPU memory on a single RTX 4090.
+to 0.01. At the default 𝜏=0.05 CuACD averages 0.23 s per mesh;
+tightening to 𝜏=0.01 raises the average part count from ∼34 to ∼194
+and the runtime to ∼0.5 s, while peak memory grows only from 1.4                                                                                                                                                                                                         6     Conclusion and Discussion
+to 1.6 GiB—an order-of-magnitude finer decomposition for roughly
+                                                                                                                                                                                                                                                                         CuACD adapts the warp-as-unit view of Hong et al. [2011] from
+2× wall-clock cost.
+                                                                                                                                                                                                                                                                         graph traversal to computational geometry, delivering the first
+    Original Mesh            t=0.02               t=0.05                           t=0.1                t=0.2             Original Mesh                   t=0.02                        t=0.05                                t=0.1                       t=0.2          fully GPU-resident ACD orders of magnitude faster than CoACD at
+                                                                                                                                                                                                                                                                         matched or better quality across three benchmarks.
+
+                                                                                                                                                                                                                                                                           Limitations and future work. CuACD retains the hand-designed
+                                                                                                                                                                                                                                                                         search heuristics of its CoACD lineage and does not use learned
+                                                                                                                                                                                                                                                                         proposals; some cuts are suboptimal relative to a trained policy, and
+                                                                                                                                                                                                                                                                         we leave learned cut quality to future work. The device-side heap
+                                                                                                                                                                                                                                                                         does not compact across arenas after fragmentation, nor return freed
+                                                                                                                                                                                                                                                                         memory to the system allocator; the main kernels sustain 25–50%
+                                                                                                                                                                                                                                                                         SM occupancy, bounded by register pressure. Combining the warp-
+                                                                                                                                                                                                                                                                         cooperative allocation path with modern memory management and
+Fig. 7. CuACD decompositions across a range of concavity thresholds 𝜏.                                                                                                                                                                                                   register-aware scheduling is future work.
+Tighter thresholds preserve finer geometric features at the cost of more
+parts; looser thresholds yield coarser decompositions better suited to fast                                                                                                                                                                                              References
+collision queries. Across the full sweep, cuts remain aligned with semanti-
+                                                                                                                                                                                                                                                                         Timo Aila and Samuli Laine. 2009. Understanding the efficiency of ray traversal on
+cally meaningful boundaries, and runtimes stay within the order reported                                                                                                                                                                                                     GPUs. In Proceedings of the conference on high performance graphics 2009. 145–149.
+in Table 1.                                                                                                                                                                                                                                                              Amazon Lumberyard. 2017. Amazon Lumberyard Bistro, Open Research Content
+                                                                                                                                                                                                                                                                             Archive (ORCA). http://developer.nvidia.com/orca/amazon-lumberyard-bistro
+                                                                                                                                                                                                                                                                         James Andrews. 2024. Navigation-driven approximate convex decomposition. In ACM
+                                                                                                                                                                                                                                                                             SIGGRAPH 2024 Conference Papers. 1–9.
+           10      R = 256                                                          R = 256                                                                                          0.50s                                                                        1565
+                                                                          10000                                                  0.5                                                                             1600                                     1505           Marco Attene, Michela Mortara, Michela Spagnuolo, and Bianca Falcidieno. 2008. Hi-
+           8        = 10 4, R = 64                                                   = 10 4, R = 64
+                                                      Peak memory (MiB)
+
+
+
+
+                                                                                                                                                                                             Peak memory (MiB)
+
+
+
+
+                    = 10 6, R = 128                                                  = 10 6, R = 128                                                                                                             1400                              1360
+           6                                                              7500                                                   0.4                                                                                                                                         erarchical convex approximation of 3D shapes for fast region selection. Computer
+Time (s)
+
+
+
+
+                                                                                                                      Time (s)
+
+
+
+
+                                                                                                                                                                             0.34s
+                                                                                                                                                                                                                 1200                 1139
+           4                                                              5000                                                   0.3                                                                                                                                         Graphics Forum 27, 5 (2008), 1323–1333.
+                                                                                                                                                                     0.23s
+                                                                                                                                                                                                                 1000         919
+           2                                                              2500                                                   0.2           0.15s
+                                                                                                                                                       0.18s
+                                                                                                                                       0.13s                                                                      800   730                                              Emery D Berger, Kathryn S McKinley, Robert D Blumofe, and Paul R Wilson. 2000.
+           0                                                                 0
+                  103      104        105       106                                103      104        105      106                    0.2     0.15     0.1 0.05 0.02 0.01                                              0.2   0.15    0.1 0.05 0.02 0.01                     Hoard: A scalable memory allocator for multithreaded applications. ACM Sigplan
+                    # triangles (source)                                             # triangles (source)                                              threshold ( )                                                                 threshold ( )
+                             (a)                                                              (b)                                                              (c)                                                                           (d)                             Notices 35, 11 (2000), 117–128.
+Fig. 8. CuACD scalability on the V-HACD benchmark. (a) End-to-end de-                                                                                                                                                                                                    Guy E. Blelloch. 1989. Scans as Primitive Parallel Operations. IEEE Trans. Comput. 38,
+                                                                                                                                                                                                                                                                             11 (1989), 1526–1538. doi:10.1109/12.42122
+composition time and (b) peak GPU memory versus the source mesh’s                                                                                                                                                                                                        Daniel Cederman and Philippas Tsigas. 2010. Gpu-quicksort: A practical quicksort
+triangle count, across PaMO preprocessing settings parameterized by the                                                                                                                                                                                                      algorithm for graphics processors. Journal of Experimental Algorithmics (JEA) 14
+curvature-related simplification terminal threshold 𝜀 and the remesh resolu-                                                                                                                                                                                                 (2010), 1–4.
+tion 𝑅; the no-simplification “𝑅=256” setting functions as a stress test well                                                                                                                                                                                            Bernard Chazelle. 1984. Convex Partitions of Polyhedra: A Lower Bound and Worst-
+                                                                                                                                                                                                                                                                             Case Optimal Algorithm. SIAM J. Comput. 13, 3 (1984), 488–507. doi:10.1137/0213031
+above the resolutions used by VisACD (𝑅=20) and CoACD (𝑅=50). (c) Mean                                                                                                                                                                                                   Murray Cole. 1989. Algorithmic Skeletons: Structured Management of Parallel Computa-
+per-mesh time and (d) mean peak GPU memory as a function of the con-                                                                                                                                                                                                         tion. Pitman/MIT Press.
+cavity threshold 𝜏, averaged at the default PaMO setting; each marker is                                                                                                                                                                                                 Erwin Coumans. 2015. Bullet Physics SDK. https://github.com/bulletphysics/bullet3.
+annotated with its value.                                                                                                                                                                                                                                                Jeffrey Dean and Sanjay Ghemawat. 2008. MapReduce: Simplified Data Processing on
+                                                                                                                                                                                                                                                                             Large Clusters. Commun. ACM 51, 1 (2008), 107–113. doi:10.1145/1327452.1327492
+10   •   Ruoxi Shi, Xinyue Wei, Fanbo Xiang, Zexiang Xu, and Hao Su
+
+
+Matt Deitke, Dustin Schwenk, Jordi Salvador, Luca Weihs, Oscar Michel, Eli VanderBilt,     Robert Endre Tarjan. 1975. Efficiency of a Good But Not Linear Set Union Algorithm.
+    Ludwig Schmidt, Kiana Ehsani, Aniruddha Kembhavi, and Ali Farhadi. 2023. Obja-            J. ACM 22, 2 (1975), 215–225. doi:10.1145/321879.321884
+    verse: A universe of annotated 3d objects. In Proceedings of the IEEE/CVF conference   Daniel Thul, Lubor Ladicky, Sohyeon Jeong, and Marc Pollefeys. 2018. Approximate
+    on computer vision and pattern recognition.                                               convex decomposition and transfer for animated meshes. ACM Trans. Graph. 37, 6
+Boyang Deng, Kyle Genova, Soroosh Yazdani, Sofien Bouaziz, Geoffrey Hinton, and               (2018).
+    Andrea Tagliasacchi. 2020. CvxNet: Learnable Convex Decomposition. In Proceedings      Xiang Wang, Yang Hong, Harry Chang, KyoungSoo Park, Geoff Langdale, Jiayu Hu,
+    of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR).             and Heqing Zhu. 2019. Hyperscan: A Fast Multi-pattern Regex Matcher for Modern
+Egor Fokin and Manolis Savva. 2026. VisACD: Visibility-Based GPU-Accelerated                  CPUs. In 16th USENIX Symposium on Networked Systems Design and Implementation
+    Approximate Convex Decomposition. arXiv preprint arXiv:2604.04244 (2026).                 (NSDI 19). USENIX Association, 631–648.
+Mingcen Gao, Thanh-Tung Cao, Ashwin Nanjappa, Tiow-Seng Tan, and Zhiyong Huang.            Xinyue Wei, Minghua Liu, Zhan Ling, and Hao Su. 2022. Approximate convex de-
+    2013. gHull: A GPU Algorithm for 3D Convex Hull. ACM Trans. Math. Software 40,            composition for 3d meshes with collision-aware concavity and tree search. ACM
+    1 (2013), 3:1–3:19. doi:10.1145/2513109.2513112                                           Transactions on Graphics (TOG) 41, 4 (2022), 1–18.
+Pascal Gautron and Christoph Kubisch. 2023. Interactive GPU-based Decimation of            Fanbo Xiang, Yuzhe Qin, Kaichun Mo, Yikuan Xia, Hao Zhu, Fangchen Liu, Minghua
+    Large Meshes. In ACM SIGGRAPH 2023 Talks. 1–2.                                            Liu, Hanxiao Jiang, Yifu Yuan, He Wang, et al. 2020. Sapien: A simulated part-based
+Elmer G Gilbert, Daniel W Johnson, and S Sathiya Keerthi. 1988. A fast procedure for          interactive environment. In Proceedings of the IEEE/CVF conference on computer
+    computing the distance between complex objects in three-dimensional space. IEEE           vision and pattern recognition. 11097–11107.
+    Journal on Robotics and Automation 4, 2 (1988), 193–203.                               Yuezhi Yang, Qixing Huang, Mikaela Angelina Uy, and Nicholas Sharp. 2026. Learning
+Sungpack Hong, Sang Kyun Kim, Tayo Oguntebi, and Kunle Olukotun. 2011. Acceler-               Convex Decomposition via Feature Fields. arXiv preprint arXiv:2603.09285 (2026).
+    ating CUDA graph algorithms at maximum warp. Acm Sigplan Notices 46, 8 (2011),         Zehra Yildiz, Musa Aydin, and Guray Yilmaz. 2013. Parallelization of bitonic sort
+    267–276.                                                                                  and radix sort algorithms on many core GPUs. In 2013 international conference on
+Tero Karras. 2012. Maximizing Parallelism in the Construction of BVHs, Octrees, and           electronics, computer and computation (ICECCO). IEEE, 326–329.
+    𝑘 -d Trees. In Proceedings of the Fourth ACM SIGGRAPH / Eurographics Conference        Qiang Zou and Yunzhu Gao. 2024. Warp-centric GPU meta-meshing and fast triangula-
+    on High-Performance Graphics (HPG). Eurographics Association, 33–37.                      tion of billion-scale lattice structures. arXiv preprint arXiv:2405.15197 (2024).
+Julian Knodt and Xifeng Gao. 2026. Convex Primitive Decomposition for Collision
+    Detection. Computer Graphics Forum (2026). doi:10.1111/cgf.70411
+Donald E. Knuth. 1997. The Art of Computer Programming, Volume 1: Fundamental
+    Algorithms (3 ed.). Addison-Wesley.
+Samuli Laine and Tero Karras. 2011. High-performance software rasterization on GPUs.
+    In proceedings of the acm siggraph symposium on high performance graphics. 79–88.
+Geoff Langdale and Daniel Lemire. 2019. Parsing Gigabytes of JSON per Second. The
+    VLDB Journal 28, 6 (2019), 941–960. doi:10.1007/s00778-019-00578-5
+Christian Lauterbach, Michael Garland, Shubhabrata Sengupta, David Luebke, and
+    Dinesh Manocha. 2009. Fast BVH construction on GPUs. In Computer Graphics
+    Forum, Vol. 28. Wiley Online Library, 375–384.
+Doug Lea. 2000. A Memory Allocator. http://gee.cs.oswego.edu/dl/html/malloc.html.
+Jyh-Ming Lien and Nancy M Amato. 2004. Approximate convex decomposition of poly-
+    gons. In Proceedings of the twentieth annual symposium on Computational geometry.
+Jyh-Ming Lien and Nancy M Amato. 2007. Approximate convex decomposition of
+    polyhedra. In Proceedings of the 2007 ACM symposium on Solid and physical modeling.
+Erik Lindholm, John Nickolls, Stuart Oberman, and John Montrym. 2008. NVIDIA Tesla:
+    A unified graphics and computing architecture. IEEE micro 28, 2 (2008), 39–55.
+Yuzhe Luo, Zherong Pan, Kui Wu, Xingyi Du, Yun Zeng, Xiangjun Tang, Yiqian Wu,
+    Xiaogang Jin, and Xifeng Gao. 2025. RL-ACD: Reinforcement Learning-based Ap-
+    proximate Convex Decomposition. ACM Transactions on Graphics (TOG) 44, 6 (2025),
+    1–12.
+Ahmed H. Mahmoud, Andrei Serban, and John D. Owens. 2021. RXMesh: a GPU mesh
+    data structure. ACM Transactions on Graphics 40, 4, Article 104 (2021), 16 pages.
+Khaled Mamou and Faouzi Ghorbel. 2009. A simple and efficient approach for 3D mesh
+    approximate convex decomposition. In 2009 16th IEEE international conference on
+    image processing (ICIP). 3501–3504.
+Khaled Mamou, E Lengyel, and A Peters. 2016. Volumetric hierarchical approximate
+    convex decomposition. Game engine gems 3 (2016), 141–158.
+Duane Merrill. 2024. CUB :: CUDA Toolkit Documentation. https://github.com/nvidia/
+    cub
+Brian Mirtich. 1998. V-Clip: Fast and robust polyhedral collision detection. ACM
+    Transactions On Graphics (TOG) 17, 3 (1998), 177–208.
+Matthias Müller, Nuttapong Chentanez, and Tae-Yong Kim. 2013. Real time dynamic
+    fracture with volumetric approximate convex decompositions. ACM Transactions
+    on Graphics (TOG) 32, 4 (2013), 1–10.
+Seonghun Oh, Xiaodi Yuan, Xinyue Wei, Ruoxi Shi, Fanbo Xiang, Minghua Liu, and
+    Hao Su. 2025. PaMO: Parallel Mesh Optimization for Intersection-Free Low-Poly
+    Modeling on the GPU. In Computer Graphics Forum, Vol. 44. Wiley Online Library,
+    e70267.
+Franco P. Preparata and Se June Hong. 1977. Convex Hulls of Finite Sets of Points in
+    Two and Three Dimensions. Commun. ACM 20, 2 (1977), 87–93. doi:10.1145/359423.
+    359430
+Markus Steinberger, Michael Kenzel, Bernhard Kainz, and Dieter Schmalstieg. 2012.
+    ScatterAlloc: Massively Parallel Dynamic Memory Allocation for the GPU. In 2012
+    Innovative Parallel Computing (InPar). IEEE. doi:10.1109/InPar.2012.6339604
+Min Tang, Jie-yi Zhao, Ruo-feng Tong, and Dinesh Manocha. 2012. GPU Accelerated
+    Convex Hull Computation. Computers & Graphics 36, 5 (2012), 498–506. doi:10.1016/
+    j.cag.2012.03.015
+Stone Tao, Fanbo Xiang, Arth Shukla, Yuzhe Qin, Xander Hinrichsen, Xiaodi Yuan, Chen
+    Bao, Xinsong Lin, Yulin Liu, Tse-kai Chan, et al. 2024. Maniskill3: Gpu parallelized
+    robotics simulation and rendering for generalizable embodied ai. arXiv preprint
+    arXiv:2410.00425 (2024).
+                                                                                                    CuACD: A Fully GPU-Resident Approximate Convex Decomposition                                 •    11
+
+
+
+Table 3. CuACD hyperparameters and the default values used throughout                                       Nce = 0            Nce = 16                      45.0           Nce = 0        Nce = 16
+the paper unless otherwise noted.
+                                                                                             0.30           Nce = 4            Nce = 32                                     Nce = 4        Nce = 32
+                                                                                                                                                             42.5
+
+
+
+
+                                                                                                                                           Avg. # of parts
+                                                                                                            Nce = 8                                                         Nce = 8
+
+
+
+
+                                                                             Avg. time (s)
+                                                                                             0.25                                                            40.0
+ Role                                     Symbol           Value                                                                                             37.5
+ Concavity threshold                      𝜏                0.05                              0.20                                                            35.0
+ Concavity calibration coefficient        𝑘                0.3                                                                                               32.5
+ Axis-plane boundary margin               𝜀 axis      min(𝜏/4, 0.015)                                9 15   30    45                      90                        9 15   30   45                   90
+ Concave-edge plane offset                𝜀 conc          0.005                                                   Width                                                         Width
+                                                                                                                      (a)                                                         (b)
+ Axis-aligned proposals at the root       𝑊top              30               Fig. 10. Ablation of the two root-branching hyperparameters on the V-
+ Deeper-level branching factor            𝑊sub               5               HACD benchmark. (a) Mean per-mesh decomposition time. (b) Mean out-
+ Look-ahead depth                         𝐷                 2                put part count. Each curve fixes 𝑁 ce and sweeps 𝑊top ; the chosen default is
+ Sampled concave edges per part           𝑁 ce              16               (𝑊top = 30, 𝑁 ce = 16).
+ Concave-edge iteration budget            𝐼 ce              10
+
+
+                                                                             Table 4. Ablation of the remaining search knobs on V-HACD, varying one
+A   Hyperparameter Reference                                                 setting at a time from the defaults of Table 3. Lower is better on both axes.
+Table 3 lists every hyperparameter exposed by CuACD, grouped
+                                                                                                     Setting                                Avg. time (s)                   Avg. #parts
+by role. Two parameters (𝜏 and 𝑘) define the concavity metric; two
+(𝜀 axis and 𝜀 conc ) set geometric tolerances on plane placement; three                              Default                                                   0.23              33.57
+(𝑊top , 𝑊sub , 𝐷) govern the shape of the look-ahead tree; 𝑁 ce bounds                               Look-ahead depth 𝐷 = 3                                    0.41              32.89
+the concave-edge proposal budget per part; and 𝐼 ce controls for how                                 No per-iter CC-Split                                      0.25              40.87
+                                                                                                     𝐼 ce = 3                                                  0.19              35.20
+many outer iterations the concave-edge proposal family is active.
+                                                                                                     𝐼 ce = 20                                                 0.23              33.54
+We retain the CoACD threshold default 𝜏 = 0.05 so that concavity                                     𝑊sub = 3                                                  0.23              33.44
+numbers are directly comparable across systems.                                                      𝑊sub = 15                                                 0.44              33.07
+
+B   Ablation of Search Hyperparameters
+   Root branching factors. The two parameters that govern the size
+                                                                             Table 5. CuACD per-mesh distribution on the 61-mesh V-HACD benchmark:
+of the root candidate pool are 𝑊top , the number of axis-aligned             minimum, first quartile (Q1), median, third quartile (Q3), and maximum.
+proposals, and 𝑁 ce , the number of sampled concave edges (each
+emitting four planes), for a total root branching factor of 𝑊top +4 𝑁 ce .                      Metric                      Min       Q1                       Median           Q3       Max
+Figure 10 sweeps 𝑊top ∈ {9, 15, 30, 45, 90} at five fixed settings of 𝑁 ce
+                                                                                                Output parts                  3       16                          24          43          165
+on the V-HACD benchmark, reporting both mean per-mesh runtime
+                                                                                                Runtime (s)                 0.06     0.18                        0.22        0.29        0.44
+and mean output part count. Two regimes are visible. Below the knee                             Max concavity               0.023   0.0477                      0.0497      0.0513       0.059
+at (𝑊top =30, 𝑁 ce =16), undersized pools miss high-quality cuts on
+geometrically intricate parts and the search compensates with extra
+outer iterations, inflating the part count even though each individual
+evaluation is cheap; the curves in panel (b) climb steeply as the            𝑊sub = 5 as a clear operating point. Deepening the look-ahead from
+pool shrinks. Above the knee, the part count plateaus—additional             𝐷 = 2 to 𝐷 = 3 leaves the mean part count essentially unchanged
+candidates are essentially duplicates of cuts already proposed—while         (32.89 vs. 33.57) while nearly doubling runtime (0.41 s vs. 0.23 s),
+runtime continues to grow roughly linearly with the total branching          confirming depth 2 as the sweet spot.
+factor (panel a), since each candidate triggers a full bounded look-
+ahead evaluation. The two knees coincide closely across the family of           Per-mesh distribution. The averages above and in the main paper’s
+curves, indicating that 𝑊top and 𝑁 ce contribute largely independent         Table 1 aggregate the 61-mesh V-HACD benchmark, whose per-
+coverage of the cut space rather than redundantly proposing the              mesh outcomes vary with input geometry. Table 5 reports the full
+same planes. The default (𝑊top =30, 𝑁 ce =16) sits within noise of the       distribution for CuACD. Part counts span more than an order of
+quality plateau at a small fraction of the cost incurred by larger           magnitude (3–165), reflecting how some inputs decompose into
+pools, and we use it throughout the paper.                                   a handful of near-convex pieces while others fragment heavily.
+                                                                             Runtimes track the part count but stay sub-half-second on every
+  Remaining knobs. Table 4 covers the remaining search knobs. Run-           mesh, and maximum concavity never exceeds the threshold 𝜏 = 0.05
+ning CC-Split after every cut rather than only at the end reduces the        by more than sampling error, since CuACD accepts a part only once
+part count by roughly seven and slightly shortens runtime. Reduc-            its measured concavity is at or below 𝜏. Because the spread is driven
+ing 𝐼 ce from 10 to 3 shaves ∼17% off the runtime at a cost of ∼2 extra      entirely by input geometry rather than by CuACD’s settings, isolated
+parts; raising it to 20 yields no measurable improvement. 𝑊sub = 3           per-mesh metrics are uninformative on their own; the matched-
+matches the default within noise, while 𝑊sub = 15 roughly triples            mesh means in Table 1 remain the right basis for cross-system
+the look-ahead leaf count for under one part of gain, confirming             comparison.
+12   •    Ruoxi Shi, Xinyue Wei, Fanbo Xiang, Zexiang Xu, and Hao Su
+
+
+                                                                                         (a) __ballot_sync(mask, pred) → one bit per lane → 32-bit mask
+Table 6. Sort throughput on batches of 1,000 independent sequences of int4
+                                                                                          1    0       1       1       0       1       0       1       ⋯           0       1                      mask = 0b1011 0101 ... 01
+keys. Bold marks the best time and shared-memory requirement; underline                  lane 0                                                                            lane 31
+
+marks the second best among GPU methods.
+                                                                                         (b) __popc(mask & ((1<<ℓ) - 1))                                                                    → per-lane prefix → unique destination index
+
+          Seq. len.     Method                 Time (ms)      Smem (B)                     0           1               1           2           3           3           4       4        ⋯          k                   (lanes whose bit is 1
+                                                                                                                                                                                                                       get unique output slots)
+                                                                                     slot for lane 0                                                                                        slot for lane 31
+
+                        std::sort                1.5748            —                     (c) __shfl_sync(mask, val, src)                                                           → broadcast one lane's register to all 32 lanes
+                        CUB merge                0.0070           2064
+          102                                                                             v
+                        CUB radix                0.0417           4640                   src
+                        Ours                     0.0135            24                    After shuffle:
+                                                                                          v        v       v       v       v       v       v       v   v       v   v       v   v    v   v     v   v    v   v   v   v     v   v   v   v   v   v    v   v   v   v   v
+                        std::sort                25.0594           —
+                        CUB merge                0.0667          16400                                         All three intrinsics execute in a single instruction with no shared-memory traffic.
+          103
+                        CUB radix                0.1665          16896               Fig. 11. Three warp-level intrinsics carrying the partition of Algorithm 2.
+                        Ours                     0.1579           24                 Top: __ballot_sync collects one predicate bit from each of the 32 lanes into
+                        std::sort               326.9430           —                 a single 32-bit mask. Middle: __popc of the mask AND-ed with ( (1 ≪ ℓ ) −1)
+          104           CUB merge / radix          fail            —                 gives lane ℓ a unique prefix index among the lanes whose predicate fired.
+                        Ours                     4.5052            24                Bottom: __shfl_sync delivers a register value from a source lane to every
+                                                                                     lane in the warp in one instruction.
+                        std::sort               4062.6499          —
+          105           CUB merge / radix          fail            —
+                        Ours                     71.3206           24
+                                                                                     Each lane’s output slot in the corresponding
+                                                                                                                                    region is the prefix
+                                                                                     popcount __popc 𝑀∗ & ((1 ≪ ℓ) − 1) over lower-numbered lanes,
+Algorithm 2 Warp-cooperative quick-sort (per warp).                                  so the 32 lanes commit to unique destinations concurrently with no
+Require: segment 𝐴[𝑙 ..𝑟 ]; lane id ℓ ∈ [0, 31]                                      inter-lane synchronization beyond the implicit barrier of the ballot.
+ 1: push (𝑙, 𝑟 ) onto warp-private stack                                             Cooperation is expressed entirely in two warp-wide votes and a pre-
+ 2: while stack non-empty do                                                         fix popcount. Less-than elements grow the left region forward and
+ 3:    (𝑙, 𝑟 ) ← pop                                                                 greater-than elements grow the right region backward; the interior
+ 4:    if 𝑟 − 𝑙 ≤ 32 then                                                            is then filled with 𝑝, yielding (< 𝑝 | =𝑝 | > 𝑝) in 𝑂 (𝑛) loads with
+ 5:          BitonicSort(𝐴[𝑙 ..𝑟 ])                                    ⊲ base case   zero auxiliary shared memory.
+ 6:    else
+                                                                                        Primitive operations. Three CUDA warp-level intrinsics carry the
+ 7:          𝑝 ← Median32(𝐴[𝑙 ..𝑟 ])
+                                                                                     partition (Figure 11): __ballot_sync(mask, pred) returns a 32-bit
+ 8:          (𝑚 1, 𝑚 2 ) ← WarpPartition3(𝐴[𝑙 ..𝑟 ], 𝑝)
+                                                                                     integer in which bit ℓ is set iff lane ℓ’s predicate is true; __popc(x)
+ 9:          push (𝑚 2 +1, 𝑟 ) and (𝑙, 𝑚 1 −1)
+                                                                                     returns the population count of an integer; and __shfl_sync broad-
+10:    end if
+                                                                                     casts a register value from a source lane to every lane in the warp.
+11: end while
+                                                                                     All three execute in a single instruction with no shared-memory
+                                                                                     traffic.
+C        Warp-Cooperative Sort: Component Benchmark
+                                                                                     E        Heap Allocator Internals
+Table 6 compares the warp-cooperative quick-sort described in
+                                                                                     This appendix details the warp-level entry, slab sizing, and boundary-
+Sec. 3.1 of the main paper against std::sort on the CPU and
+                                                                                     tag coalescing summarized by the caption of Figure 3 in the main
+CUB’s block-scope merge and radix sorts, on batches of 1,000 int4
+                                                                                     paper and Sec. 3.3.
+sequences from 102 to 105 elements. Our kernel is the only GPU
+method that remains feasible at the largest sizes—CUB’s block func-                     Spin-lock and boundary tags. A spin-lock is a lock acquired by
+tions exceed shared-memory capacity beyond 103 —while requiring                      repeatedly polling a memory location until it is observed unlocked.
+only 24 bytes of shared memory and accepting dynamically sized                       Only lane 0 of each warp holds the per-arena lock, so the polling traf-
+inputs. At the sizes where CUB merge is feasible, our kernel stays                   fic is bounded by the number of co-resident warps sharing the arena
+within a small constant factor of it.                                                rather than the raw thread count. Each block stores a small header
+                                                                                     at both ends—a boundary tag in the sense of Knuth [Knuth 1997]—so
+D        Warp-Cooperative Sort: Algorithm and Mechanics                              on free we locate the immediate neighbor blocks in 𝑂 (1) pointer
+This appendix gives the explicit algorithm and instruction sequence                  chases and merge them if they too are free. No offline compaction
+of the warp-cooperative quick-sort summarized in Sec. 3.1 of the                     pass is ever required.
+main paper.
+                                                                                       𝑂 (1) bin lookup and slab sizing. Each arena maintains 32 power-
+  Warp-parallel three-way partition. Given a pivot 𝑝, we sweep the                   of-two bins, each split at its midpoint into two sub-bins, so a single
+segment in 32-element chunks with a 1-to-1 chunk-to-lane assign-                     64-bit bitmap records which sub-bins are non-empty. The smallest
+ment. Lane ℓ loads one element 𝑒 and contributes to two warp-wide                    feasible sub-bin is located in one __ffsll instruction (find-first-set
+masks via __ballot_sync: 𝑀< collects 𝑒 < 𝑝, 𝑀> collects 𝑒 > 𝑝.                       on a 64-bit integer) and its free-list head is popped directly, making
+                                                                                           CuACD: A Fully GPU-Resident Approximate Convex Decomposition                                               •       13
+
+
+                                                                                       (a) convex / reflex                 (b) warp-parallel ear test                        (c) clip valid ear at B
+an in-bin allocation a constant-time operation under the spin-lock.
+                                                                                  A                               B        A                             B               A                      (B)
+When no bin is feasible the allocator bumps the underlying linear
+                                                                                                                                             D inside!
+pool for a fresh slab sized to at least twice the aligned request                                                                        lane 3
+                                                                                             D                                      D                        lane 2               D
+plus sentinel overhead. This invariant guarantees that the post-split                                                 C                                      C                                            C
+
+remainder lands in a strictly higher sub-bin than the current request,
+                                                                                                                                                         lane 4
+so the next request of the same shape hits the free list rather than                                              E                                      E                                            E
+                                                                                  F                                        F                                             F
+the pool, and the pool size stabilizes after the first decomposition
+                                                                                      convex       reflex                  32 lanes test polygon at stride 32;                 △ABC → cap output
+call.                                                                                                                      __ballot_sync collapses to one bit                next[A] ← C, prev[C] ← A
+                                                                                           classify by sign of                                                                     remaining ← 5
+                                                                                      incident-edge cross product          ear at A rejected → advance cur
+                                                                              Fig. 12. Warp-cooperative ear-clipping on a cap loop. (a) Convex and reflex
+F   Mesh–Plane Clipper Internals
+                                                                              vertices are classified by the sign of the cross product of incident edges;
+This appendix details the ear-clipping sub-procedure inside the               D is the only reflex vertex, so A, B, C, E, F are ear candidates. (b) For the
+mesh–plane clipper. The surrounding pipeline—sign classification,             candidate ear at A, the 32 warp lanes scan polygon indices at stride 32 and
+triangle splitting, boundary discovery, and loop reconstruction—is            test in parallel whether any other vertex lies inside triangle (𝐹, 𝐴, 𝐵); D is
+already covered in Sec. 4.2 and Algorithm 1 of the main paper and             inside, so __ballot_sync rejects the ear and the cursor advances. (c) At B
+is not restated here.                                                         the test passes; triangle 𝐴𝐵𝐶 is written to the cap output, B is spliced out
+                                                                              of the prev/next list, and the new diagonal 𝐴𝐶 becomes a polygon edge.
+   Ears. Each open boundary loop is closed by ear-clipping. Outer
+and inner loops are first classified by 2D ray casting and inner loops
+                                                                               (a) split along longest axis               (b) sub-hulls per group                         (c) gift-wrap merge
+are bridged into their enclosing outer loop by a single chord, after
+                                                                                                       split axis
+which the cap becomes a simple polygon. An ear is a vertex 𝑣 cur
+whose polygon neighbors 𝑣 𝑝 and 𝑣𝑛 satisfy two conditions: (i) 𝑣 cur
+is convex—the cross product of the incoming and outgoing edges
+has the same sign as the polygon’s orientation—and (ii) no other
+polygon vertex lies inside the triangle (𝑣 𝑝 , 𝑣 cur, 𝑣𝑛 ). Clipping an ear
+emits that triangle, removes 𝑣 cur from the polygon, and reduces the
+                                                                                       left half            right half    2 lanes per group, in registers             rotate bridge edges → merged hull
+vertex count by one. Iterating until three vertices remain yields a
+complete triangulation.                                                       Fig. 13. One step of the divide-and-conquer convex hull. Left: the input
+                                                                              point set is split along the longest bounding-box axis into two halves. Mid-
+    Warp-cooperative ear test. The polygon is held in shared memory           dle: each half is hulled independently inside a hull group. Right: the two
+as a doubly-linked list with arrays prev and next (case (c) of the            child hulls are merged by gift-wrapping the bridge edge around their bound-
+recipe in App. I). Lane 0 of the cap warp walks the list with a               aries.
+cursor cur (Figure 12). At each step lane 0 reads 𝑣 𝑝 = prev[cur]
+and 𝑣𝑛 = next[cur], computes the cross product, and broadcasts
+the result via __shfl_sync. If 𝑣 cur is reflex, the cursor advances;          H        Inefficiencies of the Per-Phase CUDA Decomposition
+if |cross| ≤ 𝜀, a degenerate zero-area ear is emitted to keep the             This appendix details how a conventional CUDA implementation
+cap watertight at T-junctions and along edges split into collinear            decomposes the mesh–plane clipper of Sec. 4.2 into a sequence of
+segments. Otherwise the warp runs a parallel point-in-triangle test:          separate kernel launches, and how that mapping yields the two
+each of the 32 lanes scans polygon indices at stride 32 and tests             kernel-boundary inefficiencies named in Sec. 1 and Sec. 3 of the
+its assigned vertices against the candidate ear, and __ballot_sync            main paper: last-wave underfill, and the host round trip required to
+collapses the per-lane hits into a single warp-wide bit (case (a) of          size the next launch from a variable-sized output (Figure 14).
+the recipe). If no hit, 𝑣 cur is an ear; lane 0 emits the triangle, splices
+𝑣 cur out of the list by writing next[𝑣 𝑝 ]← 𝑣𝑛 and prev[𝑣𝑛 ]← 𝑣 𝑝 ,             One kernel per phase, by example. The natural CUDA decom-
+and decrements the remaining count. Cost is 𝑂 (𝑁 ) work per ear in            position maps each line of Algorithm 1 that processes a differ-
+𝑂 (𝑁 /32) rounds, 𝑂 (𝑁 2 /32) across the polygon.                             ent set of items into its own kernel. For the clipper, this expands
+                                                                              to roughly seven launches per cut. (1) ClassifyVertices: one
+G    Convex Hull Internals                                                    thread per input vertex writes sign(𝜋 ·𝑣) into a global sign array.
+                                                                              (2) CollectCrossEdges: one thread per input triangle filters trian-
+This appendix details the divide-and-conquer convex hull summa-
+                                                                              gles that cross the plane and appends their unordered edge keys via
+rized in Sec. 4.3.
+                                                                              an atomicAdd counter; the output length depends on how many tri-
+   Hull-pair merge. The merge step in the divide-and-conquer hull             angles the plane intersects. (3) SortKeys: a library sort (CUB radix
+of Sec. 4.3 uses gift-wrapping [Preparata and Hong 1977]: it picks            or merge) sorts the key array, after which (4) DedupAndIntersect
+an initial cross-edge spanning the two extreme points along the               adds one intersection vertex per unique key; the output length
+merge axis, then rotates that edge around its endpoints, at each step         depends on key uniqueness. (5) SplitTriangles: one thread per
+advancing whichever endpoint exposes the larger turning angle,                input triangle emits up to three child triangles into 𝑇 + or 𝑇 − ; the
+until the rotation closes a ring. The two lanes of each hull group            per-side counts are data-dependent. (6) FindBoundary: a second
+search from the two bridge endpoints in parallel and resolve each             key-sort plus a neighbor-scan flags unpaired boundary edges of
+step with a single warp shuffle. Figure 13 illustrates one merge step.        the smaller side; the boundary count depends on the cut geometry.
+14                    •    Ruoxi Shi, Xinyue Wei, Fanbo Xiang, Zexiang Xu, and Hao Su
+
+
+                                                                                                                 (a) cooperative scan at stride 32                                        → rounds tile the array at stride 32
+(7) ChainAndCap: chain the boundary edges into closed loops and
+                                                                                                                 0 1 2 3       ⋯            31   │        0 1 2 3       ⋯      31     │    0     ⋯   31       lane ℓ reads index 32·r + ℓ
+ear-clip them; loops are typically few and serial enough that this                                                      round 1                               round 2                     round ⌈N/32⌉
+
+last phase either runs on the host or under-fills the GPU. Each pair
+                                                                                                                 (b) butterfly-shuffle reduction                                       → reduce 32 partial values into one in 5 shuffles
+of adjacent kernels above is separated by a device synchronization,                                                               lane 0             1            2           3            4          5         6        7
+                                                                                                                                      v₀             v₁           v₂          v₃           v₄        v₅         v₆       v₇
+a host-side read of the producing kernel’s output size, and a launch
+                                                                                                                                                                                                                                 round 1: ⊕ 1
+of the consuming kernel sized accordingly.
+                                                                                                                                      v₀₁            v₀₁          v₂₃        v₂₃          v₄₅        v₄₅        v₆₇     v₆₇
+
+
+   Last-wave underfill. A kernel scheduled at thread granularity                                                                                                                                                                 round 2: ⊕ 2
+
+finishes when its last thread retires. When a phase’s work distri-                                                                 v₀–₃          v₀–₃         v₀–₃           v₀–₃         v₄–₇       v₄–₇      v₄–₇     v₄–₇
+
+bution shrinks toward the kernel boundary—CollectCrossEdges                                                                                                                                                                      round 3: ⊕ 4
+keeps only triangles that cross the plane, the prefilter pass of the                                                               v₀–₇          v₀–₇         v₀–₇           v₀–₇         v₀–₇       v₀–₇      v₀–₇     v₀–₇
+
+hull discards interior points, a tree-search node prunes most of its                                          round i: lane ℓ exchanges with lane ℓ ⊕ 2ᵢ via __shfl_xor; 8 lanes shown, 32 lanes need 5 rounds (strides 1, 2, 4, 8, 16)
+
+children—the trailing fraction of warps runs to completion while                                                 (c) vote+popcount dense filter                                    → lanes whose predicate fired write to packed slots
+almost the whole machine sits idle. The seven-launch split above                                                 1 0 1 1 0 1 0 1                     ⋯        1             __ballot_sync                   mask = 0b1011 0101 ... 1
+                                                                                                                 predicate per lane
+adds one such tail per kernel boundary; the fractions accumulate.
+                                                                                                                 __popc(mask & ((1<<ℓ)-1))                        → per-lane prefix gives a unique destination index
+                                                                                                                 v0 v2 v3 v5 v7             ⋯    vₘ                         sparse variant: a single atomicAdd on a shared-memory counter
+   Variable-sized output. Each kernel’s output size is known only                                                compacted output                                           yields the destination slot with no warp-wide vote.
+
+after that kernel finishes running, and in the conventional split the
+host CPU reads the size and issues the next launch. Each round trip                                                          Scanning, reducing, and filtering an array all reuse three warp intrinsics
+                                                                                                                                  (cooperative stride; __shfl_xor for reduction; __ballot_sync + __popc for filter)
+costs a CUDA stream synchronization and roughly the latency of                                               Fig. 15. Warp-cooperative array operations. Top: stride-32 cooperative scan
+cudaMemcpy on a tiny payload, but issued once per phase boundary                                             over an 𝑁 -element array; lane ℓ visits index 32𝑟 + ℓ on round 𝑟 . Middle:
+across hundreds of thousands of cuts the cumulative cost is substan-                                         butterfly-shuffle reduction combines the 32 partial values in 5 shuffles
+tial. CUDA Graphs do not lift this dependency: each cut changes a                                            via __shfl_xor_sync. Bottom: a vote+popcount dense filter compacts
+phase’s output size, which changes the consuming kernel’s launch                                             predicate-true elements into a packed output array; a sparse filter substi-
+shape and forces the graph to be rebuilt.                                                                    tutes a single atomicAdd on a shared-memory counter.
+
+
+                      (a) per-phase CUDA decomposition: inefficiencies at every kernel boundary
+                                 phase 1                  phase 2                     phase 3      phase 4
+       100%                                                                                                  where on round 𝑖 each lane swaps its accumulator with lane ℓ ⊕ 2𝑖
+    GPU utilization
+
+
+
+
+                                                   host                                                      via __shfl_xor_sync [Blelloch 1989] (Figure 15, middle). A subse-
+                                                  round                  round
+                                                   trip                   trip                               quent dense filter keeps only those elements whose predicate fires:
+                                                                                                             __ballot_sync packs the per-lane predicate bits into a32-bit mask,
+                      0%
+                                                                      time                                   and the prefix popcount __popc mask & ((1 ≪ ℓ) − 1) gives each
+                                                                                                             surviving lane a unique destination slot in the output (Figure 15,
+                           last wave: stragglers leave       host CPU sizes the next launch
+                           most of the GPU idle                                                              bottom). When the surviving fraction is small, a single atomicAdd
+                      (b) warp-resident fusion: phase transitions are intra-warp control-flow edges          on a shared-memory counter yields the destination slot directly
+       100%                                                                                                  without the warp-wide vote. The mechanics of __ballot_sync,
+                                   phase 1                phase 2                   phase 3     phase 4
+                      0%                                                                                     __popc, and __shfl_sync are illustrated in Figure 11.
+Fig. 14. Two inefficiencies of the per-phase CUDA decomposition. Top: a                                         (b) Sorting, deduplication, and membership query. All three reduce
+phase’s work tapers off toward its boundary; only a few warps remain active                                  to the warp-cooperative quick-sort of Appendix D, whose three-way
+in the last wave while the rest of the GPU is idle, and the next kernel cannot
+                                                                                                             partition is itself a vote+popcount filter (case (a)). Set construction
+launch until the final warp retires. Bottom: the next kernel’s input buffer
+must be sized from the producing kernel’s output, which forces the host
+                                                                                                             extends the sort with a single parallel neighbor-scan that drops
+CPU into the loop between every phase pair. Warp-resident fusion (Sec. 3)                                    adjacent duplicates—an application of the dense filter primitive on
+replaces both kernel boundaries with intra-warp control-flow edges and                                       the sorted array. A membership query against a constructed set is
+removes the host from the inner loop.                                                                        answered by a binary search executed cooperatively across the 32
+                                                                                                             lanes, which together resolve five comparison rounds before the
+                                                                                                             search range shrinks below one element. Figure 11 of Appendix D
+                                                                                                             illustrates the partition mechanics that carry all three operations.
+I                     Warp-Centric Primitive Templates
+                                                                                                                (c) Fine-grained symmetric work. When an operation acts in par-
+This appendix illustrates the four primitive cases of the warp-centric
+                                                                                                             allel on two related entities—both endpoints of an edge, both di-
+design recipe in Sec. 3 of the main paper. Two of the four already
+                                                                                                             rections of a doubly linked list, both sides of a bridge edge during
+have dedicated figures elsewhere in the supplemental and are cross-
+                                                                                                             convex-hull merge—we partition the warp into 16 two-lane groups,
+referenced rather than redrawn.
+                                                                                                             with one lane per entity in the pair (Figure 16). Each group owns
+   (a) Scanning an array. The 32 lanes scan an array of 𝑁 elements                                           one independent task and the two lanes within the group cooper-
+at stride 32, so each lane visits index 32𝑟 + ℓ on round 𝑟 (Figure 15,                                       ate at full SIMD efficiency: a single __shfl_xor_sync exchanges
+top). A subsequent reduction over the 32 partial values is imple-                                            register values between the paired lanes in one instruction. The
+mented as a butterfly tree of warp shuffles in log2 32 = 5 rounds,                                           pattern is particularly valuable when the pair structure is the unit
+                                                                                                                        CuACD: A Fully GPU-Resident Approximate Convex Decomposition   •   15
+
+
+            16 two-lane groups in one warp: each group acts on a paired entity
+
+                                    ⋯                                   even lane (e.g. endpoint A)
+
+   grp 0    grp 1   grp 2   grp 3              grp 14 grp 15            odd lane (e.g. endpoint B)
+
+            each group owns one entity; the two lanes within the group cooperate at SIMD efficiency 1.0
+
+                         Two recurring use-cases of paired-lane symmetric work
+    (a) doubly-linked list, both directions                     (b) symmetric operation on edge endpoints
+                                                                    lane A: f(u, …)              lane B: f(v, …)
+           n₄       n₃         n₂       n₁      n₀
+                                                                          u                            v
+
+
+           lane A ← prev            next → lane B
+
+                                                               __shfl_xor combines the two results in one instruction
+
+Fig. 16. Fine-grained symmetric work pattern. Top: a warp partitions into
+16 two-lane groups, with one lane per endpoint of a paired entity (e.g. edge
+endpoints or doubly linked list neighbors). Bottom: two recurring use-
+cases—bidirectional traversal of a doubly linked list (left), and a symmetric
+operation on the two endpoints of an edge whose results are combined by
+a single warp shuffle (right).
+
+
+
+of work itself, in which case 16 such units fit in one warp’s register
+file. CuACD applies this template inside the convex-hull merge of
+Sec. 4.3 (Appendix G), where each two-lane group rotates one bridge
+endpoint while the partner lane tracks the other.
+   (d) Divide and conquer. A 𝐾-way split (typically 𝐾 =16 or 𝐾 =32)
+assigns one branch per lane, or per case-(c) lane-pair, executes the
+branches in parallel, and merges the results pairwise up a tree.
+CuACD applies the pattern to the top-level split of the divide-and-
+conquer hull (Sec. 4.3): the input point set is split 16 ways, with one
+2-lane group of case (c) per chunk hulling its points in registers,
+and the 16 sub-hulls then merge pairwise up the tree. Figure 13
+of Appendix G illustrates the split–hull–merge sequence. The pat-
+tern sits last in the order of preference because the data-dependent
+control flow inside each branch is not guaranteed to retain warp
+lockstep, eroding the SIMD benefit unless the branches are short
+and structurally similar.
+

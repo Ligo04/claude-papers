@@ -1,0 +1,204 @@
+{
+  "source": "arXiv:2609.28731v1",
+  "hardware": "RTX 4090 + Intel i9-12900K; CUDA 12.1",
+  "timing_scope": "PaMO preprocessing excluded; mean decomposition time per mesh",
+  "table1": {
+    "V-HACD": {
+      "meshes": 61,
+      "methods": {
+        "CoACD": {
+          "concavity": 0.0495,
+          "parts": 40.5,
+          "seconds": 18.03
+        },
+        "NavACD": {
+          "concavity": 0.0529,
+          "parts": 79.1,
+          "seconds": 12.13
+        },
+        "VisACD": {
+          "concavity": 0.0604,
+          "parts": 37.5,
+          "seconds": 9.6
+        },
+        "CuACD": {
+          "concavity": 0.0488,
+          "parts": 33.6,
+          "seconds": 0.23
+        }
+      }
+    },
+    "PartNet-Mobility": {
+      "meshes": 14085,
+      "methods": {
+        "CoACD": {
+          "concavity": 0.0465,
+          "parts": 21.1,
+          "seconds": 12.82
+        },
+        "NavACD": {
+          "concavity": 0.0614,
+          "parts": 25.6,
+          "seconds": 2.96
+        },
+        "VisACD": {
+          "concavity": 0.0511,
+          "parts": 22.8,
+          "seconds": 7.42
+        },
+        "CuACD": {
+          "concavity": 0.0458,
+          "parts": 21.0,
+          "seconds": 0.16
+        }
+      }
+    },
+    "Objaverse subset": {
+      "meshes": 1000,
+      "methods": {
+        "CoACD": {
+          "concavity": 0.054,
+          "parts": 59.0,
+          "seconds": 25.93
+        },
+        "NavACD": {
+          "concavity": 0.095,
+          "parts": 79.5,
+          "seconds": 40.25
+        },
+        "VisACD": {
+          "concavity": 0.0702,
+          "parts": 59.9,
+          "seconds": 15.92
+        },
+        "CuACD": {
+          "concavity": 0.0496,
+          "parts": 48.9,
+          "seconds": 0.25
+        }
+      }
+    }
+  },
+  "table2": {
+    "Uniform cube": [
+      {
+        "points_per_set": 512,
+        "cpu_ms": 47.73,
+        "gpu_dc_ms": 1.66,
+        "gpu_hybrid_ms": 1.65
+      },
+      {
+        "points_per_set": 2048,
+        "cpu_ms": 198.23,
+        "gpu_dc_ms": 6.47,
+        "gpu_hybrid_ms": 1.33
+      },
+      {
+        "points_per_set": 16384,
+        "cpu_ms": 1729.65,
+        "gpu_dc_ms": 59.77,
+        "gpu_hybrid_ms": 5.0
+      },
+      {
+        "points_per_set": 65536,
+        "cpu_ms": 6839.78,
+        "gpu_dc_ms": 260.76,
+        "gpu_hybrid_ms": 20.53
+      }
+    ],
+    "Gaussian": [
+      {
+        "points_per_set": 512,
+        "cpu_ms": 44.33,
+        "gpu_dc_ms": 1.6,
+        "gpu_hybrid_ms": 1.58
+      },
+      {
+        "points_per_set": 2048,
+        "cpu_ms": 188.42,
+        "gpu_dc_ms": 6.35,
+        "gpu_hybrid_ms": 0.89
+      },
+      {
+        "points_per_set": 16384,
+        "cpu_ms": 1619.98,
+        "gpu_dc_ms": 60.04,
+        "gpu_hybrid_ms": 3.33
+      },
+      {
+        "points_per_set": 65536,
+        "cpu_ms": 5561.01,
+        "gpu_dc_ms": 243.08,
+        "gpu_hybrid_ms": 17.61
+      }
+    ]
+  },
+  "table4": [
+    {
+      "label": "默认",
+      "seconds": 0.23,
+      "parts": 33.57
+    },
+    {
+      "label": "深度 D=3",
+      "seconds": 0.41,
+      "parts": 32.89
+    },
+    {
+      "label": "取消逐轮 CC-Split",
+      "seconds": 0.25,
+      "parts": 40.87
+    },
+    {
+      "label": "凹边启用轮数 I_ce=3",
+      "seconds": 0.19,
+      "parts": 35.2
+    },
+    {
+      "label": "凹边启用轮数 I_ce=20",
+      "seconds": 0.23,
+      "parts": 33.54
+    },
+    {
+      "label": "深层宽度 W_sub=3",
+      "seconds": 0.23,
+      "parts": 33.44
+    },
+    {
+      "label": "深层宽度 W_sub=15",
+      "seconds": 0.44,
+      "parts": 33.07
+    }
+  ],
+  "table5": {
+    "statistics": [
+      "min",
+      "Q1",
+      "median",
+      "Q3",
+      "max"
+    ],
+    "parts": [
+      3,
+      16,
+      24,
+      43,
+      165
+    ],
+    "seconds": [
+      0.06,
+      0.18,
+      0.22,
+      0.29,
+      0.44
+    ],
+    "max_concavity": [
+      0.023,
+      0.0477,
+      0.0497,
+      0.0513,
+      0.059
+    ]
+  },
+  "table2_batch_size": 256
+}

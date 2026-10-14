@@ -1,0 +1,32 @@
+{
+  "title": "S4R: Scaling for Rigid-Body Interpenetration Resolution",
+  "authors": [
+    "Zhiyang Dou",
+    "Ang Zhao",
+    "Chen Peng",
+    "Minghao Guo",
+    "Haixu Wu",
+    "Cheng Lin",
+    "Yuan Liu",
+    "Junfeng Yao",
+    "Xiaohu Guo",
+    "Wenping Wang",
+    "Wojciech Matusik"
+  ],
+  "abstract": "S4R resolves deep rigid-body mesh interpenetration through scale continuation: shrink bodies about fixed reference centers to a separated initial scale, restore full scale through minimum-norm convex contact QPs, accelerate exact mesh queries with conservative scale events and frozen-witness caching, then verify and refine at full scale.",
+  "year": 2026,
+  "date": "2026-09-17",
+  "tags": [
+    "rigid-body repair",
+    "scale continuation"
+  ],
+  "githubLinks": [
+    "https://github.com/Frank-ZY-Dou/Dynamics-Modeling"
+  ],
+  "codeLinks": [
+    "https://github.com/Frank-ZY-Dou/Dynamics-Modeling/tree/main/Penetration_Solving"
+  ],
+  "sourcePaper": "https://arxiv.org/abs/2609.20524",
+  "sourceBlog": "https://frank-zy-dou.github.io/blog/to-scale-or-not-to-scale/",
+  "sourceCommit": "91cbaf2672a6f587075ad75ceed770717d5e6e85"
+}

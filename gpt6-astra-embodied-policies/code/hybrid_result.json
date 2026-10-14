@@ -1,0 +1,44 @@
+{
+  "mode": "hybrid",
+  "records": [
+    {
+      "step": 0,
+      "proposal": 0.2,
+      "command": 0.2,
+      "source": "policy",
+      "position": 0.2,
+      "contact_ok": false
+    },
+    {
+      "step": 1,
+      "proposal": 0.2,
+      "command": 0.2,
+      "source": "policy",
+      "position": 0.4,
+      "contact_ok": true
+    },
+    {
+      "step": 2,
+      "proposal": 0.9,
+      "command": 0.6,
+      "source": "astra_correction",
+      "position": 1.0,
+      "contact_ok": false
+    }
+  ],
+  "summary": {
+    "steps": 3,
+    "final_position": 1.0,
+    "success": true,
+    "executed_step_sources": {
+      "policy": 2,
+      "astra_correction": 1
+    },
+    "paper_reference": {
+      "robodojo_hybrid_success_percent": 48.0,
+      "robodojo_hybrid_policy_step_share_percent": 85.6,
+      "robodojo_hybrid_astra_step_share_percent": 14.4,
+      "note": "这些数字来自论文；toy trajectory 不是论文评测。"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "required_files": 17,
+  "qa": 15,
+  "tags": [
+    "凸分解",
+    "Warp协作"
+  ],
+  "index_entries": 56,
+  "source_revision": "13a00e25477f53a3533938b0325e2d575e3fd68b",
+  "html_sha256": "6520336925f2133d5e65c898e6d8447f273417e090bae7cdc7bd52da31145079",
+  "screenshots": [
+    "desktop-method.png",
+    "desktop-overview.png",
+    "desktop-results.png",
+    "mobile-method.png",
+    "mobile-notes.png",
+    "mobile-overview.png",
+    "mobile-qa.png",
+    "mobile-results.png",
+    "mobile-source.png"
+  ],
+  "official_cuda_run": false
+}

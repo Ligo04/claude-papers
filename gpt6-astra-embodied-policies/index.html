@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astra 具身策略：论文导览</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#f7f7f3;--paper:#fffefa;--ink:#18211f;--muted:#66716c;--line:#dfe5df;--green:#2e735b;--green2:#b9d9c9;--coral:#cf6c52;--coral2:#f2d4c9;--yellow:#e4b84e;--shadow:0 8px 28px rgba(31,59,45,.07)}
+:root[data-theme="dark"]{--bg:#15201c;--paper:#1e2b25;--ink:#f3f3ed;--muted:#b6c2bc;--line:#3c4e44;--green:#9bd2b3;--green2:#315d4a;--coral:#f09b80;--coral2:#684237;--yellow:#f0ce72;--shadow:0 8px 28px rgba(0,0,0,.25)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1120px;margin:auto;padding:24px 20px 72px}
+header{padding:38px 0 26px;border-bottom:1px solid var(--line)}
+.eyebrow{color:var(--green);font:700 12px/1.2 Georgia,serif;letter-spacing:.12em;text-transform:uppercase}
+h1,h2,h3{font-family:Georgia,"Noto Serif SC","Songti SC",serif;letter-spacing:-.02em}
+h1{font-size:clamp(29px,5vw,52px);line-height:1.12;margin:14px 0 12px;max-width:850px}
+h2{font-size:25px;line-height:1.25;margin:0 0 8px}
+h3{font-size:18px;margin:0 0 5px}
+.lede{font-size:17px;color:var(--muted);max-width:850px;margin:0}
+.meta{margin-top:16px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:8px 18px}
+a{color:var(--green)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 4px}
+button,select,input{font:inherit}
+button,.select{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:8px 13px;cursor:pointer}
+button:hover{border-color:var(--green)}
+button.active{background:var(--green);border-color:var(--green);color:white}
+button.theme{margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:24px 0}
+.kpi{background:var(--paper);padding:18px 19px}
+.kpi b{display:block;font:700 30px/1.1 Georgia,serif;color:var(--green)}
+.kpi span{display:block;color:var(--muted);font-size:12.5px;margin-top:5px}
+main{padding-top:26px}
+.view{display:none}
+.view.on{display:block}
+section{margin:0 0 38px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:21px 22px;box-shadow:var(--shadow)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}.theme{margin-left:0}}
+.note{border-left:4px solid var(--coral);padding:10px 13px;background:var(--coral2);color:var(--ink);border-radius:0 8px 8px 0;margin-top:14px}
+.small{font-size:13px;color:var(--muted)}
+.statline{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:9px 0}
+.statline:last-child{border-bottom:0}
+.statline strong{color:var(--green)}
+.diagram{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;align-items:center;margin-top:15px}
+.node{padding:12px 8px;text-align:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:12.5px;min-height:62px;display:flex;align-items:center;justify-content:center}
+.arrow{text-align:center;color:var(--coral);font-size:20px}
+@media(max-width:700px){.diagram{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}}
+.bar{display:grid;grid-template-columns:150px 1fr 64px;gap:10px;align-items:center;margin:11px 0;font-size:13px}
+.bar .track{height:14px;background:var(--bg);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.bar .fill{height:100%;background:var(--green);border-radius:99px;transition:width .3s}
+.bar.coral .fill{background:var(--coral)}
+.domain-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+.domain-controls label{font-size:13px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:13px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+tr:hover td{background:var(--bg)}
+.pill{display:inline-block;border-radius:99px;padding:2px 8px;background:var(--green2);color:var(--ink);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.cards .card{box-shadow:none}
+.timeline{height:22px;background:var(--bg);border-radius:99px;border:1px solid var(--line);overflow:hidden}
+.timeline .fill{height:100%;width:1%;background:linear-gradient(90deg,var(--green),var(--coral));transition:width .2s}
+.range{width:100%;accent-color:var(--green)}
+details{border-top:1px solid var(--line);padding:11px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:650}
+footer{border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:12.5px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">arXiv 2609.38537v1 · cs.RO · September 2026</div>
+  <h1>Systematically Exploring the Capabilities of GPT-6 Astra as Embodied Policies</h1>
+  <p class="lede">这不是“语言模型会不会输出关节数”的单点测试，而是一份关于控制责任的系统审计：Astra 什么时候直接动作，什么时候审核 learned policy，什么时候依赖冻结的 whole-body controller，以及这些选择要付出多少物理失败和推理延迟。</p>
+  <div class="meta"><span>作者：Galbot Team + 33 位合作者</span><span>46 pages</span><span>标签：具身策略评测 · 混合闭环控制</span><a href="https://arxiv.org/abs/2609.38537v1">arXiv 页面</a><a href="https://galaxygeneralrobotics.github.io/astra-policy/">项目页</a></div>
+  <div class="toolbar">
+    <button class="view-btn active" data-view="overview">总览</button>
+    <button class="view-btn" data-view="results">六域结果</button>
+    <button class="view-btn" data-view="mechanism">控制机制</button>
+    <button class="view-btn" data-view="limits">边界与复习</button>
+    <button class="theme" id="theme">切换深色</button>
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><b>48%</b><span>RoboDojo Hybrid：24/50 成功</span></div>
+  <div class="kpi"><b>92%</b><span>RxR 固定 50 episodes 的导航成功率</span></div>
+  <div class="kpi"><b>0/5</b><span>matched course 上到达目标的 locomotion attempts</span></div>
+  <div class="kpi"><b>39.86 s</b><span>locomotion 最后一次平均 model call latency</span></div>
+</div>
+
+<main>
+<section class="view on" id="overview">
+  <div class="grid2">
+    <div class="card">
+      <h2>先抓住核心问题</h2>
+      <p>Astra 可以生成数值动作，但完整机器人行为还要经过 action interface、policy/PD/whole-body controller 和 evaluator。论文把同一个模型放进六类任务，用 Direct 和 Hybrid 拆开“模型决策”和“下游执行”的贡献。</p>
+      <div class="note"><b>准确读法：</b>Hybrid 48% 是 Astra + π0.5 + EEF interface 的系统结果；不能写成 Astra 独立完成了 48% 的 RoboDojo。</div>
+    </div>
+    <div class="card">
+      <h2>两条控制路径</h2>
+      <div class="diagram">
+        <div class="node">RGB / proprio / instruction</div><div class="arrow">→</div><div class="node" id="pathNode">Astra 直接生成</div><div class="arrow">→</div><div class="node">IK / policy / controller</div>
+      </div>
+      <div class="domain-controls"><button id="directBtn" class="active">Direct</button><button id="hybridBtn">Hybrid</button><span class="small" id="pathCopy">模型自己承担下一段动作。</span></div>
+    </div>
+  </div>
+  <section>
+    <h2>论文的三条主线</h2>
+    <div class="cards">
+      <div class="card"><span class="pill">能力</span><h3>任务判断</h3><p class="small">Astra 能识别目标偏差、接触条件和未完成 subgoal，并在反馈后选择下一步。</p></div>
+      <div class="card"><span class="pill">分工</span><h3>局部介入</h3><p class="small">Hybrid 让 policy 提供高频 motion prior，Astra 在需要时接受、截断或修正 proposal。</p></div>
+      <div class="card"><span class="pill">边界</span><h3>物理控制</h3><p class="small">持续 finger contact reconfiguration、dense motion reference 和长延迟仍然不可靠。</p></div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>怎么读结果</h2>
+    <div class="statline"><span>Binary success</span><strong>是否完成任务</strong></div>
+    <div class="statline"><span>Partial Score</span><strong>完成了多少 subgoal</strong></div>
+    <div class="statline"><span>Native return</span><strong>每个 humanoid task 自有尺度和阈值</strong></div>
+    <div class="statline"><span>SPL / nDTW</span><strong>到达之外的路径效率与路线一致性</strong></div>
+    <div class="statline"><span>Tokens / requests / latency</span><strong>推理成本，不是 physical FPS</strong></div>
+  </section>
+</section>
+
+<section class="view" id="results">
+  <div class="card">
+    <h2>六域结果浏览器</h2>
+    <p class="small">选择一个域，下面的条形图会换成论文中对应的真实指标。不同域的指标和样本量不同，页面不会把它们强行合成一个总分。</p>
+    <div class="domain-controls"><label for="domain">评测域</label><select id="domain" class="select">
+      <option value="gripper">Gripper · RoboDojo</option>
+      <option value="dexterous">Dexterous · ten-task Score</option>
+      <option value="mobile">Mobile · RoboCasa</option>
+      <option value="navigation">Navigation · RxR</option>
+      <option value="locomotion">Locomotion · matched course</option>
+      <option value="humanoid">HumanoidBench</option>
+    </select></div>
+    <h3 id="domainTitle">Gripper · RoboDojo</h3>
+    <p class="small" id="domainMetric">final success (%)，50 paired instances</p>
+    <div id="bars"></div>
+    <p class="note" id="domainNote"></p>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>导航的成功与绕路</h2>
+      <table><thead><tr><th>固定子集</th><th>成功</th><th>SR</th><th>SPL</th></tr></thead><tbody>
+        <tr><td>R2R</td><td>39/50</td><td>78%</td><td>65.27</td></tr>
+        <tr><td>RxR English</td><td>46/50</td><td>92%</td><td>77.25</td></tr>
+        <tr><td>MP3D ObjectNav</td><td>28/50</td><td>56%</td><td>22.43</td></tr>
+        <tr><td>HM3D ObjectNav</td><td>41/50</td><td>82%</td><td>43.69</td></tr>
+      </tbody></table>
+      <p class="small">HM3D 的 82% SR 伴随 43.69 SPL：到达和高效搜索是两件事。</p>
+    </div>
+    <div class="card">
+      <h2>推理时间轴</h2>
+      <p class="small">论文最后一次 locomotion attempt：250 次同步 model calls，平均每次 39.86 s。滑块只做线性教学换算，不是新增实验。</p>
+      <input id="calls" class="range" type="range" min="1" max="250" value="250">
+      <div class="statline"><span>模型调用</span><strong id="callCount">250</strong></div>
+      <div class="timeline"><div class="fill" id="callFill"></div></div>
+      <div class="statline"><span>按论文平均时延外推</span><strong id="callTime">165.9 分钟</strong></div>
+      <p class="small">physics paused during inference；因此 30 s simulated motion 不等于 30 s wall-clock。</p>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="mechanism">
+  <div class="card">
+    <h2>控制闭环</h2>
+    <p>每个 domain 的细节不同，但论文反复使用同一个责任结构：观察 → Astra 生成或审核 → action adapter → physical motion → 新观察。</p>
+    <div class="diagram">
+      <div class="node">Observe</div><div class="arrow">→</div><div class="node">Generate / review</div><div class="arrow">→</div><div class="node">Execute + feedback</div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>为什么 Hybrid 有用</h2><p>π0.5、RL 或 whole-body controller 提供连续动作先验，Astra 负责目标偏差、接触前置条件、任务顺序和恢复。RoboDojo 中只 14.4% 的执行步由 Astra 生成/修正，却把 Hybrid success 提到 48%。这支持“少量局部纠正可能很值钱”，但不代表模型调用很少。</p></div>
+    <div class="card"><h2>为什么 Direct 在灵巧手上难</h2><p>Direct 需要同时控制保持支撑的手指和重新建立接触的手指。Astra 有时能维持抓握，却不能持续旋转；cylinder at-goal rate 0.51%、cuboid 4.40%，远低于 RL 的 76.90%、63.50%。</p></div>
+  </div>
+  <div class="card">
+    <h2>一条可审计的记录</h2>
+    <table><thead><tr><th>字段</th><th>为什么记录</th></tr></thead><tbody>
+      <tr><td>proposal source</td><td>区分 policy、Astra correction、controller</td></tr>
+      <tr><td>accepted / truncated / replaced</td><td>知道 Astra 改变了哪一段动作</td></tr>
+      <tr><td>control steps 与 model requests</td><td>避免把 step share 当 call share</td></tr>
+      <tr><td>physics / controller / model clocks</td><td>把实时性从仿真时长里拆出来</td></tr>
+      <tr><td>success predicate</td><td>区分 binary success、partial Score、native return</td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<section class="view" id="limits">
+  <div class="grid2">
+    <div class="card">
+      <h2>论文没有证明什么</h2>
+      <ul>
+        <li>没有证明 Astra 独立替代 learned policy 或 whole-body controller。</li>
+        <li>没有证明 39.86 s 平均 call latency 满足实时控制。</li>
+        <li>没有把 5 次 locomotion attempt 外推成所有运动任务的失败率。</li>
+        <li>没有把一次 diagnosis 成功等同于可靠 online learning。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>复现护栏</h2>
+      <ul>
+        <li>保留每个 task 的 observation、interface、horizon 和 seed。</li>
+        <li>固定 paired starts，并报告失败类型和预算耗尽。</li>
+        <li>把 Direct、Hybrid、policy-only 分开评估。</li>
+        <li>同时报告 success、介入率、tokens、requests 和 wall-clock。</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card">
+    <h2>快速自测</h2>
+    <details><summary>为什么 RoboDojo 的 85.6% 不是“只调用 14.4% Astra”？</summary><p>它统计的是已执行 physical control steps 的来源。Astra 仍审核每个 proposal，model calls 和 tokens 可能很高。</p></details>
+    <details><summary>为什么 HM3D 82% 还要看 SPL？</summary><p>SR 只表示到达，SPL 还反映路径效率。论文中的 82% SR 配 43.69 SPL，说明搜索绕路明显。</p></details>
+    <details><summary>为什么 HumanoidBench 结果不能只写“Astra return 581.9”？</summary><p>这是 Astra + 冻结 whole-body controller 的平均 native return；各 task 的尺度和阈值不同，且下游 controller 承担了身体协调。</p></details>
+    <details><summary>这篇论文最值得迁移的工程模式是什么？</summary><p>把推理模型放在可审计的低频决策层，保留高频 policy/controller，并记录每次介入的原因、动作来源和三套时钟。</p></details>
+  </div>
+  <div class="card">
+    <h2>配套资料</h2>
+    <p class="small">同目录包含 summary.md、insights.md、method.md、qa.md，以及可运行的 code/closed_loop_control_demo.py。教学 demo 只模拟 proposal review，不调用 GPT-6 Astra API，也不是官方 benchmark 复现。</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  事实来源：arXiv:2609.38537v1 PDF / HTML / API。页面中的数值均来自论文；“按平均时延外推”的分钟数是由论文 39.86 s/call 与滑块调用次数计算得到的教学显示。
+</footer>
+</div>
+<script>
+(function(){
+  var root=document.documentElement;
+  var views=['overview','results','mechanism','limits'];
+  var buttons=document.querySelectorAll('.view-btn');
+  buttons.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      buttons.forEach(function(x){x.classList.remove('active')});
+      btn.classList.add('active');
+      views.forEach(function(v){document.getElementById(v).classList.toggle('on',v===btn.dataset.view)});
+    });
+  });
+  var mode='direct';
+  var pathNode=document.getElementById('pathNode');
+  var pathCopy=document.getElementById('pathCopy');
+  function setMode(next){
+    mode=next;
+    document.getElementById('directBtn').classList.toggle('active',mode==='direct');
+    document.getElementById('hybridBtn').classList.toggle('active',mode==='hybrid');
+    pathNode.textContent=mode==='direct'?'Astra 直接生成':'Astra 审核 / 修正 proposal';
+    pathCopy.textContent=mode==='direct'?'模型自己承担下一段动作。':'policy 提供高频 motion prior，Astra 只在需要时介入。';
+  }
+  document.getElementById('directBtn').addEventListener('click',function(){setMode('direct')});
+  document.getElementById('hybridBtn').addEventListener('click',function(){setMode('hybrid')});
+
+  var data={
+    gripper:{title:'Gripper · RoboDojo',metric:'final success (%)，10 tasks × 5 paired instances',bars:[['π0.5（重加权）',15.67,'coral'],['Astra Direct',26,'coral'],['Astra + π0.5 Hybrid',48,'green']],note:'Hybrid 24/50；Direct 13/50。Hybrid 的 42,750 executed steps 中 85.6% 沿用 π0.5，14.4% 由 Astra 生成或修正。'},
+    dexterous:{title:'Dexterous · ten-task Sharpa',metric:'mean completion Score（0–100，允许 partial credit）',bars:[['Direct',16.6,'coral'],['π0.5',44.2,'coral'],['Hybrid',61.6,'green']],note:'Hybrid 在十个任务上都高于 Direct；相比 π0.5 在 8 个任务上更高、2 个持平。这个 61.6 不是 binary success rate。'},
+    mobile:{title:'Mobile · RoboCasa',metric:'success (%)，15 tasks × 5 shared starts',bars:[['π0.5 alone',22.7,'coral'],['Astra Direct',33.3,'coral'],['Astra Hybrid',38.7,'green']],note:'Hybrid 29/75。Hybrid vs Direct 的 exact McNemar p=0.5235；Hybrid vs π0.5 的探索性 p=0.0227，未校正多重比较。'},
+    navigation:{title:'Navigation · RxR English-guide',metric:'success rate (%)，固定 50 episodes',bars:[['Uni-NaVid 7B',34,'coral'],['LightNav-0',72,'coral'],['Astra',92,'green']],note:'Astra 46/50；同一集合上的 SPL 为 77.25。成功率高不等于路径短，导航结果必须同时看 SPL/nDTW。'},
+    locomotion:{title:'Locomotion · matched open-clutter course',metric:'是否到达目标；5 次 Astra sequential attempts',bars:[['Astra attempts reaching goal',0,'coral'],['PASSAGE reaching goal',100,'green']],note:'五次 Astra 都未到达；最后一次 30 s 内前进 2.598 m、末端误差 6.519 m。这里的 100 只表示 PASSAGE 1/1 到达，不是泛化成功率。'},
+    humanoid:{title:'HumanoidBench · 30 tasks',metric:'mean native return；每个任务有自己的 threshold',bars:[['SAC',42.7,'coral'],['TD-MPC2',338.2,'coral'],['DreamerV3',-41.9,'coral'],['Astra + controller',581.9,'green']],note:'Astra 超过三种 baseline 中最好值的任务数为 13/30；结果依赖冻结的 whole-body controller，不能当作纯 Direct 控制。'}
+  };
+  function renderDomain(){
+    var d=data[document.getElementById('domain').value];
+    document.getElementById('domainTitle').textContent=d.title;
+    document.getElementById('domainMetric').textContent=d.metric;
+    document.getElementById('domainNote').textContent=d.note;
+    var max=0; d.bars.forEach(function(x){if(x[1]>max)max=x[1]});
+    if(max===0)max=1;
+    document.getElementById('bars').innerHTML=d.bars.map(function(x){
+      var width=(Math.max(0,x[1])/max*100).toFixed(1);
+      return '<div class="bar '+(x[2]==='coral'?'coral':'')+'"><span>'+x[0]+'</span><div class="track"><div class="fill" style="width:'+width+'%"></div></div><strong>'+x[1]+'%</strong></div>';
+    }).join('');
+  }
+  document.getElementById('domain').addEventListener('change',renderDomain);
+  renderDomain();
+
+  function renderCalls(){
+    var n=Number(document.getElementById('calls').value);
+    document.getElementById('callCount').textContent=n;
+    document.getElementById('callFill').style.width=(n/250*100)+'%';
+    var minutes=n*39.86/60;
+    document.getElementById('callTime').textContent=minutes.toFixed(1)+' 分钟';
+  }
+  document.getElementById('calls').addEventListener('input',renderCalls);
+  renderCalls();
+
+  document.getElementById('theme').addEventListener('click',function(){
+    var dark=root.getAttribute('data-theme')!=='dark';
+    root.setAttribute('data-theme',dark?'dark':'light');
+    this.textContent=dark?'切换浅色':'切换深色';
+  });
+})();
+</script>
+</body>
+</html>
+

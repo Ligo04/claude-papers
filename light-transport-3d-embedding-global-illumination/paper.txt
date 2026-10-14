@@ -1,0 +1,1206 @@
+A Generalizable Light Transport 3D Embedding for Global Illumination
+BING XU, UC San Diego and NVIDIA, USA
+MUKUND VARMA T, UC San Diego, USA
+CHENG WANG, UC San Diego, USA
+TZU-MAO LI, UC San Diego, USA
+LIFAN WU, NVIDIA, USA
+BARTLOMIEJ WRONSKI, NVIDIA, USA
+RAVI RAMAMOORTHI, UC San Diego, USA
+MARCO SALVI, NVIDIA, USA
+
+
+
+
+Fig. 1. Our scalable transformer-based, generalizable light-transport model takes 3D scene assets (leftmost slice)—geometry, materials, and lighting as a
+point cloud—and encodes global light transport into a 3D embedding (rightmost slice) via latent codes anchored at scene points. The model is view- and
+resolution-independent. Center slices: reference vs. our predicted global illumination for an unseen scene at 2688×1152 resolution (cropped for space).
+
+Global illumination (GI) is essential for realism but remains computationally           mechanism where rendering queries are processed independently under 3D
+expensive. While per-scene neural methods lack generalization and screen-               supervision. This ensures constant complexity per pixel relative to scene
+space approaches inherently suffer from view inconsistency, prior 3D neural             size, yielding view-consistent and resolution-agnostic rendering without
+rendering methods face a severe scalability barrier, restricting them to small,         the memory bottlenecks typical of globally coupled attention. We further
+object-centric meshes. To overcome these trade-offs, we introduce a general-            demonstrate versatility by re-targeting the encoder with limited fine-tuning,
+izable light transport 3D embedding that predicts global illumination directly          presenting preliminary results on spatial-directional radiance field predic-
+from 3D scene configurations without rasterized or path-traced illumination             tion for glossy materials and validating transfer to downstream rendering
+cues, per-scene retraining or screen-space limitations. We employ a point-              tasks.
+based representation to decouple our embedding from the original scene
+topology, then utilize a linear-complexity transformer to encode long-range
+light transport. This design scales to environments with millions of triangles,
+enabling the first generalizable GI learning on complex, high-fidelity indoor           1   INTRODUCTION
+scenes, far beyond prior limits. To achieve this, we enforce a local query
+                                                                                        A long-term goal of computer graphics has been to efficiently sim-
+Authors’ addresses: Bing Xu, binxu@nvidia.com, UC San Diego and NVIDIA, USA;            ulate complex light-matter interactions. While researchers have
+Mukund Varma T, tmukund@ucsd.edu, UC San Diego, USA; Cheng Wang, chengwang@             derived mathematical models for physical phenomena [Christensen
+ucsd.edu, UC San Diego, USA; Tzu-Mao Li, tzli@ucsd.edu, UC San Diego, USA; Lifan Wu,
+lifanw@nvidia.com, NVIDIA, USA; Bartlomiej Wronski, elirian@gmail.com, NVIDIA,
+                                                                                        et al. 2016], recent years have witnessed a different paradigm: learn-
+USA; Ravi Ramamoorthi, ravir@cs.ucsd.edu, UC San Diego, USA; Marco Salvi, msalvi@       ing data-driven priors to approximate these processes [OpenAI
+nvidia.com, NVIDIA, USA.                                                                2024]. With the growing availability of 3D data [Siddiqui et al. 2024],
+                                                                                        we seek to answer a central question: can data priors alone be used to
+Please use nonacm option or ACM Engage class to enable CC licenses                      train a generalizable model that predicts 3D light transport directly
+This work is licensed under a Creative Commons Attribution 4.0 International License.   from scene configurations, partially bypassing explicit simulation?
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA                     Monte Carlo rendering remains the workhorse of photorealism
+© 2026 Copyright held by the owner/author(s).
+ACM ISBN 979-8-4007-2554-8/2026/07                                                      but is computationally intensive. Recent neural global illumination
+https://doi.org/10.1145/3799902.3811095                                                 methods [Diolatzis et al. 2022; Granskog et al. 2020; Rainer et al. 2022;
+
+                                                                                                SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+2 •   Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+Ren et al. 2013; Zheng et al. 2023] approximate light transport to en-              neural regressions [Ren et al. 2013] and subsequent scene represen-
+able efficient reuse of lighting computation, but they typically overfit            tations have focused on specific dynamic factors, such as moving
+to individual scenes, preventing generalization. Conversely, cross-                 objects [Zheng et al. 2024, 2023], variable lighting or materials [Dio-
+scene generalization efforts, including neural denoisers [Áfra 2024]                latzis et al. 2022; Gao et al. 2023], and changing viewpoints [Eslami
+or G-buffer–based predictors [Nalbach et al. 2017], often operate                   et al. 2018; Granskog et al. 2020]. Hybrid neural renderers incor-
+in 2D screen space. These methods suffer from view-inconsistency                    porate 3D scene reasoning via point-based light transport mod-
+and fail to capture global illumination from off-screen geometry.                   ules, trained per scene, while synthesizing final images in screen
+   Closer to our goal are methods that learn light transport directly               space [Sanzenbacher et al. 2020]. However, these methods remain
+in 3D. However, these approaches face a severe scalability barrier.                 fundamentally instance-specific. In contrast, our approach targets
+Pioneering work by Hermosilla et al. [2019] based on convolutions                   scene-level generalization, learning a light transport embedding di-
+struggles to model long-range global interactions, and the recent                   rectly from raw 3D configurations without per-scene training.
+transformer-based approaches like RenderFormer [Zeng et al. 2025]
+rely on global attention with quadratic complexity. This computa-
+tional bottleneck restricts them to simple, object-centric meshes,                     Generalizable screen-space techniques. Neural denoising and deep
+making them well-suited to object-centric setups but unsuitable for                 shading are two major approaches that aim for scene-level gen-
+the dense geometry of real-world environments.                                      eralization. Denoising methods [Bako et al. 2017; Chaitanya et al.
+   In this paper, we introduce a generalizable light transport 3D em-               2017; Gharbi et al. 2019; Vogels et al. 2018; Xu et al. 2019] operate
+bedding designed to prioritize scalability and versatility. We achieve              as post-processing, while deep shading [Nalbach et al. 2017; Xin
+a scalable architecture by reducing computational complexity in                     et al. 2022] infers shading from G-buffers. While efficient, their
+three key ways: 1) Point-based primitives decouple lighting reso-                   reliance on screen-space input leads to view inconsistencies and
+lution from the original scene topology and unify light sources                     misses off-screen light transport effects.
+with geometry into a single representation. 2) A linear-complexity
+transformer replaces quadratic global attention to efficiently encode                  Learning light transport in 3D. A more robust alternative is to
+long-range light transport into the 3D embedding. 3) Independent                    learn light transport directly in the 3D world space. Hermosilla et al.
+local decoding. We retrieve features only from a fixed local neigh-                 [2019] pioneered this direction but relied on convolutions, which
+borhood (𝑘-NN) of the embedding regardless of the scene size and                    generally prioritize local features and struggle to model long-range
+process each query independently. This ensures no dependencies ex-                  global interactions. More recently, Zeng et al. [2025] successfully
+ist between separate rendering rays, enabling flexible training batch               applied global transformer architectures to mesh vertices, produc-
+sizes and resolution-agnostic inference. Finally, we use direct 3D                  ing high-fidelity results for complex glossy and specular effects.
+supervision in world space rather than 2D image space. This guar-                   While effective for single objects, their reliance on standard global
+antees that our learned embedding is inherently view-consistent                     attention introduces a quadratic computational bottleneck. This
+and robust to camera trajectory shifts.                                             complexity constrains the approach to low-polygon scenes (e.g.,
+   In summary, we make the following contributions:                                 ≈4k triangles), and is not the natural fit for dense, complex envi-
+• A scalable 3D embedding using point clouds and linear-complexity                  ronments (see Figure 2). Furthermore, our design adopts decoupled
+  transformers to overcome quadratic memory bottlenecks, en-                        geometry-ray decoding, where each query independently attends
+  abling global transport modeling on millions of triangles (§3.2,§3.3).            to a local neighborhood of scene primitives, yielding view consis-
+• Resolution-agnostic decoding: A local decoding mechanism with                     tency and resolution flexibility. We provide a detailed structural
+  constant per-pixel complexity that, via 3D supervision, ensures                   comparison with [Zeng et al. 2025] in §5.5 and related statistics in
+  view-consistent and generalizable GI for large-scale scenes (§3.4).               the Supplementary §3. Looking ahead, a shared challenge for both
+• We curate and release a ∼14k complex indoor scenes dataset with                   methods is to further scale up with rendering parameters to capture
+  diverse layouts, geometries, and textures, serving as a benchmark                 the full spectrum of light transport effects.
+  for learning light transport (§4).
+• Architectural versatility: A transferable encoder capable of sup-
+  porting dedicated tasks, demonstrated by extending our primary                       Deep learning on irregular geometric data. Processing irregular 3D
+  diffuse GI model to predict spatial-directional radiance fields for               data requires handling permutation invariance and varying density.
+  glossy materials (§5.3).                                                          Early MLP-based approaches [Qi et al. 2017a,b] and subsequent
+                                                                                    graph [Wang et al. 2019] or continuous convolution methods [Li
+2     RELATED WORK                                                                  et al. 2019; Thomas et al. 2019] proved effective for local geometry.
+                                                                                    Attention-driven architectures such as Point Transformer [Zhao
+We focus our discussion on data-driven methods, particularly those
+                                                                                    et al. 2021] further enhance the integration of global context. Point-
+leveraging neural networks to approximate light transport or oper-
+                                                                                    TransformerV3 [Wu et al. 2024] (PTV3) replaces per-layer KNN with
+ate directly on 3D data.
+                                                                                    serialization-based patch attention to scale to large point clouds; we
+   Per-scene neural rendering. Classical Precomputed Radiance Trans-                adopt it as our encoder backbone. A brief background is provided in
+fer (PRT) [Ramamoorthi et al. 2009; Sloan et al. 2002] and its neu-                 Supplementary §1.2. This choice prioritizes scalability and architec-
+ral extensions [Raghavan et al. 2023; Rainer et al. 2022] enable                    tural simplicity, enabling efficient learning of complex relationships
+efficient GI but rely on per-scene precomputation. Similarly, early                 within 3D point clouds for global illumination.
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+                                                                                     A Generalizable Light Transport 3D Embedding for Global Illumination             • 3
+
+
+                                               OOM (Crash)                                                 Low importance      High importance
+                 RenderFormer
+      40         Ours
+
+      20
+                                                                                                                            Light Source
+      0
+                   10k                        30k                 45k
+                                                                                                                                                    Focus Point 2
+                                                                                                     Focus Point 1
+Fig. 2. Memory scalability. We benchmark Peak Training VRAM (GB) (y)
+                                                                                                                                                        (b)
+with increasing Number of primitives (x) on a single scene using a tiny 642                      (a)
+                                                                                                                                        Attention Map for Focus Point 2
+resolution. Even with this reduced query count, RenderFormer rapidly               Attention Map for Focus Point 1
+                                                                                                                                      (on the wall in the hallway, occluded
+                                                                               (on the ceiling next to the light source)
+exhausts a 48GB GPU. See more discussions in §5.4 and supplementary.                                                                          from the light source)
+
+                                                                              Fig. 3. Attention visualization for a bedroom with a hallway. We show
+3     LIGHT TRANSPORT 3D EMBEDDING                                            attention heatmaps from our light transport encoder for two focus points.
+We introduce a generalizable framework for predicting global illu-            Points are shaded by importance, with the top 200 scores enlarged. The blue
+mination directly from 3D configurations. Inspired by the parallel            shaded square denotes the light source. In (a), we see four groups of scene
+between the light transport operator and attention (§3.1), we detail          points having the largest impact on the focus point (highlighted in blue
+our pipeline’s three key stages, as illustrated in Figure 4: Scene Dis-       square and orange clusters), which likely corresponds to 4 bounces of ray
+cretization (§3.2), Global Light Transport Encoding (§3.3) where we           tracing. In (b), the focus point is on the wall of the hallway where the light
+encode these points into a high-dimensional neural representation
+                                                                              source is occluded. This serves as a visual hint for our analogy between the
+
+(F𝑖 ) that captures the light transport function of the given scene,
+                                                                              light transport operator and the attention mechanism in §3.1.
+
+and Local Query Decoding (§3.4).                                              of emissive and non-emissive geometries. This makes our method
+                                                                              agnostic to the lighting type, effortlessly supporting area lights,
+3.1    Motivation: An Analogy Bridging Light Transport and                    point lights, or emissive strips without architectural changes.
+       Attention
+                                                                                 Scene points. As a pre-processing step (Figure 4, left), we convert
+Light transport is often expanded as a Neumann series [Arvo et al.            the scene into an intermediate representation by sampling object ge-
+1994], where global illumination is resolved by recursively prop-             ometry into 𝑀 (≈ 20𝑘) Scene points. Each point 𝑖 is defined as a tuple
+agating energy between surface points. This mirrors the stacked               (p𝑖 , n𝑖 , c𝑖 , e𝑖 ), representing position, normal, albedo, and emissiv-
+self-attention operation in transformers [Vaswani et al. 2017]. Just          ity, respectively. The full scene is thus denoted as {(p𝑖 , n𝑖 , c𝑖 , e𝑖 )}𝑀 .
+as the transport operator 𝑇 (Soler et al. [2022]) recursively simulates       This approach aligns with prior light transport approximations that
+bounces, passing features through successive transformer layers               also leverage point cloud inputs [Hašan et al. 2006; Hermosilla et al.
+allows the network to capture increasingly complex, multi-bounce              2019]. Note that the mesh vertices used in Zeng et al. [2025] can
+interactions. We offer a visual intuition for this parallel in Figure 3,      be viewed as a specific realization of this representation. Further
+illustrating that attention weights naturally highlight scene regions         analysis of point sampling is provided in §5.5.
+contributing to a point’s illumination.
+   Guided by this analogy, we design our Encoder to act as the                   Query points. At render time, Query points correspond to ray-
+global solver: by stacking deep attention layers, it “bakes” the multi-       intersections for shading, while during training, they serve as loca-
+bounce simulation results into per-point embeddings. This allows              tions for loss evaluation. Each point is defined by features {(p 𝑗 , n 𝑗 , c 𝑗 )}.
+our Decoder to simplify to a local retrieval task, avoiding the               Crucially, rather than using view-dependent path tracing samples
+expensive global attention used in prior work [Zeng et al. 2025] and          for supervision like many prior works (e.g. [Zeng et al. 2025], which
+enabling resolution-independent inference.                                    is limited by fixed resolutions and views), we uniformly sample
+                                                                              𝑁 (≈ 2 million) points from the scene surfaces. This approach de-
+3.2    Points as the Intermediate Scene Representation                        couples training from specific camera angles, enabling view and
+Unlike prior generalizable methods that rely on fixed mesh topology           resolution independence. Further analysis is in §5.5. Note we differ-
+(e.g., vertices) or view-dependent 2D projections [Nalbach et al.             entiate Scene points from Query points throughout the paper.
+2017], we adopt point clouds as our intermediate representation
+                                                                              3.3     Global Light Transport Encoding
+(IR), deriving per-point attributes from the 3D scene. This design
+offers key advantages: 1) scalability: point density can adjust based         Our goal is to approximate global illumination effects directly from
+on importance; 2) generality: decoupled from original geometry,               3D scene inputs—geometries, materials, light sources—without rely-
+suitable for other sources like scanned data; and 3) simplicity: easier       ing on any rasterized or path-traced illumination cues. GI requires
+for neural networks to handle than meshes, with no connectivity.              simulating the full complexity of light transport, including multi-
+                                                                              ple bounces against various surfaces and interactions with various
+   Light sources. While most prior neural GI works focus on distant           material properties (BSDFs), before reaching the camera. Our ob-
+illumination (e.g., environment maps), this approximation fails to            servation from §3.1 motivates us to leverage a transformer-based
+capture near-field effects. We instead use local area lights to produce       encoder (dubbed Light Transport Encoder in Figure 4) to derive per-
+rich, spatially varying illumination essential for indoor rendering.          point neural primitives that implicitly model the light transport
+By representing light sources as point clouds, we unify the treatment         operator. As illustrated in Figure 4, we encode these Scene points
+
+                                                                                        SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+4   •   Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+into a high-dimensional neural representation (F𝑖 ) that captures the                 where PTV3 operates on the derived scene embedding across all
+light transport function of the given scene.                                          points {e F𝑙 }𝑚 to derive the final per-point latent {F𝑙 }𝑚 (dubbed
+   Given that a large number of points (𝑀 ≈ 20K) is required to                       Light Transport Embedding). While standard point encoders typi-
+represent an entire scene with sufficient density, naïvely borrowing                  cally rely on expensive 𝑘-Nearest Neighbor (KNN) searches per layer,
+the original transformer architecture leads to prohibitive memory                     PTV3 introduces point cloud serialization. It orders points along a
+requirements. This is because self-attention scales quadratically,                    space-filling curve and computes attention within non-overlapping
+necessitating the storage of massive 𝑀 × 𝑀 attention maps. Rather,                    patches of consecutive points (using a patch size of 1024). This sig-
+we leverage the state-of-the-art point cloud encoder PointTrans-                      nificantly reduces memory and latency; however, because attention
+formerV3 [Wu et al. 2024], to derive a latent representation for each                 is local within each patch, the spatial coverage per patch limits how
+point.                                                                                much 3D context a single layer can directly reach. Our NNE pre-
+   Our experiments indicate that naïvely feeding all input features                   aggregation is specifically designed to complement this. With FPS
+into the transformer yields suboptimal results. We attribute this to                  applied twice (𝑚=𝑀/4) and 𝑘=32 neighbors per stage, each NNE-
+the attention operation becoming increasingly sparse with a large                     stage-1 point summarizes ∼𝑘 raw points and each stage-2 point
+number of input tokens, which complicates the modeling of complex                     summarizes ∼𝑘 stage-1 points, so each NNE point fed into the trans-
+interactions between scene points. Yet, aggressively reducing the                     former accumulates context from up to ∼𝑘 2 =1024 raw scene points.
+number of input points can lead to information loss, as a large indoor                A PTV3 patch of 1024 such “enriched” points therefore touches a
+scene cannot be adequately represented by a limited set of points.                    massive 3D region (nearly 1/5 of the entire scene at 𝑀=20k) that no
+   Therefore, we derive an embedding from a sparser set of points,                    patch of 1024 raw points could reach in a single attention operation.
+while also aggregating features from their immediate neighbors.                       See Supplementary §1.2 for an extended background. The overall
+The primary purpose of this Nearest Neighbor Embedding (NNE)                          operation in this stage is denoted as the Light Transport Encoder in
+is to pre-aggregate local features and increase embedding capacity                    Figure 5(a).
+before the transformer stage, rather than merely reducing the point
+count. This mitigates the attention operation’s “learning overhead”
+associated with large token counts while still preserving information
+from the full point set. We found that this hierarchical aggregation                  3.4    Local Query Decoding
+outperforms a flat PointTransformerV3 baseline by providing a
+                                                                                      Our framework adopts a modular design, allowing the light-transport
+more enriched latent representation. Formally, we write the Nearest
+                                                                                      embedding to be repurposed for various rendering tasks by simply
+Neighbor Embedding (see Figure 5(a)) operation as follows:
+                                                                                      swapping task-specific decoders. We show that, after training on a
+  Nearest Neighbor Embedding
+                                                                                      large-scale indoor dataset of diffuse scenes for irradiance prediction
+                                                                                      (§5.2), the model can be fine-tuned to handle glossy reflections with
+           e𝑙 }𝑚 = FPS({X𝑖 }𝑀 ), where X𝑖 = F ((p𝑖 , n𝑖 , c𝑖 , e𝑖 ))
+          {X                                                              (1)         limited additional training on a small glossy dataset, leveraging the
+                                                                                      pretrained weights (§5.3).
+                                   
+        b𝑙,𝑘 = concat X𝑘 − X
+        X                   e𝑙 , X
+                                 e𝑙   ∀X𝑘 ∈ KNN𝑘e ({X𝑖 }𝑀 )               (2)
+                                                         X𝑙                              Given the Light Transport Embeddings {F𝑙 }𝑚 of a scene, we wish
+                                                F𝑙 = max𝑘 G( X
+                                                e            b𝑙,𝑘 )       (3)         to estimate global illumination quantities for arbitrary 3D points. For
+The embedding process proceeds in three stages. Here in the first                     view-independent training, we sample the scene; for rendering, we
+equation, F is a projection function that maps the raw input at-                      obtain the ray intersection points, which we define as query points
+tributes of each point 𝑖 to a latent feature X𝑖 . We then utilize Farthest            (see §3.2 and Figure 5). To do so, we propose a Local Query Decoder
+Point Sampling (FPS) to subsample the original scene points {X𝑖 }𝑀                    that aggregates information from neighboring scene embeddings to
+                                                                                      synthesize the final desired output (e.g., irradiance).
+to 𝑚 points {X e𝑙 }𝑚 . In our implementation, FPS is applied twice as
+                                                                                         Consistent with the previous section, we project each query point
+a feature pre-aggregation step, halving the point count with each
+                                                                                      𝑗 characterized by its position, normal, and material properties, i.e.
+iteration (resulting in 𝑚 = 𝑀/4), though this reduction factor re-
+mains flexible and can be adjusted as needed. After this step, we                     (p 𝑗 , n 𝑗 , c 𝑗 ), into a latent feature G
+                                                                                                                                e 𝑗 using an MLP H (as in the equa-
+                                                                                      tion below). Simultaneously, we retrieve the 𝜅 nearest neighbors
+obtain subsampled point latents X    e𝑙 . Next, we perform local feature
+                                                                                      from the scene embeddings {F𝑙 }𝑚 , denoted as KV. Since neighbor
+aggregation. KNN𝑘e identifies the 𝑘 nearest neighbors for each sub-
+                      X𝑙                                                              importance varies based on distance and occlusion, simple aver-
+sampled point X𝑙 from the original scene, and the difference vectors                  aging is insufficient; we therefore employ a learned aggregation
+between the KNN center and its neighbors are computed. These are                      strategy. We verify this experimentally in §5.5. To encode the spatial
+then concatenated with each center X e𝑙 using concat, processed by                    relationship, we compute the relative distance vector Δp 𝑗𝜅 between
+a second projection G, and then max-pooled along the 𝑘 neighbors                      the query and each neighbor, mapping it to a high-dimensional
+to yield the final aggregated embedding eF𝑙 .                                         positional encoding P 𝑗𝜅 via 𝛾:
+   As mentioned, we model interactions between these scene points
+using Point Transformer V3 (PTV3, [Wu et al. 2024]) as our back-                                                           e 𝑗 = H (p 𝑗 , n 𝑗 , c 𝑗 )
+                                                                                                                           G                                 (5)
+bone:                                                                                                                 KV = KNN𝜅e ({F𝑙 }𝑚 )                   (6)
+                                                                                                                                      G𝑗
+                               𝑚
+                           {F𝑙 }   = PTV3({e
+                                           F𝑙 }𝑚 ),                       (4)                              P 𝑗𝜅 = 𝛾 (Δp 𝑗𝜅 ), Δp 𝑗𝜅 = p 𝑗 − p𝜅 .             (7)
+
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+                                                                                               A Generalizable Light Transport 3D Embedding for Global Illumination        • 5
+
+
+
+
+                                                                                                      Irradiance
+                                                                                                       Decoder                  MLP
+                                              Light                            KNN
+                                            Transport
+                                             Encoder
+                                                                                                     Directional
+                                                                                                      Radiance                  MLP
+                                                                                                      Decoder
+
+                 Scene Inputs                                         Query Inputs             Local Query Decoders           Target Rendering Quantities
+
+Fig. 4. Our pipeline. Our method first converts the original 3D assets of each scene into a point cloud with associated features (on the left). The scenes are
+then encoded into a light transport embedding, consisting of latent codes (depicted as small blocks within the dashed circle) anchored at the scene point
+positions. At render time (center), each query point gathers local latent codes via k-nearest neighbors and feeds them together with the query point attributes
+into a target-specific query decoder, of which the core is a cross-attention. Note that direct emission can be added on top of the predicted output, so it needs
+not be a query input.
+
+                                                                                                                                                    MLP
+                 Nearest                                          x                       x       Vector
+                                     Point                              MLP                        Cross         MLP                                MLP
+                Neighbor
+               Embedding         Transformer                  x                      x           Attention
+                                                              Query          Retrieve K                                                             MLP
+      Scene Points       (a) Light Transport Encoder          Points     Nearest Scene Points (b) Local Query Decoder
+                                                                                                                                                    MLP
+      MLP Multi Layer Perceptron                Subtraction                Multiplication                    Addition
+                                                                                                                                           (c) Vector Cross Attention
+
+                                Fig. 5. Network architecture for Light Transport Encoder and Local Query Irradiance Decoder.
+
+As shown in Figure 5(b), this explicitly provides both the local query
+context (G
+         e 𝑗 ) and the relative geometry (P 𝑗𝜅 ) needed to weigh the
+contributions of neighboring scene points.
+
+   Vector Cross-Attention. We leverage a transformer to iteratively
+aggregate features from neighborhood scene points onto the query
+point. Crucially, rather than applying the standard dot-product atten-
+tion between the query and scene points (as query and key, values
+respectively), we use a vector cross-attention operation. We replace
+the dot product attention with subtraction as the relation function.
+Unlike the dot product, which collapses feature dimensions into a
+single scalar weight, subtraction-based attention computes distinct                           a) Floor plans b) Untextured    c) Texture      d) Textured   e) Converted
+                                                                                                                meshes          atlases         meshes      scene points
+scores for each channel of the value matrix [Fan et al. 2022; Zhao et al.                Fig. 6. Dataset overview. Examples of: a) generated floor plans, b) untex-
+2021]. This preserves channel-wise granularity and significantly                         tured meshes for a floor plan, c) texture atlases, d) textured mesh objects, e)
+increases the diversity of feature interactions when aggregating                         textured meshes converted to scene points directly fed into our pipeline.
+neighborhood information. Additionally, we augment the attention
+and value matrices with the relative geometry P 𝑗𝜅 derived earlier.
+                                                                                                                        Iout = Wout ({G𝑁
+                                                                                                                                       𝑗 }),                            (11)
+            G 𝑗 = W𝑞 ( G
+                       e 𝑗 ), G𝑘 = W𝑘 (KV), G𝑣 = W𝑣 (KV)                 (8)
+             𝑞
+                               𝑗                                                         where Wout represents the final output projection to convert the set
+                                             𝑞
+                                        A = G 𝑗 − G𝑘𝑗 + P 𝑗𝜅             (9)             of query points {G𝑁𝑗 } to the required rendering quantities. These
+                                                                                         projections are implemented as multi-layer perceptrons.
+                                 G 𝑗 = sum𝜅 (𝐴(G𝑣 + P 𝑗𝜅 ))            (10)
+Formally, as shown in the equations, the learned linear projections                      4    IMPLEMENTATION
+W𝑞 ,W𝑘 and W𝑣 project the query (G    e 𝑗 ), key, and value inputs (KV)                    Training dataset. We curated a large-scale indoor global illumi-
+into their respective latent spaces. The final embedding for each                        nation dataset comprising 13,900 procedural scenes [Raistrick et al.
+query point, denoted by G 𝑗 , is obtained by aggregating the value                       2024] spanning diverse floorplans and asset collections (Figure 6).
+features using the computed attention values A through summing                           To support future research, we will publicly release all data, code,
+up along the 𝜅 neighboring points (see Figure 5(b) and (c)).                             and trained weights. We generated high-quality ground-truth irra-
+   The final output Iout is derived as follows:                                          diance by path-tracing approximately 2 million query points per
+
+                                                                                                  SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+6 •   Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+scene (1,024 rays/point). Additionally, we curated a focused sub-                   5.1    Experimental Setup & Baselines
+set featuring glossy materials modeled with the Trowbridge–Reitz                    We compare against representatives from three distinct paradigms
+(GGX) distribution [Walter et al. 2007] to validate our versatility ex-             to cover the spectrum of neural rendering, thereby complementing
+periments. Detailed data generation protocols, including geometry                   recent works [Zeng et al. 2025] with a broader evaluation scope.
+refinement and lighting heuristics, are provided in the Supplemen-                     Path tracing provides our physically accurate ground truth. We
+tary §1.                                                                            use 64 spp path tracing as a quality baseline, indicative of a real-time
+   Training scheme: 3D supervision. To avoid dependence on specific                 sampling budget. We emphasize that this work does not seek to dis-
+camera views, we train directly on query points uniformly sampled                   place standard path tracing or production-standard PT plus denoising
+across the entire scene—roughly 2 million points per scene. We train                combinations, but rather to explore whether pure data priors can
+on 90% of the 12k scenes and hold out the rest to test the generaliz-               directly predict global illumination from 3D scene configurations
+ability. Our model is trained on four A10 GPUs for approximately                    without sampled illumination cues.
+seven days, using learning rate warm-up followed by cosine decay.                      Deep shading [Nalbach et al. 2017]. This method predicts GI
+Each batch contains 8,192 query points, with a per-GPU batch size                   using screen-space G-buffer attributes and direct lighting. We overfit
+of 3. More details can be seen in the Supplementary §1.                             their model on our test views using ground-truth direct lighting to
+                                                                                    match their setup. However, unlike our 3D approach, it operates
+   Rendering pipeline integration and timing breakdown. We inte-                    purely in 2D, making it inherently view-dependent and unaware
+grate our PyTorch-based network inference with Falcor’s frame-                      of off-screen geometry. Furthermore, our pipeline learns from raw
+buffer [Kallweit et al. 2022] via CUDA interop. For the local query                 light sources without requiring rasterized cues.
+decoder, we extend cudaKDTree [Wald 2023] to accelerate k-nearest                      Hermosilla et al. [2019]. This work is pioneering in 3D light
+neighbor search. We report average runtime on our test set: (1)                     transport learning and close to our setup, but limited to single objects
+The Light Transport Encoder takes 208 ms which is dominated by                      without textures. To adapt it to our dataset, we upgraded the archi-
+the transformer; however, as our method is view-independent, this                   tecture with target-count sampling (for consistent point density),
+cost is incurred only once per scene update and is effectively amor-                8× larger feature dimensions, and memory-efficient PointConv [Wu
+tized across frames. (2) The rendering phase Local Query Decoder                    et al. 2019]. Despite this, the model struggled to generalize, requiring
+requires 368 ms for generating a 512 × 512 resolution image on a                    per-scene fine-tuning to achieve reasonable results.
+single NVIDIA RTX 5880 Ada GPU, which includes ∼25–36 ms for                           RenderFormer [Zeng et al. 2025], a more recent transformer
+GPU KNN search with the rest spent on Python-based attention.                       approach. We detail its scalability constraints in §5.4.
+Although we have not achieved real-time framerates yet, this sug-
+gests that fusing the attention layers into a custom CUDA kernel
+or applying model distillation could yield significant speedups in
+                                                                                    5.2    Generalizable Diffuse Global Illumination
+future work.                                                                        We evaluate on our complex indoor dataset (excluding [Zeng et al.
+                                                                                    2025] due to OOM on these complex scenes, see §5.4). We present
+   Loss function. We optimize the entire network end-to-end to min-                 qualitative results on six diverse floor plans in Figure 7, visualiz-
+imize the relative L2 loss in log space, applied to both estimated                  ing irradiance without texture modulation to highlight global light
+irradiance and radiance [Müller et al. 2021]:                                       transport. Figure 8 shows fully rendered images with texture and
+                                                                                    direct lighting. In all other cases, visible colors originate purely from
+                                                     gt       2
+                                                                                    indirect lighting.
+                  1 ∑︁ © log( Î 𝑗 + 1) − log(I 𝑗 + 1) ª
+               L=                                                         (12)         The hallway and living room setups are especially challenging
+                                 log( Î 𝑗 + 1) + 𝜖
+                       ­                               ®
+                  𝑁 𝑗                                                               for path tracing, with the light source placed in a distant corner so
+                                                                                    parts of the room are occluded from the main illuminated area. Our
+                       «                               ¬
+                 gt
+where Î 𝑗 and I 𝑗 denote the predicted and ground truth values for                 method consistently outperforms neural baselines and faithfully
+the 𝑗-th query point, respectively, and 𝑁 represents the total number               captures color bleeding from multi-bounce paths and soft shadows.
+of query points in the batch.                                                          Minor artifacts remain: light leaks at the toilet base (bath room)
+                                                                                    and beneath the bowl (dining room 1), and slight color shifts in
+5     EXPERIMENTS AND ANALYSIS                                                      living room. Quantitative results on the test set are provided in
+We primarily validate our framework on Diffuse Global Illumination                  table 1. Extended baseline analysis are provided in Supplementary
+(§5.2), utilizing smooth irradiance prediction as a benchmark for                   §3. Furthermore, we demonstrate view consistency and various
+cross-scene generalization. Conceptually, this serves as a general-                 scene editing applications in Supplementary §4.
+izable neural analogue to irradiance caching [Ward and Heckbert                     Table 1. Quantitative comparison (MSE/SSIM) on 105 test scenes. Note that
+1992], replacing interpolation with robust learned aggregation.                     Deep Shading is overfitted to evaluated views due to poor generalization.
+   Subsequently, mirroring the evolution toward radiance caching                    Our visual quality significantly outperforms all baselines.
+[Jarosz et al. 2008], we demonstrate versatility (§5.3) by re-targeting                          Deep Shading       Improved
+our encoder to predict spatial-directional radiance fields for glossy                 Metric                                        Path Tracing Ours
+                                                                                                  (overfitting) [Hermosilla et al.]
+materials, achieved by simply exchanging the decoder and applying
+limited fine-tuning. We conclude with a critical analysis of scalability              MSE ↓           0.071              0.171             0.051       0.048
+(§5.4) and detailed ablation studies (§5.5).                                          SSIM ↑          0.882              0.775             0.425       0.912
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+                                                                                               A Generalizable Light Transport 3D Embedding for Global Illumination   • 7
+
+                                                                              Deep Shading         Improved [Hermosilla
+                 Scene Albedo     Path Tracing (64spp)    Deep Shading         (overfitting)                                       Ours                  Reference
+                                                                                                        et al. 2019]
+Bath Room
+
+
+
+
+                SSIM/FLIP/LPIPS    0.617/0.075/0.423     0.763/0.576/0.428   0.825/0.568/0.289       0.779/0.263/0.310      0.958/0.130/0.056
+Hall Way
+
+
+
+
+                SSIM/FLIP/LPIPS    0.288/0.189/0.573     0.562/0.849/0.660   0.803/0.852/0.427       0.744/0.360/0.361      0.883/0.203/0.132
+Dining Room 1
+
+
+
+
+                SSIM/FLIP/LPIPS    0.502/0.081/0.600     0.793/0.570/0.472   0.867/0.582/0.296       0.756/0.229/0.314      0.939/0.117/0.132
+Dining Room 2
+
+
+
+
+                SSIM/FLIP/LPIPS    0.507/0.113/0.489     0.688/0.776/0.565   0.768/0.792/0.382       0.770/0.348/0.262      0.946/0.156/0.096
+Living Room
+
+
+
+
+                SSIM/FLIP/LPIPS    0.157/0.302/0.614     0.558/0.708/0.888   0.701/0.725/0.715       0.492/0.323/0.662      0.740/0.230/0.542
+Study Room
+
+
+
+
+                SSIM/FLIP/LPIPS    0.338/0.145/0.640     0.761/0.691/0.573   0.879/0.698/0.368       0.860/0.228/0.344      0.916/0.134/0.252
+
+   Fig. 7. Irradiance prediction comparison with baseline representatives across six diverse floor-plans under varying illumination conditions. We primarily
+   highlight the substantial qualitative visual improvements while reporting SSIM (↑), FLIP (↓) [Andersson et al. 2020], and LPIPS (↓) [Zhang et al. 2018] as
+   per-scene perceptual quality references. We evaluate our model on a held-out test set to demonstrate its generalization capability. Notably, no per-scene
+   training is performed, unlike prior neural global illumination approaches. For Deep Shading, which fails to generalize to new scenes, we include the test scenes
+   in their training set to show their overfitting results here. We extend the original implementation by Hermosilla et al. [2019] to handle our more complex
+   scenes, as their original setup is limited to simple object-level inputs and performs poorly on our dataset (see §5.2). The first column shows the corresponding
+   albedo to provide readers with context for the color of the indirect lighting, while we avoid showing albedo-modulated images to maintain a clear focus on the
+   quality of the predicted irradiance without distraction. We note that path tracing is included as a real-time-budget rendering reference (§5.2) rather than a
+   head-to-head competitor; its error profile is dominated by uniform high-frequency noise, which SSIM and LPIPS reflect more directly while FLIP can score
+   favorably.
+
+
+                                                                                                 SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+8 •    Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+
+
+       Direct lighting             + Our predicted G          Path traced reference      Direct lighting                 + Our predicted GI             Path traced reference
+      Fig. 8. Full renderings with direct illumination and our predicted global illumination for diverse floorplans, lighting conditions and camera views.
+
+5.3    Versatility: Spatial-Directional Radiance Fields
+While irradiance evaluates our core capability to encode global
+interactions and isolates the scalability challenges central to this
+work, the architecture itself is not tied to diffuse transport. We
+re-purpose our pre-trained encoder to predict spatial-directional
+radiance fields, which can be directly integrated with glossy BRDF
+models, demonstrating versatility to view-dependent light transport.
+   We construct a focused dataset for these preliminary experiments
+by moving objects within a living room floorplan and assigning
+glossy materials using the Trowbridge–Reitz (GGX) microfacet dis-
+tribution (see Figure 9). We add roughness as a material attribute
+                                                                                                          
+and use a dedicated Radiance Decoder, taking sampled hemispheri-
+cal directions to predict directional incident radiance. The ground
+truth is generated via path tracing using cosine-weighted sampling,
+discretized into 1024 (32 × 32) directional bins with 64 samples
+per bin. We initialize the encoder from our pre-trained irradiance
+model and fine-tune end-to-end with the new Radiance Decoder,
+reusing the same encoder backbone for this view-dependent task.
+This indicates that the learned representation is transferable across
+rendering tasks rather than tied to its original training objective.                                               
+
+Incident radiance field fitting results are visualized in Figure 9.                   Fig. 9. Rendering comparison for a mixed scene with diffuse and glossy
+   Our current directional histogram implementation is more ex-                       materials. The wall and plant container use a conductor BRDF modeled
+pressive than parametric bases such as spherical harmonics for high-
+                                                                                      with a Trowbridge–Reitz (GGX) microfacet distribution and a roughness of
+frequency glossy structure (see Supp. §4) but remains a discrete,
+                                                                                      0.1. For glossy surfaces, our Directional Radiance Decoder directly predicts
+                                                                                      incident radiance given a shading point and any incoming direction. Global
+low-resolution representation. Combining the same neural condi-                       illumination (top left) uses BRDF integrated with our predicted directional
+tioning with compact directional bases such as Spherical Gaussians                    radiance field, and the top right shows a path traced reference (1024 direc-
+or Anisotropic Spherical Gaussians, where the network predicts ba-                    tional bins per point and 64 samples per bin). The 32 × 32 slices visualize
+sis parameters rather than per-bin values, is a natural extension we                  incident radiance fields at six randomly selected shading points, compared
+leave as future work. We also explore applications for bootstrapping                  against path-traced reference over 1024 hemispherical directions.
+path guiding in Supplementary §4.
+
+5.4    Scalability and Design Discussion                                              both use transformers, these methods occupy distinct points in
+                                                                                      the design space of the rendering problem and optimize for differ-
+We analyze the structural divergence between our approach and
+                                                                                      ent goals: theirs focuses on capturing high-frequency transport on
+the vertex-based RenderFormer [Zeng et al. 2025] in Table 2. While
+                                                                                      object-centric meshes, whereas our design prioritizes the scalability
+∗ Derivation: The cost is derived as 𝑁
+                                   patches × Costpatch . With patch size = 1024 and
+                                                                                      required for general environments, offering support for textures,
+downsampling factor (1/2) 2 in our Nearest Neighbor Embedding (§3.3), we have:        flexible resolutions and views. As such, the two approaches are
+           2
+1024 × 1024 = 256𝑀 .
+𝑀/4
+                                                                                      complementary rather than competing.
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+                                                                                                 A Generalizable Light Transport 3D Embedding for Global Illumination     • 9
+
+
+Table 2. Structural comparison with RenderFormer [Zeng et al. 2025]. 𝑀
+denotes scene primitives (triangles/points); 𝑁 denotes query points/ray
+bundles. Ours achieves linear scalability with significantly fewer parameters.
+The constant C is explained in the footnote.
+
+ Feature                       [Zeng et al. 2025]                    Ours
+ 1. Model Architecture                                                                                                                RenderFormer         RenderFormer
+                                                                                                               Ours (5× error inset) (Cbox, RF-adapted)
+                       Quadratic O (𝑀 2 )                 Linear O (C𝑀 ) ∗ , C = 256
+                                                                                                 Reference
+    Encoder Complexity
+                                                                                                                                                          (their own example)
+
+    Decoder Complexity   O (𝑀𝑁 + 𝑁 2 )                        O (K𝑁 ), K = 32              Fig. 10. Cross-method comparison on a Cornell Box, the classical small-
+                        Global attention                      Local attention              mesh setting where RenderFormer is designed to operate. Left to right:
+    Model Parameters     205M / 483M                                42 M                   path-traced reference; our radiance-decoder prediction (5× error inset [An-
+                                                                                           dersson et al. 2020]); RenderFormer’s rendering of the same Cornell Box
+ 2. Scene Representation
+                                                                                           adapted to its expected input scene assumption, including mesh tessellation,
+    Input                Mesh Vertices                      Sampled Point Cloud
+                                                                                           scene normalization, and point-light approximation (see Supplementary §3);
+    Material Support      Untextured                             Textured
+                                                                                           and and an official result from the original RenderFormer publication. The
+ 3. Training Supervision                                                                   latter is included to ensure the comparison remains faithful to their official
+    Target                  2D Images                    Sampled 3D query points           benchmarks and to provide a reference within the model’s intended training
+    Consistency          View-dependent                     View-independent               distribution. Our model is fine-tuned for one day on a small low-poly subset.
+                         Resolution-fixed                 Resolution-independent
+                                                                                              (3) Supervision. Training objectives dictate tradeoffs. RenderFormer
+   (1) The Scalability Barrier.† RenderFormer employs global atten-                        minimizes loss in 2D image space; its 2D supervision enables it to
+tion to model complex long-range interactions. While effective for                         faithfully model view-dependent caustics and specular highlights,
+object-level effects, this has two limitations. First, this incurs qua-                    namely, the loss directly sees what the camera sees. However, this
+dratic costs across all dimensions: geometry self-attention O (𝑀 2 ),                      approach risks overfitting to constrained viewing frustum and fixed
+ray self-attention O (𝑁 2 ), and cross-attention O (𝑀𝑁 ). Second, this                     resolution. By supervising directly in 3D world space (§4), we trade
+joint attention mechanism tightly couples scene complexity (𝑀) and                         off the ability to model high-frequency view-dependent effects for a
+rendering resolution (𝑁 ), creating a “zero-sum” competition for                           representation that is inherently view-independent and resolution-
+the GPU memory. Consequently, its model’s learning capacity is                             agnostic. Both strategies represent valid solutions to distinct op-
+constrained by relatively simple training meshes (≈ 4𝑘 triangles)                          timization problems. See the Supplementary material for further
+and low resolutions. ‡ This bottleneck is illustrated in Figure 2. In                      discussion, particularly Supp. Table 4.
+contrast, we prioritize linear scalability and decouple the per-query
+computational cost from the global scene complexity. By leverag-
+ing the point representation discussed below, a linear-complexity                          5.5    Ablation Studies and Analysis
+encoder and a constant local decoder (𝐾 = 32), we scale to dense                           We validate our architecture through a progressive ablation study,
+indoor scenes with millions of triangles using only 42M parameters,                        detailed in Figures 11 and 12. The baseline Vanilla model uses a
+while supporting arbitrary rendering resolutions.                                          basic global transformer as an encoder. For each query point, it re-
+   (2) Scene Representation. Vertex-based transformers couple ge-                          trieves neighboring scene points via k-nearest neighbors (KNN), fol-
+ometry and appearance. In RenderFormer, material attributes are                            lowed by simple pooling and a multi-layer perceptron as the decoder.
+bound to vertices, so capturing high-frequency texture details re-                         Despite promising results, training suffers from quadratic complex-
+quires increasing vertex density (tessellation) or encoding attributes                     ity of global attention, making it inefficient for high-resolution point
+at triangle level as in Zeng et al. [2025], which in turn triggers the                     clouds.
+memory bottleneck. Our point-based approach decouples these fac-                              To address this, we substitute the global transformer with our
+tors. We can sample points densely from textured surfaces to faith-                        Light Transport Encoder. While this intermediate step (using naïve
+fully model complex indoor environments with spatially varying                             KNN decoding) incurs a slight performance drop, it establishes the
+materials. This also unifies emissive and non-emissive geometries,                         necessary scalability. Our Full Model completes the pipeline by
+making the architecture more adaptable to various light sources. As                        incorporating the Local Query Decoder; this learnable aggregation
+a quick test to demonstrate that our pipeline can also handle the                          recovers the lost fidelity and achieves the best overall performance.
+low-poly regime where RenderFormer natively operates, we addi-                             This ablation study reinforces that each component contributes
+tionally fine-tune our model on a small low-poly subset to provide                         to the final model’s effectiveness. Beyond these core components,
+a functional comparison (see Figure 10).                                                   a comprehensive suite of additional ablations on further design
+                                                                                           choices (e.g. scene and query point sampling, hyper-parameters,
+† Recall that 𝑀 denotes the number of scene primitives (points/triangles) and 𝑁 denotes
+                                                                                           etc) is provided in Supplementary §2.
+the number of queries (query points/pixels/ray bundles). Scalability here mainly refers
+to computational scalability – the ability of an architecture to handle increasing scene
+complexity (primitives, resolution, etc.) without a prohibitive increase in resource       6     LIMITATIONS
+consumption, specifically GPU memory.                                                      Our method shares several challenges common to regression-based
+‡We note that the ≈ 4𝑘 -triangle figure refers to the training mesh budget; RenderFormer
+can be invoked on higher-poly meshes at inference, but at a quality cost reflecting the    learning approaches. We observe occasional color shifts in scenes
+training distribution.                                                                     containing underrepresented texture tones, such as the Hallway
+
+                                                                                                    SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+10        •   Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+and Study room shown in Figure 7. We also note degraded predic-
+tions when the primary light source is positioned in an adjacent
+room (Figure 13). These out-of-distribution shifts could be mitigated
+through targeted dataset augmentation including outdoor environ-
+ments, or through limited fine-tuning on specific new domains.
+   Furthermore, visual artifacts can arise from occluded points. For
+example, points sampled beneath geometry, such as under a carpet                                 Fig. 13. Two failure cases discussed in §6: (left) color shifting under under-
+in the 5th scene of Figure 7, can occasionally bleed dark latent codes
+                                                                                                 represented texture tones; (right) “ajar” lighting where the source is in an
+
+into visible regions. This issue can be resolved by increasing the
+                                                                                                 adjacent room.
+
+neighbor count 𝑘 during decoding or by pruning fully occluded
+points during the initial sampling stage.                                                        query point-wise local decoding, our framework enables the predic-
+   Consistent with other learning-based global illumination meth-                                tion of global illumination for indoor environments with millions
+ods, our model may exhibit flickering in dynamic sequences with-                                 of primitives. Crucially, this efficiency unlocks robust cross-scene
+out explicit temporal constraints. It also shows reduced fidelity on                             generalization. Beyond scalability, we demonstrated the versatil-
+high-frequency specular reflections because the current encoder is                               ity of this generalizable embedding. Our shared encoder success-
+optimized primarily for diffuse-dominated transport. Finally, while                              fully adapts from predicting diffuse GI to modeling view-dependent
+inference latency remains a factor, it can be improved via distillation                          glossy radiance fields. Our 3D supervision ensures view consistency
+or embedding pruning. We consider this optimization secondary                                    and resolution independence, overcoming the temporal instability
+to our primary goal, which is exploring pure data priors for light                               often seen in image-space baselines. Our method highlights the
+transport and architectural scalability.                                                         potential of tensor cores as an alternative to ray tracing cores, com-
+                                                                                                 plementing rather than replacing classical pipelines.
+                                                                                                    Future work includes incorporating participating media and out-
+                                                                                                 door scenes to extend the spectrum of light transport effects, along-
+                                                                                                 side more sample-efficient training mechanisms to ensure sustain-
+                                                                                                 able scaling. Because our pipeline is differentiable by construction, it
+                                                                                                 can serve as a foundational building block for inverse rendering and
+                                                                                                 scene reconstruction. Additionally, incremental embedding updates
+           Vanilla         + Light Transport       + Local Query                                 that re-encode only regions affected by scene changes would ex-
+         Transformer        Encoder (ours)         Decoder (ours)        Reference
+                                                                                                 tend our amortization beyond camera-only motion to truly dynamic
+Fig. 11. Qualitative results for ablating different components of the model.                     content. Looking ahead, a shared challenge for all efforts in this di-
+This ablation also serves as a roadmap of our design and experimental                            rection is finding mechanisms that scale sustainably across both the
+journey. Left: Global vanilla Transformer encoder, an intuitive starting
+                                                                                                 geometric scene space and the high-dimensional rendering parame-
+                                                                                                 ter space to capture the full complexity of light transport. A careful
+point, but quadratic attention makes it non-scalable with point count and
+hard to train. Middle: Our Light Transport Encoder (§3.3) with naive KNN
+aggregation: highly scalable and fast, but with a noticeable quality drop.                       and evolving balance between data-driven priors and physical laws
+Right: Adding the Local Query Decoder (§3.4) completes the design and                            remains essential for the future of neural rendering.
+recovers quality, achieving the best overall performance.
+               ·10 −2
+                                                                                 0.92
+           9                               0.084                                                 ACKNOWLEDGMENTS
+           8     0.068                                                  0.908    0.9             This work was supported in part by NSF grants 2212085, 2105806,
+                                                                                        SSIM ↑
+ MSE ↓
+
+
+
+
+           7                                                                                     2100237, 2120019, 2127544, and ONR grant N00014-23-1-2526. We
+           6                                                                     0.88
+                 0.885                                                  0.048                    also acknowledge support from Apple, gifts from Adobe, Google,
+           5                                                                                     Activision, and Qualcomm, the Ronald L. Graham Chair and the UC
+                                           0.870                                 0.86
+           4                                                                                     San Diego Center for Visual Computing. Ramamoorthi acknowl-
+         Vanilla Transformer          + Light Trans-                + Local Query
+                                       port Encoder                 Decoder (ours)               edges a part-time appointment at NVIDIA. The authors would like
+Fig. 12. Quantitative complement (100 random test scenes) aligned with the                       to thank Aaron Lefohn and Chris Wyman for their support; Matt
+same ablation roadmap. MSE (left; lower is better) and SSIM (right; higher                       Pharr for valuable input along the way; Thomas Akenine-Möller, Ja-
+is better) are reported for the same sequence of design choices.                                 cob Munkberg, Jon Hasselgren and Zian Wang for their suggestions
+                                                                                                 regarding the evaluation, dataset and training clusters; Miloš Hašan
+                                                                                                 and Benedikt Bitterli for valuable discussions; and to anonymous
+                                                                                                 reviewers for constructive comments. Bing owes particular thanks
+7         CONCLUSION AND FUTURE WORK                                                             to Alex Trevithick for pointers to procedural scene generation and
+We have presented a scalable 3D light transport embedding that                                   many helpful discussions; Zimo Wang and Nithin Raghavan for gen-
+effectively breaks the memory bottleneck of prior neural render-                                 erously sharing cluster training quotas; Yang Zhou for proofreading
+ing methods. By replacing quadratic global attention with a linear-                              and comments; and her fellow interns for helpful discussions in the
+complexity transformer on point clouds and employing independent                                 early stages.
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+                                                                                                A Generalizable Light Transport 3D Embedding for Global Illumination         •   11
+
+
+REFERENCES                                                                                 Charles R. Qi, Li Yi, Hao Su, and Leonidas J. Guibas. 2017b. PointNet++: Deep Hier-
+Pontus Andersson, Jim Nilsson, Tomas Akenine-Möller, Magnus Oskarsson, Kalle                   archical Feature Learning on Point Sets in a Metric Space. In Advances in Neural
+   Åström, and Mark D. Fairchild. 2020. FLIP: A Difference Evaluator for Alternating           Information Processing Systems (NeurIPS), Vol. 30. 5099–5108.
+   Images. Proceedings of the ACM on Computer Graphics and Interactive Techniques 3,       Nithin Raghavan, Yan Xiao, Kai-En Lin, Tiancheng Sun, Sai Bi, Zexiang Xu, Tzu-Mao Li,
+   2 (2020), 15:1–15:23. https://doi.org/10.1145/3406183                                       and Ravi Ramamoorthi. 2023. Neural Free-Viewpoint Relighting for Glossy Indirect
+James Arvo, Kenneth Torrance, and Brian Smits. 1994. A framework for the analysis of           Illumination. In Computer Graphics Forum, Vol. 42. Wiley Online Library, e14885.
+   error in global illumination algorithms. In Proceedings of the 21st annual conference   Gilles Rainer, Adrien Bousseau, Tobias Ritschel, and George Drettakis. 2022. Neural
+   on Computer graphics and interactive techniques. 75–84.                                     Precomputed Radiance Transfer. Computer Graphics Forum 41, 2 (2022), 365–378.
+Steve Bako, Thijs Vogels, Brian McWilliams, Mark Meyer, Jan Novák, Alex Harvill,               https://doi.org/10.1111/cgf.14480
+   Pradeep Sen, Tony DeRose, and Fabrice Rousselle. 2017. Kernel-predicting con-           Alexander Raistrick, Lingjie Mei, Karhan Kayan, David Yan, Yiming Zuo, Beining Han,
+   volutional networks for denoising Monte Carlo renderings. ACM Transactions on               Hongyu Wen, Meenal Parakh, Stamatis Alexandropoulos, Lahav Lipson, et al. 2024.
+   Graphics 36, 4 (2017), 97:1–97:14. https://doi.org/10.1145/3072959.3073708                  Infinigen indoors: Photorealistic indoor scenes using procedural generation. In
+Chakravarty R Chaitanya, Anton S Kaplanyan, Christoph Schied, Marco Salvi, Aaron               Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition.
+   Lefohn, Derek Nowrouzezahrai, Timo Aila, and Nima Khademi Kalantari. 2017. Inter-           21783–21794.
+   active reconstruction of Monte Carlo image sequences using a recurrent denoising        Ravi Ramamoorthi et al. 2009. Precomputation-based rendering. Foundations and
+   autoencoder. ACM Transactions on Graphics (TOG) 36, 4 (2017), 98.                           Trends® in Computer Graphics and Vision 3, 4 (2009), 281–369.
+Per H Christensen, Wojciech Jarosz, et al. 2016. The path to path-traced movies.           Peiran Ren, Jiaping Wang, Minmin Gong, Stephen Lin, Xin Tong, and Baining Guo.
+   Foundations and Trends® in Computer Graphics and Vision 10, 2 (2016), 103–175.              2013. Global illumination with radiance regression functions. ACM Transactions on
+Stavros Diolatzis, Julien Philip, and George Drettakis. 2022. Active Exploration for           Graphics 32, 4 (2013), 130:1–130:12. https://doi.org/10.1145/2461912.2462009
+   Neural Global Illumination of Variable Scenes. ACM Transactions on Graphics 41, 5       Paul Sanzenbacher, Lars Mescheder, and Andreas Geiger. 2020. Learning Neural Light
+   (2022), 171:1–171:18. https://doi.org/10.1145/3522735                                       Transport. Arxiv (2020).
+SM Ali Eslami, Danilo Jimenez Rezende, Frederic Besse, Fabio Viola, Ari S Morcos,          Yawar Siddiqui, Tom Monnier, Filippos Kokkinos, Mahendra Kariya, Yanir Kleiman,
+   Marta Garnelo, Avraham Ruderman, Andrei A Rusu, Ivo Danihelka, Karol Gregor,                Emilien Garreau, Oran Gafni, Natalia Neverova, Andrea Vedaldi, Roman Shapo-
+   et al. 2018. Neural scene representation and rendering. Science 360, 6394 (2018),           valov, and David Novotny. 2024. Meta 3D AssetGen: Text-to-Mesh Genera-
+   1204–1210.                                                                                  tion with High-Quality Geometry, Texture, and PBR Materials. In Advances in
+Zhiwen Fan, Tianlong Chen, Peihao Wang, and Zhangyang Wang. 2022. CADTrans-                    Neural Information Processing Systems, A. Globerson, L. Mackey, D. Belgrave,
+   former: Panoptic Symbol Spotting Transformer for CAD Drawings. In Proceedings of            A. Fan, U. Paquet, J. Tomczak, and C. Zhang (Eds.), Vol. 37. Curran Asso-
+   the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 10986–10996.            ciates, Inc., 9532–9564. https://proceedings.neurips.cc/paper_files/paper/2024/file/
+Duan Gao, Haoyuan Mu, and Kun Xu. 2023. Neural Global Illumination: Interactive                123cfe7d8b7702ac97aaf4468fc05fa5-Paper-Conference.pdf
+   Indirect Illumination Prediction Under Dynamic Area Lights. IEEE Transactions on        Peter-Pike Sloan, Jan Kautz, and John Snyder. 2002. Precomputed radiance transfer
+   Visualization and Computer Graphics 29, 12 (2023), 5325–5341. https://doi.org/10.           for real-time rendering in dynamic, low-frequency lighting environments. ACM
+   1109/TVCG.2022.3209963                                                                      Transactions on Graphics 21, 3 (2002), 527–536. https://doi.org/10.1145/566654.566612
+Michaël Gharbi, Tzu-Mao Li, Miika Aittala, Jaakko Lehtinen, and Frédo Durand. 2019.        Cyril Soler, Ronak Molazem, and Kartic Subr. 2022. A Theoretical Analysis of Compact-
+   Sample-based Monte Carlo denoising using a kernel-splatting network. ACM Trans-             ness of the Light Transport Operator. In ACM SIGGRAPH 2022 Conference Proceedings.
+   actions on Graphics (TOG) 38, 4 (2019), 1–12.                                               1–9.
+Jonathan Granskog, Fabrice Rousselle, Marios Papas, and Jan Novák. 2020. Compo-            Hugues Thomas, Charles R. Qi, Jean-Emmanuel Deschaud, Benoit Marcotegui, Francois
+   sitional neural scene representations for shading inference. ACM Transactions on            Goulette, and Leonidas Guibas. 2019. KPConv: Flexible and Deformable Convolution
+   Graphics 39, 4 (2020), 135:1–135:13. https://doi.org/10.1145/3386569.3392475                for Point Clouds. In Proceedings of the IEEE/CVF International Conference on Computer
+Miloš Hašan, Fabio Pellacini, and Kavita Bala. 2006. Direct-to-indirect transfer for           Vision (ICCV). 6411–6420.
+   cinematic relighting. ACM transactions on graphics (TOG) 25, 3 (2006), 1089–1097.       Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N
+Sebastian Herholz, Martin Sik, Lea Reichardt, and Marco Manzi. 2025. Path Guiding in           Gomez, Łukasz Kaiser, and Illia Polosukhin. 2017. Attention is all you need. Advances
+   Production and Recent Advancements. In Proceedings of the Special Interest Group            in neural information processing systems 30 (2017).
+   on Computer Graphics and Interactive Techniques Conference Courses (SIGGRAPH            Thomas Vogels, Fabrice Rousselle, Brian McWilliams, Mark Meyer, Steve Bako, Jan
+   Courses ’25). Association for Computing Machinery, New York, NY, USA, Article 14,           Nova´k, Alex Harvill, and Marc Droske. 2018. Denoising with kernel prediction and
+   5 pages. https://doi.org/10.1145/3721241.3733994                                            asymmetric loss functions. ACM Transactions on Graphics (TOG) 37, 4 (2018), 124.
+Pedro Hermosilla, Sebastian Maisch, Tobias Ritschel, and Timo Ropinski. 2019. Deep-        Jiří Vorba, Johannes Hanika, Sebastian Herholz, Thomas Müller, Jaroslav Křivánek, and
+   learning the Latent Space of Light Transport. In Computer Graphics Forum, Vol. 38.          Alexander Keller. 2019. Path Guiding in Production. In ACM SIGGRAPH 2019 Courses
+   Wiley Online Library, 207–217.                                                              (Los Angeles, California) (SIGGRAPH ’19). ACM, New York, NY, USA, Article 18,
+Pedro Hermosilla, Tobias Ritschel, Pere-Pau Vázquez, Àlvar Vinacua, and Timo Ropinski.         77 pages. https://doi.org/10.1145/3305366.3328091
+   2018. Monte carlo convolution for learning on non-uniformly sampled point clouds.       Ingo Wald. 2023. GPU-friendly, Parallel, and (Almost-)In-Place Construction of Left-
+   ACM Transactions on Graphics (tog) 37, 6 (2018), 1–12.                                      Balanced k-d Trees. https://arxiv.org/abs/2211.00120
+Wojciech Jarosz, Craig Donner, Matthias Zwicker, and Henrik Wann Jensen. 2008.             Bruce Walter, Stephen R Marschner, Hongsong Li, and Kenneth E Torrance. 2007.
+   Radiance Caching for Participating Media. ACM Transactions on Graphics 27, 1                Microfacet Models for Refraction through Rough Surfaces. Rendering techniques
+   (March 2008), 7:1–7:11. https://doi.org/10.1145/1330511.1330518                             2007 (2007), 18th.
+Simon Kallweit, Petrik Clarberg, Craig Kolb, Tom’aš Davidovič, Kai-Hwa Yao, Theresa        Yue Wang, Yongbin Sun, Ziwei Liu, Sanjay E. Sarma, Michael M. Bronstein, and Justin M.
+   Foley, Yong He, Lifan Wu, Lucy Chen, Tomas Akenine-Möller, Chris Wyman, Cyril               Solomon. 2019. Dynamic Graph CNN for Learning on Point Clouds. ACM Transac-
+   Crassin, and Nir Benty. 2022. The Falcor Rendering Framework. https://github.               tions on Graphics 38, 5 (2019), 146:1–146:12.
+   com/NVIDIAGameWorks/Falcor https://github.com/NVIDIAGameWorks/Falcor.                   Gregory J. Ward and Paul S. Heckbert. 1992. Irradiance Gradients. In Proceedings of the
+Yangyan Li, Rui Bu, Mingchao Sun, Wei Wu, Xinhan Di, and Baoquan Chen. 2019.                   Eurographics Workshop on Rendering Techniques. 85–98.
+   PointConv: Deep Convolutional Networks on 3D Point Clouds. In Proceedings of the        Wenxuan Wu, Zhongang Qi, and Li Fuxin. 2019. Pointconv: Deep convolutional
+   IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR). 9621–9630.           networks on 3d point clouds. In Proceedings of the IEEE Conference on Computer
+Thomas Müller, Alex Evans, Christoph Schied, and Alexander Keller. 2022. Instant               Vision and Pattern Recognition. 9621–9630.
+   neural graphics primitives with a multiresolution hash encoding. ACM Transactions       Xiaoyang Wu, Li Jiang, Peng-Shuai Wang, Zhijian Liu, Xihui Liu, Yu Qiao, Wanli
+   on Graphics 41, 4 (2022), 102:1–102:15. https://doi.org/10.1145/3528223.3530127             Ouyang, Tong He, and Hengshuang Zhao. 2024. Point Transformer V3: Simpler,
+Thomas Müller, Fabrice Rousselle, Jan Novák, and Alexander Keller. 2021. Real-time             Faster, Stronger. In Proceedings of the IEEE/CVF Conference on Computer Vision and
+   neural radiance caching for path tracing. ACM Transactions on Graphics 40, 4 (2021),        Pattern Recognition (CVPR). IEEE. https://doi.org/10.1109/CVPR52733.2024.00463
+   36:1–36:16. https://doi.org/10.1145/3450626.3459812                                     Hanggao Xin, Shaokun Zheng, Kun Xu, and Ling-Qi Yan. 2022. Lightweight Bilat-
+Oliver Nalbach, Elena Arabadzhiyska, Dushyant Mehta, H-P Seidel, and Tobias Ritschel.          eral Convolutional Neural Networks for Interactive Single-Bounce Diffuse Indirect
+   2017. Deep shading: convolutional neural networks for screen space shading. In              Illumination. IEEE Transactions on Visualization and Computer Graphics 28, 4 (2022).
+   Computer graphics forum, Vol. 36. Wiley Online Library, 65–78.                          Bing Xu, Junfei Zhang, Rui Wang, Kun Xu, Yong-Liang Yang, Chuan Li, and Rui
+OpenAI. 2024. Video generation models as world simulators. https://openai.com/index/           Tang. 2019. Adversarial Monte Carlo denoising with conditioned auxiliary fea-
+   video-generation-models-as-world-simulators. Accessed: 2025-05-10.                          ture modulation. ACM Transactions on Graphics 38, 6 (2019), 224:1–224:12. https:
+Charles R. Qi, Hao Su, Kaichun Mo, and Leonidas J. Guibas. 2017a. PointNet: Deep               //doi.org/10.1145/3355089.3356547
+   Learning on Point Sets for 3D Classification and Segmentation. In Proceedings of the    Chong Zeng, Yue Dong, Pieter Peers, Hongzhi Wu, and Xin Tong. 2025. RenderFormer:
+   IEEE Conference on Computer Vision and Pattern Recognition (CVPR). 652–660.                 Transformer-based Neural Rendering of Triangle Meshes with Global Illumination.
+                                                                                               In ACM SIGGRAPH 2025 Conference Papers.
+
+
+
+                                                                                                    SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+12    •   Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shechtman, and Oliver Wang. 2018.          The spatial coverage limitation. While PTV3 is highly efficient
+   The Unreasonable Effectiveness of Deep Features as a Perceptual Metric. In CVPR.       for semantic tasks (like segmentation), its patch-based attention
+Hengshuang Zhao, Li Jiang, Jiaya Jia, Philip H.S. Torr, and Vladlen Koltun. 2021. Point
+   Transformer. In Proceedings of the IEEE/CVF International Conference on Computer       presents a specific challenge for Global Illumination (GI). In GI, a
+   Vision (ICCV). 16259–16268.                                                            single point’s radiance is often determined by distant light sources
+Chuankun Zheng, Yuchi Huo, Hongxiang Huang, Hongtao Sheng, Junrong Huang, Rui
+   Tang, Hao Zhu, Rui Wang, and Hujun Bao. 2024. Neural Global Illumination via
+                                                                                          or large-scale bounces across a room.
+   Superposed Deformable Feature Fields. In SIGGRAPH Asia 2024 Conference Papers.            A 1024-point patch of raw scene points typically covers only a
+   1–11.                                                                                  small, localized 3D volume. Since attention is restricted to the patch,
+Chuankun Zheng, Yuchi Huo, Shaohua Mo, Zhihua Zhong, Zhizhen Wu, Wei Hua, Rui
+   Wang, and Hujun Bao. 2023. NeLT: Object-Oriented Neural Light Transfer. ACM            the model can “see” only a thin slice of the environment in a single
+   Trans. Graph. 42, 5 (2023).                                                            layer. In standard PTV3, long-range information must propagate
+Attila T. Áfra. 2024. Intel® Open Image Denoise. https://www.openimagedenoise.org.        slowly through many stacked layers or hierarchical downsampling.
+   Accessed: 2025-05-10.
+                                                                                          This limitation directly motivates our Nearest-Neighbor Embedding
+                                                                                          (NNE) (§3.3 of the main paper).
+A IMPLEMENTATION DETAILS
+A.1 Architecture and training configurations
+While the overall architectural design is described in §3 of main
+paper, we provide the specific layer configurations, channel dimen-
+sions and training settings in Table 3.                                                        (a) raw         (b) space-filling    (c) per-patch      (d) NNE tokens
+                                                                                            scene points         serialization        attention        + coverage halos
+ Table 3. Summary of architectural specifications and training settings.
+                                                                                          Fig. 14. Visual sketch of PTV3’s serialization-and-patch design and our
+ Category         Parameter                                        Value                  NNE complement. (a) Raw scene points. (b) Points are reordered along a
+ Model            Pre-projection Dim                                 128                  space-filling curve (a Hilbert curve is shown; PTV3 also supports Z-order
+                  Nearest-neighbor embedding K                        32                  and transposed variants). (c) The 1D sequence is split into non-overlapping
+                  Encoder Backbone                                  PTV3                  patches (colored); attention is computed only within each patch. (d) Our
+                  Structure                              Enc Depths: [2, 2, 2, 6, 2]      Nearest-Neighbor Embedding (NNE; §3.3 of the main paper) replaces raw
+                  Channels                                [128, 128, 128, 256, 256]       scene points with hierarchically aggregated tokens: two FPS halvings yield
+                  Patch Size                                        1024                  𝑚=𝑀/4 centers (teal), and each token (large teal dot) summarizes a halo
+                  Encoder Heads                                   4 (𝐷/32)                (faded teal) of ∼ 𝑘 2 raw points via two stages of 𝑘-NN aggregation. A patch
+                  Hidden Dimension (𝐷)                               128                  of 1024 such tokens covers a much larger 3D region than a 1024-raw-point
+                  Decoder Layers                                      6                   patch in (c) would.
+                  Decoder Neighbors (𝐾)                               32
+                  Feed-Forward Dim                              512 (4 × 𝐷)               A.3     Dataset generation details
+                  Dropout                                            0.1
+                                                                                          Our large-scale indoor global illumination dataset is built upon the
+ Training         Optimizer                                       AdamW                   procedural generation rules from Raistrick et al. [2024]. The dataset
+                  Learning Rate                                   2 × 10 −4               comprises 13,900 Blender scenes spanning diverse floorplans and
+                  Weight Decay                                    1 × 10 −4               asset collections, including furniture, appliances, and decor.
+                  Batch Size                                          3
+                  Total Steps                                     2,000,000                  Geometry refinement. We clean up the geometries to ensure geo-
+                                                                                          metric consistency suitable for physically based rendering. This
+                                                                                          involved: (1) Filtering out low-quality meshes and degenerate ge-
+A.2       Background on Point Transformer V3 and our NNE’s                                ometry. (2) De-duplication: Removing duplicate elements and re-
+          receptive field expansion                                                       solving overlapping exterior shells that could cause light leakage or
+We adopt Point Transformer V3 (PTV3) [Wu et al. 2024] as our                              z-fighting artifacts. (3) All scenes were processed into PBRT format
+encoder backbone for its scalability properties. While earlier point-                     with high-resolution baked textures to preserve material fidelity
+based transformers [Zhao et al. 2021] relied on computationally ex-                       during export.
+pensive 𝑘-nearest-neighbor (KNN) lookups for every attention layer,
+                                                                                             Lighting heuristics. We utilized area lights to provide visually
+PTV3 introduces a more efficient serialization-and-patch mecha-
+                                                                                          pleasing near-field illumination, unifying them with general scene
+nism.
+                                                                                          geometries via our point-based representation. To generate realis-
+   As illustrated in Figure 14, PTV3 reorders 3D points into a 1D
+                                                                                          tic configurations automatically, we implemented a heuristic strat-
+sequence using space-filling curves (e.g., Z-order or Hilbert curves).
+                                                                                          egy where rectangular lights were instantiated flush with the ceil-
+This sequence is partitioned into non-overlapping patches of a fixed
+                                                                                          ing to mimic standard fixtures, while enforcing minimum distance
+size (we use 1024). Standard self-attention is then computed exclu-
+                                                                                          constraints from walls and major occluders to prevent unrealistic
+sively within these patches. To ensure cross-neighborhood com-
+                                                                                          hotspots or geometric intersections.
+munication, PTV3 shuffles the serialization order (e.g., swapping
+between Z-order and Hilbert) across different layers. This design                           Ground truth generation. Each scene is exported to PBRT format,
+achieves linear complexity, allowing our model to process the mil-                        with high-quality triangle meshes and baked high-resolution tex-
+lions of points required for high-fidelity light transport.                               tures for each asset. The resulting files range from 500 MB to 2 GB.
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+                                                                              A Generalizable Light Transport 3D Embedding for Global Illumination   •   13
+
+
+For ground-truth irradiance computation, we sample 2 million query        point-based representations. Since FPS downsampling produces
+points per scene and trace 1,024 stratified, cosine-weighted rays         a blue-noise point distribution, naive KNN aggregation implicitly
+per point with a maximum depth of five. Full dataset generation,          partitions the 3D space into Voronoi cells, resulting in visible dis-
+including mesh processing, texture baking, and rendering, required        continuities at cell boundaries. As shown in the final column, our
+approximately 250 CPU/GPU days on our compute cluster.                    Local Query Decoder successfully resolves these artifacts through
+                                                                          learned aggregation, yielding a spatially smooth and high-fidelity
+   Glossy subset. To support the versatility experiments in §5.3, we
+                                                                          output.
+generated a focused subset of scenes where glossy surfaces are mod-
+eled as conductors using the Trowbridge–Reitz (GGX) microfacet               Choice of spatial neural primitive. We chose to use point-based
+distribution [Walter et al. 2007]. This subset utilizes our standard      neural primitives as the intermediate representation for 3D em-
+lighting and geometry pipeline but incorporates additional mate-          bedding, where the latent codes are anchored at the scene points.
+rial roughness attributes and directional incident radiance targets.      This point-anchor format is naturally suited for the multi-scene
+At each query point, we sampled 1,024 hemispherical directions            encoding via transformers and cross-scene generalization. Several
+(32 × 32) using cosine-weighted, stratified sampling. We traced           other neural graphics primitives have been proposed for compact
+paths along each direction to compute incident radiance, result-          scene representation and we acknowledge that there can be po-
+ing in a discretized 32 × 32 directional histogram (and associated        tentially better choices. Our preliminary experiments indicate that
+PDFs) at every point. We note that this dense representation incurs       in single-scene optimization settings, point-anchored latent code
+a significant storage footprint; for future scaling to larger datasets,   displacements may not yet match the convergence efficiency of
+we recommend adopting on-the-fly BRDF importance sampling to              multi-resolution hash encodings [Müller et al. 2022]. As illustrated
+mitigate these memory costs for training data.                            in the figure (right), we evaluate this by making our per-point latent
+                                                                          codes trainable and utilizing an MLP decoder to regress a single
+  Training scene normalization. Light transport is scale-sensitive;
+                                                                          scene. Note that the relative simplicity of the MLP decoders in this
+phenomena like inverse-square falloff and occlusion depend on
+                                                                          experiment may result in lower visual fidelity compared to our pri-
+absolute physical distances. Therefore, we do not normalize each
+                                                                          mary results; however, they serve as a proof-of-concept for potential
+scene to its own unit cube. Instead, we compute the scene-specific
+                                                                          architectural extensions.
+bounding box minimum bmin and apply a consistent global scale:
+                                                                             Integrating our en-
+                          p̂ = (p − bmin )/𝑠,                             coder with more ex-
+                                                                          pressive neural primi-
+where 𝑠 is a fixed dataset-wide constant representing an upper
+                                                                          tives remains a com-
+bound on scene extent. This ensures every training scene fits within
+                                                                          pelling direction for fu-
+[0, 1] 3 while maintaining a consistent mapping between world-
+                                                                          ture work. For instance,
+space and normalized distances. The same transform is applied to
+                                                                          adapting the encoder to
+query points, while normals and albedos remain unchanged. Under
+                                                                          produce latent features
+this scheme, the encoder sees physical scale consistently across                                         multi-res hashgrid
+                                                                                                                             trainable latent codes
+                                                                          that index into a multi-                          anchored at scene points
+all environments. Scenes substantially larger than 𝑠 would either
+                                                                          resolution hash grid [Müller et al. 2022] could potentially combine
+require partitioning or a rescaled 𝑠, while the remainder of the
+                                                                          the benefits of transformer-based scene generalization with the high-
+pipeline remains unchanged.
+                                                                          resolution spatial encoding and accelerated inference characteristic
+                                                                          of grid-based methods.
+B   ABLATION STUDIES AND ANALYSIS
+We have made specific design choices regarding training data gener-          Scene point sampling strategy. We follow the work by Hermosilla
+ation and network architecture. In this section, we present ablation      et al. [2018]; Li et al. [2019] to account for the importance sampling
+studies to validate these decisions and analyze the impact of key         densities of points but find their impact on performance negligible.
+hyperparameters on model performance.                                     We observe that uniform sampling of 20k points per scene performs
+                                                                          comparably to simple heuristics such as biasing toward smaller
+   Resource cost and visual artifacts in the design roadmap. We pro-      objects. In general, we find that the effect of sampling strategies
+vide further details regarding the ablation roadmap (Fig. 11) by          diminishes once the scene is sufficiently covered. While performance
+quantifying resource consumption and addressing specific visual           is not highly sensitive to sampling strategy, the sampling density
+artifacts. The Vanilla transformer baseline, while inherently expres-     should still reflect geometric and texture frequencies to capture the
+sive due to its dense attention mechanism, is memory-prohibitive at       signal accurately.
+scale: with 𝑀 = 20k scene points, it exceeds 80 GB of training VRAM
+at a batch size of 3, necessitating a batch size of 1 in practice. Our       Number of query points for view-independent training. To inform
+Light Transport Encoder reduces peak training VRAM to ≈21 GB              our design choices, we perform a quick verification experiment illus-
+at batch size 3, while the full pipeline (including the Local Query       trated in Figure 15. In this single-scene irradiance overfitting setup,
+Decoder) utilizes ≈22 GB. All configurations were trained for 100k        we omit the encoder, make the point-based latent codes trainable,
+steps.                                                                    and use a simple MLP as the decoder. The experiment evaluates the
+   Notably, the hexagonal patterns visible in the intermediate stage      effect of varying the number of query points. We find that using
+(+Light Transport Encoder) are Voronoi-like artifacts inherent to         2 million query points provides sufficient coverage for complex
+
+                                                                                  SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+14   •    Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+Table 4. Ablation results for the number of neighbors (k) during decoding,
+and number of input scene points. Our choices are colored.                             Table 5. Effect of hidden dimension 𝐷 on model size and peak training
+                                                                                       VRAM (batch size 3, 𝑀=20k scene points, single GPU). Our default is high-
+           k           PSNR↑            # scene points           PSNR↑                 lighted.
+           8            26.96                   5k                28.51                                     𝐷      #Params        Train VRAM
+          32            34.57                  10k                30.94
+                                                                                                           64       10.5 M           10.7 GB
+          48            34.71                  20k                34.57
+                                                                                                           128       42 M            21.3 GB
+                                               40k                36.25                                    256      167.7 M          43.1 GB
+
+scenes, offering a good trade-off between performance and memory
+usage. For simpler scenes, this number can be significantly reduced;
+for instance, 200k points are sufficient for the Cornell Box.
+
+   Neighbor count 𝑘 and scene-point count 𝑀. We further ablate on
+the number of input scene points and the neighborhood size 𝑘 used
+for the KNN search described in §3.4. We conduct these experiments
+on a small subset of the data, training on 90 scenes and testing on
+                                                                                             262k query points          2M query points            Reference
+10 scenes for easy analysis. As shown in Table 4, a small neighbor-
+hood (𝑘 = 8) yields significantly lower performance, with accuracy                     Fig. 15. We analyze performance under varying numbers of sampled query
+saturating at 𝑘 ≥ 32. Given that larger 𝑘 values incur substantial                     points on the scene geometry in single-scene overfitting setting, where the
+computational overhead, we select 𝑘 = 32 as the optimal balance                        model predicts irradiance at primary ray hits.
+for our final model.
+                                                                                       full spectrum of neural rendering. This broad evaluation comple-
+   As expected, increasing the number of input scene points 𝑀 di-
+                                                                                       ments recent work Zeng et al. [2025] by assessing performance
+rectly improves the performance, and our design choices are made
+                                                                                       across diverse architectural philosophies. Below, we elaborate on
+with this in consideration (e.g. efficient light transport embedding
+                                                                                       the experimental setup and discuss the results for each baseline in
+§3.3, local decoding §3.4). We observe that beyond 𝑀 = 20k points,
+                                                                                       greater detail.
+PSNR improvements become marginal and visually imperceptible
+for our benchmark scenes. Consequently, we fix 𝑀 = 20k as our de-                         Deep Shading: screen-space limitations. The deep shading method
+fault; however, for environments with higher geometric complexity                      [Nalbach et al. 2017] is confined to screen-space and has limited
+or larger spatial extent, our architecture is designed to scale with                   awareness of the actual 3D scene. As a result, it struggles to capture
+increased point counts accordingly.                                                    effects caused by out-of-sight geometries, exhibits view inconsis-
+                                                                                       tencies, and generalizes poorly to unseen scenes. To expose its
+   Embedding dimension 𝐷. The hidden dimension 𝐷 defines the                           limitations, we include the test scenes in the training set and show
+feature width across our entire architecture. Specifically, the Nearest-               the resulting overfitted predictions in Figure 7. For instance, accu-
+Neighbor Embedding projects aggregated tokens into a 𝐷-dimensional                     rately capturing the shadow cast by a light source onto the ceiling
+space; the PTV3 encoder operates within this space across all at-                      (indirect light bouncing from the floor) in Dining Room 2 is not
+tention layers to produce the final light transport embeddings F𝑙 ;                    feasible without access to the 3D knowledge. By using direct light-
+and the Local Query Decoder performs cross-attention at the same                       ing as an illumination cue, it was able to predict the area above the
+dimensionality before final projection. Consequently, 𝐷 governs                        light source to be dark, while the region directly beneath it appears
+per-point representational capacity and maintains a synergistic re-                    brightest (Living Room). We note that the screen-space CNN para-
+lationship with 𝑀: while 𝑀 determines spatial coverage, 𝐷 dictates                     digm is also adopted by Xin et al. [2022]; we use Deep Shading as a
+the richness of the features within that coverage. As shown in Ta-                     representative of this category since both share the same fundamen-
+ble 5, doubling 𝐷 approximately doubles training VRAM usage at                         tal view-dependence and off-screen-blindness. Recent advances in
+our current depth and patch size, with a commensurate increase                         video foundation models may offer improved spatial reasoning by
+in parameter count. At 𝐷 = 256, training memory requirements                           leveraging the 2D+time dimension. However, with the increasing
+(43 GB) exceed the capacity of standard 24 GB GPUs, whereas 𝐷 = 64                     availability of large-scale 3D data, it may be more effective to bypass
+provides insufficient per-token capacity for the scene complexity                      the indirect route of reconstructing 3D from 2D projections and
+captured by 𝑀. We therefore select 𝐷 = 128 as our default, repre-                      instead embrace direct 3D representations—enabling full editability
+senting the largest dimension feasible on a single 24 GB GPU. For                      and consistent understanding, as demonstrated by our method.
+future scaling, 𝐷 and 𝑀 should be scaled jointly to accommodate
+increasing scene complexity.                                                              Hermosilla et al. [2019]: point convolutions on complex scenes. In
+                                                                                       general, we observe that transformers exhibit strong generalization
+                                                                                       ability and are surprisingly resistant to overfitting, even on small
+C        EXTENDED BASELINE ANALYSIS                                                    datasets. In contrast, Hermosilla et al. [2019] is built upon point
+As introduced in §5.1 of the main paper, we compare our method                         convolutions, which struggle to learn effectively from our com-
+against representatives from three distinct paradigms to cover the                     plex dataset. Although we modified their model to better match our
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+                                                                                   A Generalizable Light Transport 3D Embedding for Global Illumination   •   15
+
+
+scene complexity, it still fails to capture the intricate nature of global   Table 6. Capability scope. We demonstrate the capabilities of our method
+illumination and suffers from noticeable artifacts. We believe trans-        as shown in our results, comparing them with RenderFormer [Zeng et al.
+formers offer an advantage due to their ability to model long-range          2025] across four key axes: scene complexity, rendering resolution, texture
+dependencies and dynamically aggregate features across spatially             fidelity, and camera freedom.
+distant regions, which is critical for accurately representing light
+                                                                             Feature               Ours vs. RenderFormer
+transport.
+                                                                             Scene Complexity RenderFormer is limited to ≈4k triangles due to O (𝑀 2 )
+                                                                                              attention costs and the coupling with image resolutions,
+   Note on path tracing as a baseline. While path tracing often pro-                          often requiring decimation that causes geometry loss. In
+duces noisy outputs, these are typically refined using post-processing                        contrast, our method scales via linear attention; our eval-
+denoisers in modern pipelines. We do not claim our method replaces                            uation scenes average 3.2M primitives (see Table 7).
+the full path tracing plus denoising setup, but instead emphasize the        Resolution            RenderFormer is tied to its fixed training resolution
+potential of predicting global illumination directly from 3D scene                                 (512×512) because queries are coupled by the vision trans-
+configurations. Unlike traditional path tracing, where shader exe-                                 former and the resource conflict with geometries. Our
+cution diverges across pixels due to bounce paths, occlusion, and                                  method is independent from resolution; Figure 1 demon-
+material interactions, our method performs a uniform forward pass                                  strates 2688×1152 resolution with consistent quality.
+per pixel. This regularity enables efficient parallel execution on           Textures              RenderFormer assumes constant reflectance per triangle
+modern GPUs and offers predictable performance across varying                                      or limited 32×32 textures. Our method supports high-
+scene complexity. It also replaces the irregular, memory-bound na-                                 fidelity textures, averaging 40 textures per scene at 10242
+ture of path tracing with more streamlined and predictable memory                                  resolution (see Table 7).
+access. As power efficiency becomes increasingly critical in modern          Camera Space          We support immersive “walk-throughs” with cameras
+architectures, transformer-based inference presents a promising                                    placed anywhere, while RenderFormer restricts the cam-
+direction for scalable light transport.                                                            era to outside the cornell bounding box.
+                                                                             Material effects      RenderFormer achieves impressive results on high-
+   Discussion on RenderFormer. To further contextualize our con-                                   frequency specular materials by directly predicting outgo-
+tributions, we provide a detailed comparison with RenderFormer,                                    ing radiance. In contrast, we prioritize view consistency
+                                                                                                   and resolution independence; thus, we predict incident
+which represents the state-of-the-art in transformer-based global
+                                                                                                   radiance using 3D supervision, which ensures stability
+illumination for object-centric tasks. Beyond the scalability differ-
+                                                                                                   across arbitrary camera paths at the cost of some specular
+ences summarized in Table 2 of the main paper, we expand on the                                    sharpness.
+functional capabilities and operational constraints of both meth-
+ods in Table 6. The two methods diverge fundamentally in their
+supervision signals and scene representations.                               Table 7. Example dataset statistics. We show the statistics of our complex
+   For the qualitative comparison in Figure 10 of the main paper, we         indoor scenes exhibiting high geometric density and high-resolution tex-
+took extensive measures to adapt the standard Cornell Box to Ren-            tures, far exceeding the ≈4k primitives limit of Zeng et al. [2025].
+derFormer’s specific input assumptions before invoking the released             Scene Figure                 Triangle Count        Texture Resolution
+checkpoint. Geometry was tessellated to match their templates.
+PBRT’s diffuse walls map directly to RenderFormer’s diffuse term;               Teaser Figure 1                   3,427,263              46 ×10242
+                                                                                Bath Room Figure 7                 825,645               29 ×10242
+the PBRT Mirror conductor (𝜂 + 𝑖𝑘 with roughness 0.1) is mapped to
+                                                                                Hall Way Figure 7                 2,459,417              41 ×10242
+specular ≈ 0.9 (the Fresnel 𝐹 0 at normal incidence) with roughness
+                                                                                Dining Room 1 Figure 7            2,765,279              35 ×10242
+passed through, plus a small diffuse so that diffuse + specular falls           Dining Room 2 Figure 7            4,622,312              44 ×10242
+within RenderFormer’s training range of [0.9, 1.0]. The original area           Living Room Figure 7              2,711,230              51 ×10242
+light is replaced by a single emissive triangle at the same centroid,           Study Room Figure 7               6,044,118              29 ×10242
+sized to match RenderFormer’s training-distribution emitters (simi-
+lar to point lights) and with radiance set to preserve the original total    D ADDITIONAL RESULTS AND APPLICATIONS
+flux. The flux-correct radiance falls below RenderFormer’s train-
+ing range of 𝐿 ∈ [2500, 5000] W/units2 , and RenderFormer does
+                                                                             D.1 Inherent view consistency
+not appear to extrapolate linearly outside that range: below 2500            Our model is inherently view-independent (§4 of main paper), as it
+it under-produces light, contributing to the dimmer appearance of            is trained on query points sampled directly from the 3D scene rather
+its panel. Improving training efficiency by enforcing such physical          than camera-based observations. Please refer to our supplementary
+invariances (e.g., linear radiance scaling) remains an area for future       video.
+work.
+   Our model was fine-tuned for one day on a small, low-poly subset          D.2     Scene editing
+to verify its capability in this secondary low-poly regime. While               Light source movement. We assess the model’s robustness to chang-
+the limited training diversity in this subset results in minor shadow        ing light positions, as illustrated in fig. 16. In this living room exam-
+blotchiness, these artifacts are expected to resolve with more com-          ple, moving the area light toward the camera leads to corresponding
+prehensive training on a larger dataset.                                     changes in shadows and indirect illumination. The shadow shifts
+
+                                                                                      SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+16   •   Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+                                                                                                                            Before
+
+                                   Light movement 1
+
+
+
+
+                                                                                        Object movement
+Original scene light position         Ours                   Reference
+                                                                                                                            After
+                                 Light movement 2
+
+
+
+
+         Scene albedo                 Ours                   Reference
+                                                                                             Scene albedo                   Ours               Reference
+Fig. 16. As the area light moves away or toward the camera, both the shadow
+                                                                                      Fig. 17. Irradiance prediction under non-emissive object movement. Unlike
+and indirect illumination respond accordingly. The model generalizes rea-
+                                                                                      previous works, no per-scene training is performed. As the sofa moves
+sonably well to novel light placements within the same scene. We expect
+                                                                                      toward the light source, it receives stronger indirect illumination, while
+that increasing the diversity of light positions during training would further
+                                                                                      nearby regions—such as the cabinet near the wall—become darker due to
+enhance the quality and robustness of the results. Again, we show the cor-
+                                                                                      increased occlusion. Again, we show albedo separately to maintain a clear
+responding albedo to provide readers context for the color of the indirect
+                                                                                      focus on the quality of the predicted irradiance without distraction.
+lighting, while we avoid showing albedo-modulated images to maintain a
+clear focus on the quality of the predicted irradiance without distraction.
+
+relative to the light source due to occlusion of indirect light reflected
+from the floor, and the two sofa areas become brighter or darker
+as a result. Although each scene was trained with a fixed light con-
+figuration, the model not only generalizes to new floor plans and
+geometries, but also responds robustly to novel light placements.                      Texture editing
+This behavior reflects the strength of the learned 3D light transport
+embedding in capturing global illumination dynamics. We expect
+that training on a wider range of lighting conditions would further
+enhance both accuracy and robustness.
+
+    Object movement. We evaluate the model’s robustness to non-
+emissive object movement, as shown in fig. 17. In this example, as
+                                                                                       Texture editing
+the sofa moves closer to the light source, it becomes more brightly
+lit, while the small cabinet near the wall appears darker due to
+                                                                                             Scene albedo                   Ours              Reference
+increased occlusion. As expected, the shadow consistently follows
+the moving object.
+                                                                                      Fig. 18. Irradiance prediction under material editing. When we change the
+                                                                                      floor’s albedo from a pale (whitish) tone to a greenish hue, the indirect
+  Material editing. We evaluate the model’s response to material
+                                                                                      lighting cast onto the walls adjusts correctly. No per-scene retraining is
+                                                                                      needed.
+editing. In fig. 18, changing the floor’s albedo from pale white to
+deep green causes the predicted irradiance field to update accord-
+                                                                                         Learned histogram vs. spherical harmonics. We evaluate our neu-
+ingly, modifying the indirect lighting on nearby walls. This result is
+                                                                                      ral directional basis against Spherical Harmonics (SH), the standard
+achieved without any per-scene retraining. Expanding the dataset
+                                                                                      parametric basis in neural rendering. While SH offers a compact
+with a wider range of textures would likely improve robustness in
+                                                                                      encoding, it faces a fundamental trade-off between smoothness
+more diverse editing scenarios.
+                                                                                      and frequency resolution. Low-degree SH basis functions tend to
+                                                                                      oversmooth sharp structures, whereas higher degrees (𝑙 max ≥ 4)
+D.3      Architectural versatility and directional bases                              significantly increase the feature dimensionality—(𝑙 max + 1) 2 coeffi-
+While our primary focus is on scalable diffuse transport, the under-                  cients per color channel—and often introduce Gibbs-phenomenon
+lying 3D embedding is designed to be task-agnostic. In this section,                  ringing artifacts near high-frequency boundaries.
+we expand on the architectural extension introduced in §5.3 of the                       By conditioning on scene geometry and material context, our
+main paper, focusing on the choice of directional representation for                  learned basis achieves significantly higher fidelity for complex
+incident radiance.                                                                    incident-radiance distributions. Qualitative comparisons and error
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+                                                                                         A Generalizable Light Transport 3D Embedding for Global Illumination   •   17
+
+
+                                                                                     with meta-learning, where knowledge accumulated across scenes
+                                                                                     enables fast adaptation to new instances, facilitating efficient light
+                                                                                     transport simulation without per-scene retraining.
+                                                                                        We emphasize that this application is intended as a proof-of-
+                                                                                     concept; the network currently predicts angularly smooth signals via
+                                                                                     32×32 histogram supervision, where each bin represents an average
+                                                                                     over its respective solid-angle subdomain. Consequently, the result
+                                                                                     is a low-resolution approximation of the true radiance distribution
+                                                                                     with an inherent frequency limit. Furthermore, we acknowledge that
+                                     invoking the full MLP decoder to query directional quantities for
+                                                                               each individual sample is currently computationally redundant. This
+Fig. 19. Path tracing results using different sampling strategies. Left: BRDF        per-query overhead could be bypassed in future work by exploring
+sampling with 2 samples per pixel (spp); middle: importance sampling via             more efficient pathways to amortize the decoding cost, such as
+CDF inversion based on the normalized histogram of the product of our                utilizing a CNN-based head to predict a direct bitmap of the radiance
+predicted incoming radiance field and brdf values; right: the predicted (top)        distribution or predicting basis coefficients in a single forward pass.
+and path traced (bottom) sampling distributions for the incident radiance
+integrand at two random points. The reference can be seen in Figure 9 of
+the main paper. Our model-driven sampling significantly reduces noise
+in low-sample regimes. As more samples are accumulated, our predicted
+PDF can serve as an effective initializer for modern path guiding methods,
+mitigating the cold-start problem inherent in per-scene optimization ap-
+proaches. Note that the cosine term is included in both of the importance
+sampling strategies.
+
+vs. degree 𝑙 max are reported in fig. 20, where our method preserves
+sharp detail without ringing and attains lower reconstruction error.
+
+   Future extension: parametric neural bases. While the current his-
+togram implementation is more expressive for high-frequency struc-
+tures, it remains discrete. A natural progression for our framework
+is to utilize the neural conditioning to predict parameters for contin-
+uous bases, such as Spherical Gaussians (SG). This would allow for
+a more compact representation while maintaining the resolution-
+independence and view-consistency of our 3D embedding.
+
+D.4    Jump-starting path guiding
+While the two previous applications focus on directly predicting
+global illumination, we provide an initial exploration into how our
+learned embeddings might support traditional unbiased rendering
+by aiding importance sampling.
+   Building on the predicted directional radiance field from §5.3 of
+the main paper, we explore its use in path guiding initialization. As
+shown in Figure 19, we compare standard BRDF sampling against
+importance sampling derived from the product of our predicted
+radiance field and the BRDF term via CDF inversion. To maintain
+the unbiased nature of the estimator, the predicted guiding PDF
+is designed with full support (i.e., non-zero probability for every
+non-zero bin), ensuring that mathematical correctness is preserved
+even when using an approximate distribution. At very low sample
+counts (e.g., 2 samples per pixel), modern path guiding methods
+([Vorba et al. 2019], [Herholz et al. 2025]) typically lack sufficient
+samples to construct a usable distribution. Our learned radiance field
+serves as a “cold-start” initializer, effectively “jump-starting” the
+guiding process by providing an informed distribution before scene-
+specific data is gathered. Our model is not intended as a standalone
+path-guiding solution, but rather as a prior for established methods
+that utilize defensive BRDF sampling. This approach draws parallels
+
+                                                                                            SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+18   •   Bing Xu, Mukund Varma T, Cheng Wang, Tzu-Mao Li, Lifan Wu, Bartlomiej Wronski, Ravi Ramamoorthi, and Marco Salvi
+
+
+
+
+                                                                                         
+
+Fig. 20. To assess the effectiveness of our scene encoder and neural basis, we compare our incident-radiance predictions against spherical-harmonics (SH)
+reconstructions at four randomly sampled surface points. Our method preserves high-frequency glossy reflections. In contrast, low-degree SH yields overly
+blurred results (first column), while high-degree SH (second column) introduces ringing (Gibbs-like) artifacts. The left plot reports the reconstruction error
+(MSE) as the SH degree 𝑙𝑚𝑎𝑥 increases.
+
+
+
+
+SIGGRAPH Conference Papers ’26, July 19–23, 2026, Los Angeles, CA, USA.
+

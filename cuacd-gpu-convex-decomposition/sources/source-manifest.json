@@ -1,0 +1,19 @@
+{
+  "repository": "https://github.com/eliphatfs/cuacd",
+  "revision": "13a00e25477f53a3533938b0325e2d575e3fd68b",
+  "retrieved": "2026-10-14",
+  "files": {
+    "README.md": "da861f15e08c58754ee22239b5d6967016122a594035326a0bd53eedaf4b73a2",
+    "LICENSE": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+    "cuacd/__init__.py": "1e67f0ea6d64379b79966c17c724bd785a8a151b0216f914de2594e1465b7de6",
+    "cuacd/cli.py": "1b28b9d8cb3f1370a7894d217b3283036e06d236932970c8333569ad1cec14dc",
+    "csrc/lookahead.c": "68b4b51706a5fd0e7f376a070a9e1c126c386f5f5137ddaf08172438fafb209a",
+    "csrc/heap.c": "fa06e0e546997452a4c56e54b99f1aec2b8a203080134a4d9a2eb3f295b4acdf",
+    "cuda/allocator.cuh": "61d4ca931cd601009baf68dfa75c33e0e42dc2c966a2567ae7e3db1bd7d02f7f",
+    "cuda/warp_sort.cuh": "33323f07d8c9b04dfc359e80e19bfcbbf873b765160840a5cf166ce37c91f05b",
+    "cuda/la_concave.cu": "b874077cf4b39c2f4ba7b713529bec04dd44aabc533e65d2d144e93ac0e772ec",
+    "cuda/la_expand.cu": "1ffe53eb7562fc732aa1c70817f1e30ab754721f4c3015f8c52877c803c0195a",
+    "cuda/kdop_hull.cuh": "49e508a00624e217bf183a5f2cebfec78ac1d450a8f0f04282c7ccaa56167055",
+    "docs/status.md": "64a2327c70841427ddfdac6b6fa2ad6072e6864e93158c870e498013ea058a07"
+  }
+}

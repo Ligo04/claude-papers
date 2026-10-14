@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNITAS：3D-Native World Action Model</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#f6f7f2;--paper:#fffefa;--ink:#17211e;--muted:#66726c;--line:#dfe6df;--green:#28765c;--green2:#c8e0d2;--coral:#cc6d55;--coral2:#f2d6cc;--blue:#427b9b;--shadow:0 8px 26px rgba(30,72,52,.08)}
+:root[data-theme=dark]{--bg:#15211d;--paper:#1d2c25;--ink:#f2f3ed;--muted:#bac6bf;--line:#3a4d43;--green:#9ed8b7;--green2:#305d49;--coral:#f2a089;--coral2:#654238;--blue:#9bcfe4;--shadow:0 8px 28px rgba(0,0,0,.25)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:1120px;margin:auto;padding:24px 20px 72px}
+header{padding:36px 0 25px;border-bottom:1px solid var(--line)}.eyebrow{color:var(--green);font:700 12px/1.2 Georgia,serif;letter-spacing:.13em;text-transform:uppercase}h1,h2,h3{font-family:Georgia,"Noto Serif SC","Songti SC",serif;letter-spacing:-.02em}h1{font-size:clamp(30px,5vw,53px);line-height:1.1;margin:14px 0 12px;max-width:920px}h2{font-size:25px;line-height:1.25;margin:0 0 8px}h3{font-size:18px;margin:0 0 5px}.lede{font-size:17px;color:var(--muted);max-width:880px;margin:0}.meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;color:var(--muted);font-size:13px}a{color:var(--green)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:19px}button,select{font:inherit;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--ink);padding:8px 13px;cursor:pointer}button:hover,select:hover{border-color:var(--green)}button.active{background:var(--green);border-color:var(--green);color:white}.theme{margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:24px 0}.kpi{background:var(--paper);padding:18px 19px}.kpi b{display:block;font:700 30px/1.1 Georgia,serif;color:var(--green)}.kpi span{display:block;color:var(--muted);font-size:12.5px;margin-top:5px}
+main{padding-top:28px}.view{display:none}.view.on{display:block}section{margin-bottom:38px}.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:21px 22px;box-shadow:var(--shadow)}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}@media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}.theme{margin-left:0}}
+.small{font-size:13px;color:var(--muted)}.note{border-left:4px solid var(--coral);padding:10px 13px;background:var(--coral2);border-radius:0 8px 8px 0;margin-top:14px}.pill{display:inline-block;border-radius:99px;padding:2px 8px;background:var(--green2);font-size:12px}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;align-items:center;margin-top:16px}.node{min-height:66px;padding:10px 7px;text-align:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:12px;display:flex;align-items:center;justify-content:center}.arrow{text-align:center;color:var(--coral);font-size:21px}@media(max-width:680px){.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}}
+.statline{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:8px 0}.statline:last-child{border-bottom:0}.statline strong{color:var(--green)}.bars{margin-top:14px}.bar{display:grid;grid-template-columns:175px 1fr 68px;gap:10px;align-items:center;margin:10px 0;font-size:13px}.track{height:14px;border-radius:99px;background:var(--bg);border:1px solid var(--line);overflow:hidden}.fill{height:100%;border-radius:99px;background:var(--green);transition:width .25s}.fill.coral{background:var(--coral)}table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}tr:hover td{background:var(--bg)}
+img.figure{width:100%;max-height:420px;object-fit:contain;background:white;border:1px solid var(--line);border-radius:8px;margin-top:12px}.caption{font-size:12px;color:var(--muted);margin-top:5px}.modebox{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.hidden{display:none}details{border-top:1px solid var(--line);padding:11px 0}details:first-of-type{border-top:0}summary{cursor:pointer;font-weight:650}footer{border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">arXiv 2610.12099v1 · cs.RO · 08 October 2026</div>
+  <h1>UNITAS: A 3D-Native World Action Model for Embodied Manipulation</h1>
+  <p class="lede">UNITAS 把观察、动作和动作造成的场景变化放进同一个 metric 3D frame：夹爪与人手用 action flow 表示，环境用 scene flow 表示，视觉 token 通过 world-aligned positional embedding 获得空间锚点。</p>
+  <div class="meta"><span>Ruixiang Wang 等 17 位作者</span><span>1.7B parameters</span><span>标签：三维世界动作 · 点流表征</span><a href="https://arxiv.org/abs/2610.12099v1">arXiv</a><a href="https://github.com/DexForce/UNITAS">GitHub</a></div>
+  <div class="toolbar">
+    <button class="nav active" data-view="overview">总览</button><button class="nav" data-view="mechanism">方法</button><button class="nav" data-view="results">结果</button><button class="nav" data-view="limits">边界与复习</button><button class="theme" id="theme">切换深色</button>
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><b>99.8%</b><span>LIBERO average success</span></div>
+  <div class="kpi"><b>89.1%</b><span>LIBERO-Plus overall robustness</span></div>
+  <div class="kpi"><b>0.427 cm</b><span>RoboTwin Moving ADE</span></div>
+  <div class="kpi"><b>55.77 ms</b><span>actions-only / chunk on RTX 5090 D</span></div>
+</div>
+
+<main>
+<section class="view on" id="overview">
+  <div class="grid2">
+    <div class="card">
+      <h2>一句话理解</h2>
+      <p>UNITAS 认为 WAM 的关键接口应该是“物理空间中的交互”，而不是“像素空间中的未来帧”。同一 window 中，camera、robot/human motion 和 scene response 都使用固定 metric frame。</p>
+      <div class="note"><b>阅读边界：</b>paper 的 99.8% 是仿真 LIBERO；真实测试只有 Organize Books 和 Pack the Ball 两个任务，每个 20 trials。</div>
+    </div>
+    <div class="card">
+      <h2>图像 → 点流 → 动作/后果</h2>
+      <div class="flow"><div class="node">RGB/RGB-D<br>calibration</div><div class="arrow">→</div><div class="node">world-aligned<br>visual tokens</div><div class="arrow">→</div><div class="node">action flow<br>scene flow<br>action chunk</div></div>
+      <div class="modebox"><button id="policy" class="active">Policy mode</button><button id="world">World-model mode</button><span id="modeCopy" class="small">只生成可执行 action chunk，跳过未来点流。</span></div>
+      <div class="statline"><span>当前输出</span><strong id="modeOutput">u：executable action chunk</strong></div>
+      <div class="statline"><span>论文 latency</span><strong id="modeLatency">55.77 ms/chunk</strong></div>
+    </div>
+  </div>
+  <section class="grid2">
+    <div class="card"><span class="pill">核心问题</span><h3>为什么要 3D-native？</h3><p class="small">同一物理位移在不同相机下产生不同 pixel displacement；相同 pixel displacement 也不代表相同 metric distance。UNITAS 把相机、机器人、场景点统一到 world frame。</p></div>
+    <div class="card"><span class="pill">核心抽象</span><h3>为什么是 point flow？</h3><p class="small">机器人每臂 20 个 URDF gripper points，人手 21 个 MANO keypoints；每个点的完整 physical-time trajectory 被压成一个 token，并保持 point identity。</p></div>
+    <div class="card"><span class="pill">两种运行模式</span><h3>Policy mode</h3><p class="small">只执行 action expert 的 end-effector action chunk，适合低延迟控制；不生成 future action-flow 和 scene-flow。</p></div>
+    <div class="card"><span class="pill">两种运行模式</span><h3>World-model mode</h3><p class="small">action flow 与 action chunk 并行 denoise，scene flow 以 action flow 为条件；scene query 越多，空间覆盖越高，latency 也越大。</p></div>
+  </section>
+  <div class="card">
+    <h2>论文图：共享 metric frame</h2>
+    <img class="figure" src="images/world-aligned-overview.png" alt="UNITAS world aligned point flow overview">
+    <p class="caption">嵌入图像：多视角观察、夹爪点轨迹与场景点流在共享坐标中的示意。</p>
+  </div>
+</section>
+
+<section class="view" id="mechanism">
+  <div class="card">
+    <h2>方法拆解</h2>
+    <div class="flow"><div class="node">Instruction<br>multi-view<br>calibration</div><div class="arrow">→</div><div class="node">World-aligned<br>visual tokens</div><div class="arrow">→</div><div class="node">Point dynamics<br>expert</div><div class="arrow">→</div><div class="node">Action expert<br>+ scene flow</div></div>
+    <p class="small">Point dynamics expert：28 layers / width 1280 / 20 heads；Action expert：28 layers / width 640 / 10 heads。总参数 1,694.5M。</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>有 depth 时</h2><p>像素通过 K 和 depth 反投影到 camera frame，再由 T⁽W⁾ 映射到 world frame；world position 的 Fourier features 加到视觉 token。</p><p class="small">公式：Pcamera = D K⁻¹[u,v,1]ᵀ；Pworld = Tcamera→world Pcamera。</p></div>
+    <div class="card"><h2>无 depth 时</h2><p>沿 camera ray 采样 64 个候选深度（0.1–2.0 m），用 patch feature 计算 routing 权重，再聚合 world-frame positional feature。</p><p class="small">LIBERO-Plus：routed PE 无 depth 84.43%，ground-truth depth PE 84.68%。</p></div>
+  </div>
+  <div class="card">
+    <h2>三种 flow 的职责</h2>
+    <table><thead><tr><th>变量</th><th>预测对象</th><th>条件与作用</th></tr></thead><tbody>
+      <tr><td>A：action flow</td><td>夹爪/人手点轨迹</td><td>共享 metric frame；提供动作的几何中间表示</td></tr>
+      <tr><td>u：action chunk</td><td>可执行 EEF translation/rotation/gripper</td><td>action expert 直接输出；policy mode 只保留这一支</td></tr>
+      <tr><td>S：scene flow</td><td>环境点位移</td><td>条件于 clean/generated action flow，表达动作后果</td></tr>
+    </tbody></table>
+  </div>
+  <div class="card">
+    <h2>训练与推理设置</h2>
+    <table><thead><tr><th>项目</th><th>论文设置</th></tr></thead><tbody>
+      <tr><td>数据</td><td>RoboTwin、LIBERO、VLABench、DROID、AgiBot、RoboMIND、RH20T、VITRA、W1</td></tr>
+      <tr><td>训练</td><td>200K steps；batch 1,024；AdamW；experts lr 1e−4，VLM lr 1e−5</td></tr>
+      <tr><td>时间</td><td>Tmax = 3 s；不同数据源按 physical time 采样</td></tr>
+      <tr><td>推理</td><td>10 Euler steps；action-only / action+flow / action+both-flow</td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<section class="view" id="results">
+  <div class="card">
+    <h2>Policy mode 的 benchmark 结果</h2>
+    <p class="small">以下均为论文表 1 的 policy success；不同 benchmark 的任务、控制接口和评测协议不同，不应合成单一总分。</p>
+    <div class="bars">
+      <div class="bar"><span>LIBERO average</span><div class="track"><div class="fill" style="width:99.8%"></div></div><strong>99.8%</strong></div>
+      <div class="bar"><span>LIBERO-Plus</span><div class="track"><div class="fill" style="width:89.1%"></div></div><strong>89.1%</strong></div>
+      <div class="bar"><span>RoboTwin Clean</span><div class="track"><div class="fill" style="width:92.94%"></div></div><strong>92.94%</strong></div>
+      <div class="bar"><span>RoboTwin Randomized</span><div class="track"><div class="fill" style="width:93.04%"></div></div><strong>93.04%</strong></div>
+      <div class="bar coral"><span>VLABench SR</span><div class="track"><div class="fill coral" style="width:56.2%"></div></div><strong>56.2%</strong></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Real-world 20-trial comparison</h2>
+      <table><thead><tr><th>Task</th><th>π0.5</th><th>Fast-WAM</th><th>UNITAS</th></tr></thead><tbody>
+        <tr><td>Organize Books</td><td>75%</td><td>65%</td><td><b>90%</b></td></tr>
+        <tr><td>Pack the Ball</td><td>55%</td><td>60%</td><td><b>80%</b></td></tr>
+      </tbody></table>
+      <p class="small">每个方法每个任务 20 trials。注：引言一句误写 Pack the Ball 为 65%；摘要、§4.3 正文与表 2 均为 80%，本页按表 2 展示。</p>
+    </div>
+    <div class="card">
+      <h2>动作/场景预测</h2>
+      <table><thead><tr><th>指标</th><th>PointWorld</th><th>UNITAS</th></tr></thead><tbody>
+        <tr><td>Moving ADE ↓</td><td>0.656 cm</td><td><b>0.427 cm</b></td></tr>
+        <tr><td>Static ADE ↓</td><td>0.084 cm</td><td><b>0.043 cm</b></td></tr>
+        <tr><td>Moving FDE ↓</td><td>1.050 cm</td><td><b>0.825 cm</b></td></tr>
+        <tr><td>Moving Acc@1cm ↑</td><td>88.22%</td><td><b>92.31%</b></td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Latency explorer</h2>
+    <p class="small">选择论文实际报告的输出模式。场景 query 数量只影响 world-model mode。</p>
+    <div class="modebox"><button class="lat active" data-lat="policy">Actions only · 55.77 ms</button><button class="lat" data-lat="flow">Actions + action flow · 122.51 ms</button><button class="lat" data-lat="1024">Both flows · 1,024 queries · 305.49 ms</button><button class="lat" data-lat="3000">Both flows · 3,000 queries · 561.60 ms</button></div>
+    <div class="statline"><span>当前 latency / chunk</span><strong id="latency">55.77 ms</strong></div>
+    <div class="track"><div id="latFill" class="fill" style="width:10%"></div></div>
+    <p id="latNote" class="small">只生成 executable action chunk；future point flows 被跳过。</p>
+  </div>
+  <div class="card">
+    <h2>关键消融</h2>
+    <div class="bars">
+      <div class="bar coral"><span>无 visual 3D PE</span><div class="track"><div class="fill coral" style="width:67.58%"></div></div><strong>67.58%</strong></div>
+      <div class="bar"><span>完整 3D PE + action/history</span><div class="track"><div class="fill" style="width:85.74%"></div></div><strong>85.74%</strong></div>
+      <div class="bar"><span>再加入 scene-flow loss</span><div class="track"><div class="fill" style="width:86.47%"></div></div><strong>86.47%</strong></div>
+    </div>
+    <p class="small">这些是无 mixed-dataset pretraining 的 LIBERO-Plus ablation，不是表 1 的 full UNITAS overall。</p>
+  </div>
+</section>
+
+<section class="view" id="limits">
+  <div class="grid2">
+    <div class="card"><h2>论文证明了什么</h2><ul><li>共享 metric 3D frame 可以同时支持 action learning 和 scene prediction。</li><li>world-aligned 3D PE 对 viewpoint/initial-state robustness 有帮助。</li><li>action flow、history 和 scene-flow supervision 都能影响 LIBERO-Plus robustness。</li><li>policy mode 与 world-model mode 可以在同一架构中解耦。</li></ul></div>
+    <div class="card"><h2>论文没有证明什么</h2><ul><li>没有证明所有长时程 scene dynamics 都能准确预测。</li><li>没有给出真实世界 scene-flow 的定量 ground truth 评测。</li><li>55.77 ms 是 action-only/chunk latency，不是完整机器人系统 FPS。</li><li>两个真实任务不足以代表通用 real-world manipulation。</li></ul></div>
+  </div>
+  <div class="card">
+    <h2>快速自测</h2>
+    <details><summary>为什么 UNITAS 不等于“带深度的 VLA”？</summary><p>深度只是 world-aligned embedding 的一种输入来源；核心是 action、scene 和 observation 在 metric frame 中共享 point-flow interface。</p></details>
+    <details><summary>为什么 scene-flow mode 会变慢？</summary><p>scene query 数决定需要预测的空间点数量。1,024 queries 为 305.49 ms，3,000 queries 为 561.60 ms。</p></details>
+    <details><summary>为什么 action flow 和 action chunk 要分开？</summary><p>action flow 是跨 embodiment 的几何 motion representation；action chunk 是当前机器人可以直接执行的 EEF command。两者共享 context，但承担不同职责。</p></details>
+    <details><summary>最值得迁移的工程原则是什么？</summary><p>先固定坐标系、点身份、physical-time 采样和 query budget，再讨论模型大小；否则不同数据源的“动作”并不在同一个物理语言里。</p></details>
+  </div>
+  <div class="card">
+    <h2>配套资料</h2>
+    <p class="small">同目录包含完整 summary、method、insights、mental-model、reflection、15 道 QA，以及 code/world_aligned_point_flow_demo.py。教学 demo 是可运行概念代理，不调用官方 checkpoint。</p>
+  </div>
+</section>
+</main>
+<footer>事实来源：arXiv:2610.12099v1 PDF / HTML。页面中的 benchmark、ablation、latency 和 scene-flow 数字均来自论文；教学页面的模式切换只改变展示状态，不声称新增实验。</footer>
+</div>
+<script>
+(function(){
+  var root=document.documentElement;
+  var nav=document.querySelectorAll('.nav');
+  nav.forEach(function(b){b.addEventListener('click',function(){nav.forEach(function(x){x.classList.remove('active')});b.classList.add('active');['overview','mechanism','results','limits'].forEach(function(v){document.getElementById(v).classList.toggle('on',v===b.dataset.view)})})});
+  var policy=document.getElementById('policy'), world=document.getElementById('world'), modeCopy=document.getElementById('modeCopy'), modeOutput=document.getElementById('modeOutput'), modeLatency=document.getElementById('modeLatency');
+  function setMode(kind){var isPolicy=kind==='policy';policy.classList.toggle('active',isPolicy);world.classList.toggle('active',!isPolicy);modeCopy.textContent=isPolicy?'只生成可执行 action chunk，跳过未来点流。':'同时生成 action flow 与 scene flow；场景 query 数控制成本。';modeOutput.textContent=isPolicy?'u：executable action chunk':'A：action flow + u：action chunk + S：scene flow';modeLatency.textContent=isPolicy?'55.77 ms/chunk':'305.49–561.60 ms/chunk'}
+  policy.addEventListener('click',function(){setMode('policy')});world.addEventListener('click',function(){setMode('world')});
+  var lat=document.querySelectorAll('.lat'), latency=document.getElementById('latency'), fill=document.getElementById('latFill'), note=document.getElementById('latNote');
+  var vals={policy:['55.77','10','只生成 executable action chunk；future point flows 被跳过。'],flow:['122.51','22','动作 flow 和 action chunk 并行 denoise；scene flow 被跳过。'],1024:['305.49','54','生成 action flow、action chunk 和 1,024 个 scene queries。'],3000:['561.60','100','生成 action flow、action chunk 和 3,000 个 scene queries。']};
+  lat.forEach(function(b){b.addEventListener('click',function(){lat.forEach(function(x){x.classList.remove('active')});b.classList.add('active');var v=vals[b.dataset.lat];latency.textContent=v[0]+' ms';fill.style.width=v[1]+'%';note.textContent=v[2]})});
+  document.getElementById('theme').addEventListener('click',function(){var dark=root.getAttribute('data-theme')!=='dark';root.setAttribute('data-theme',dark?'dark':'light');this.textContent=dark?'切换浅色':'切换深色'});
+})();
+</script>
+</body>
+</html>
+
