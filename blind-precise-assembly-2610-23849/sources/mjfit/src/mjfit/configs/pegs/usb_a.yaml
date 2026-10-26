@@ -1,0 +1,12 @@
+# USB-A: a 12 x 4.5 mm opening with an 8 x 1.5 mm tongue standing in it,
+# 1 mm above center. The plug is a hollow shell with a pocket for the tongue.
+kind: peg
+hole: {type: rect, width: 0.012, height: 0.0045}
+islands:
+  - {type: rect, width: 0.008, height: 0.0015, center: [0.0, 0.001]}
+clearance: 1.0e-4
+plate_size: 0.03
+plate_thickness: 0.005
+peg_length: 0.012
+handle_height: 0.02
+handle_margin: 0.002

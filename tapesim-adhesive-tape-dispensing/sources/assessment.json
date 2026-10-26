@@ -1,0 +1,14 @@
+{
+  "difficulty": "Advanced",
+  "nature": [
+    "物理仿真系统设计",
+    "实验验证"
+  ],
+  "methodologicalComplexity": "隐式接触优化、界面模型与动态降阶耦合",
+  "tags": [
+    "胶带操作仿真",
+    "释放前沿降阶"
+  ],
+  "plannedDemo": "三维 virtual bond 能量与梯度；图上前沿更新及质量/速度转移的简化教学",
+  "studyDate": "2026-10-26"
+}

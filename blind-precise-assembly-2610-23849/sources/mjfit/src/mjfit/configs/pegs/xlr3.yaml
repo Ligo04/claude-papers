@@ -1,0 +1,13 @@
+# Three-pin XLR: a 14 mm barrel around three 2 mm pins on a 3.45 mm circle.
+kind: peg
+hole: {type: circle, radius: 0.007, n: 32}
+islands:
+  - {type: circle, radius: 0.001, n: 16, center: [ 0.0,      0.00345]}
+  - {type: circle, radius: 0.001, n: 16, center: [-0.002988, -0.001725]}
+  - {type: circle, radius: 0.001, n: 16, center: [ 0.002988, -0.001725]}
+clearance: 1.0e-4
+plate_size: 0.04
+plate_thickness: 0.008
+peg_length: 0.016
+handle_height: 0.03
+handle_margin: 0.004

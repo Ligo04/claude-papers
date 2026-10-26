@@ -1,0 +1,23 @@
+{
+  "checked_date": "2026-10-19",
+  "sources": [
+    {
+      "url": "https://arxiv.org/abs/2610.19091v1",
+      "role": "版本与作者"
+    },
+    {
+      "url": "https://arxiv.org/pdf/2610.19091v1",
+      "role": "公式、图表、实验和设置",
+      "sha256": "29700f3aff88c44bf9ebc1e6981e4ac0b775cf41b2e147e255a24e7deb3d36a8"
+    },
+    {
+      "url": "https://arxiv.org/html/2610.19091v1",
+      "role": "全文交叉核对"
+    },
+    {
+      "url": "https://kemenghuang.github.io/",
+      "role": "作者列出的代码发布入口检查"
+    }
+  ],
+  "download_note": "技能 Node 下载器请求超时，改用 curl 下载明确版本；30 页 PDF 已完整打开。"
+}

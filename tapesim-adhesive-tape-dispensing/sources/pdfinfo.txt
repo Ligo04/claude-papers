@@ -1,0 +1,18 @@
+Title:           TAPESIM: Efficient Simulation of Adhesive Tape Dispensing for Robotic Manipulation
+Author:          Zhaofeng Luo; Xinyu Lu; Jaehoon Choi; Zhehuan Chen; Trinity Chung; Xiaowen Qiu; Hugh Nicholas Perkins; Gianna Calderon; Alexis Duburcq; Sanghyun Son; Tsun-Hsuan Wang; Yi-Ling Qiao; Minchen Li
+Creator:         arXiv GenPDF (tex2pdf:0d14211)
+Producer:        pikepdf 8.15.1
+Custom Metadata: yes
+Metadata Stream: yes
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           9
+Encrypted:       no
+Page size:       612 x 792 pts (letter)
+Page rot:        0
+File size:       3319213 bytes
+Optimized:       no
+PDF version:     1.7

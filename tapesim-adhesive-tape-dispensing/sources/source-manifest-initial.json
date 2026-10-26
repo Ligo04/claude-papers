@@ -1,0 +1,381 @@
+{
+  "study_date": "2026-10-26",
+  "timezone": "Asia/Shanghai",
+  "recorded_utc": "2026-10-26T07:29:36.288631+00:00",
+  "runtime": {
+    "python": "3.13.12",
+    "executable": "/home/ligo/miniforge3/bin/python3",
+    "numpy": "2.5.3"
+  },
+  "sources": {
+    "paper.pdf": "https://arxiv.org/pdf/2609.28766v2",
+    "sources/arxiv-2609.28766v2.html": "https://arxiv.org/html/2609.28766v2",
+    "sources/project-page.html": "https://genesis-embodied-ai.github.io/tapesim-website/",
+    "sources/project-app.js": "https://genesis-embodied-ai.github.io/tapesim-website/app.js",
+    "sources/evidence-official.json": "https://genesis-embodied-ai.github.io/tapesim-website/assets/data/evidence.json",
+    "sources/citation.bib": "https://genesis-embodied-ai.github.io/tapesim-website/tapesim.bib"
+  },
+  "validation": {
+    "cpu_teaching_checks": 27,
+    "static_and_statistics_checks": 42,
+    "browser_checks": 26,
+    "paper_physics_or_gpu_reproduction": false
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 3451,
+      "sha256": "3fa330afff89a127892ce0330de3d4bd5d0cae7841c67e931d2f2160d241a4be"
+    },
+    {
+      "path": "code/demo-validation.json",
+      "bytes": 4677,
+      "sha256": "2911a2198ca0c9cfef67a24e4946b66226cd523e72006a2e524c3c0815fef24e"
+    },
+    {
+      "path": "code/releasable_bond_and_front.py",
+      "bytes": 13919,
+      "sha256": "b394c5ac3594e5e11e748c715ca3934d861e314a6955df5a30f1ab89c3545b9f"
+    },
+    {
+      "path": "code/teaching-bond-force.csv",
+      "bytes": 1305,
+      "sha256": "75d766709fad7e93da200319306dd55557ec8853450b0467757710bd54a607dc"
+    },
+    {
+      "path": "code/verify_study.py",
+      "bytes": 5660,
+      "sha256": "996bd7328f7c7b77ec89823bb0cb3481564ff71e80e0aa7301e05a1d3ea2f654"
+    },
+    {
+      "path": "engineering.md",
+      "bytes": 3455,
+      "sha256": "85f4ea17ed32f6eb700f3a4e8e99282f58c69e781e223631a401108ad9bcd2ae"
+    },
+    {
+      "path": "evidence.md",
+      "bytes": 5112,
+      "sha256": "a568f4e932a4de3077c5fcc1f5e1cefe6f86150d1c79bf9d5ba48eef538d3049"
+    },
+    {
+      "path": "images/architecture.png",
+      "bytes": 100353,
+      "sha256": "93e8ec51d8387179868c5be2531d8007a0469f23f7f634871bbb86532a202860"
+    },
+    {
+      "path": "images/box-sealing.png",
+      "bytes": 176738,
+      "sha256": "48d27b7c493dec3a00b22a027f1fda1d11272cf3277db000877c7c788c891a9e"
+    },
+    {
+      "path": "images/calibration-and-dispensing.png",
+      "bytes": 149346,
+      "sha256": "1ba913a3fce7e480cf339e0596745c0804c3f193a25bfbe139151f79eceb24f7"
+    },
+    {
+      "path": "images/motion-and-cost.png",
+      "bytes": 90715,
+      "sha256": "64f03ce2b48a45b7323c7ef32545df8207b17bac6b8c43428ccb33661d6fed78"
+    },
+    {
+      "path": "images/page_5_img_1.png",
+      "bytes": 443962,
+      "sha256": "6ff4dd1ebef2f7d7baa1ca93d27d697292927541aa58584045cd6ae05922eaf9"
+    },
+    {
+      "path": "images/page_5_img_10.png",
+      "bytes": 15292,
+      "sha256": "29b42135ee8e51af6f53314e541734d592250d5f649b402632765b2f013bcfd6"
+    },
+    {
+      "path": "images/page_5_img_11.png",
+      "bytes": 1718,
+      "sha256": "6231874396788b1c333ef7ea711c57c8108e77890d87f360dd6adb6125487d14"
+    },
+    {
+      "path": "images/page_5_img_12.png",
+      "bytes": 6159,
+      "sha256": "17aa6dc30a185b52d3c40407e32c7f2887b2b81a0f82ded48545e586e4b622ad"
+    },
+    {
+      "path": "images/page_5_img_13.png",
+      "bytes": 6386,
+      "sha256": "0478114f1206d810018aa39f33b150e18feaf70920376cb430623e700802ef7e"
+    },
+    {
+      "path": "images/page_5_img_14.png",
+      "bytes": 11713,
+      "sha256": "ed47bd80173309c9c83dcc60525952aaed63335a913a221afd045146c5c8ae88"
+    },
+    {
+      "path": "images/page_5_img_15.png",
+      "bytes": 11195,
+      "sha256": "4ef82ddae7bf4e29aef3fe6aaa8ddae9ae63c04f7d25009def3fd4be895e1eb1"
+    },
+    {
+      "path": "images/page_5_img_2.png",
+      "bytes": 24498,
+      "sha256": "f4b6eb26e7c4d4f13b880f900d00fc49cdf085fb9dcdff6cbfa617c35ebbf086"
+    },
+    {
+      "path": "images/page_5_img_3.png",
+      "bytes": 321,
+      "sha256": "9059553c6dec3eeba70843364a00cfe35d7a7a0c23dd560c633a407c1575f374"
+    },
+    {
+      "path": "images/page_5_img_4.png",
+      "bytes": 26302,
+      "sha256": "4da869f53b9111c3e08cbe310bddd9341762af62d2968ea9da62647be639c173"
+    },
+    {
+      "path": "images/page_5_img_5.png",
+      "bytes": 371,
+      "sha256": "6091c68c0920d1c6f7081c8204851df829f73b909ad62d53651c9ae74744587b"
+    },
+    {
+      "path": "images/page_5_img_6.png",
+      "bytes": 25455,
+      "sha256": "99f448cae72f6c98124c3c2491a08b3ae1281108300981e78eeb741d8c4e1c30"
+    },
+    {
+      "path": "images/page_5_img_7.png",
+      "bytes": 396,
+      "sha256": "e69d2bfd1d609540f0b3672f4683a5fa5a272e40acb7892ac387a3283b1a8997"
+    },
+    {
+      "path": "images/page_5_img_8.png",
+      "bytes": 12890,
+      "sha256": "2859b128e3a9f2732604e30ba7509b6dfddb9b9aa57a13063d7a353905fe2cbc"
+    },
+    {
+      "path": "images/page_5_img_9.png",
+      "bytes": 17043,
+      "sha256": "436c77a3ff31e36ba89e945650fd05a364907edca2bd6624060f006639a2e39d"
+    },
+    {
+      "path": "images/page_6_img_1.png",
+      "bytes": 71698,
+      "sha256": "279361649ac4c5f711e6b0dd8e80df666bb187fae80f790b7dfe54d98715a3dd"
+    },
+    {
+      "path": "images/page_6_img_10.png",
+      "bytes": 58903,
+      "sha256": "b1067455c3dd224242396f3e30889a6a8cda11d2e32f6a546d87d53cb0ec17fb"
+    },
+    {
+      "path": "images/page_6_img_2.png",
+      "bytes": 58354,
+      "sha256": "bb5c792ad5d864c049e50db49b57f7508044488dd2d4dd19b39028a97a943b8e"
+    },
+    {
+      "path": "images/page_6_img_3.png",
+      "bytes": 68280,
+      "sha256": "95719d84e188c4bac015b5baea76113bf9f8a14b383fa5d6aa34c433e06f9585"
+    },
+    {
+      "path": "images/page_6_img_4.png",
+      "bytes": 59212,
+      "sha256": "d3a4013229991ef7748a89165c389120daa8fb841b0976a308625b9f03e491ff"
+    },
+    {
+      "path": "images/page_6_img_5.png",
+      "bytes": 58601,
+      "sha256": "0a90492e5329807698cfcecda3313ca141aec77e8e61f856d5071e4649361bde"
+    },
+    {
+      "path": "images/page_6_img_6.png",
+      "bytes": 59423,
+      "sha256": "94916ff09210a4630e55c218d99161dd44859665ad5b421d45705bdf80884b5b"
+    },
+    {
+      "path": "images/page_6_img_7.png",
+      "bytes": 56743,
+      "sha256": "9e6795d1df0fbdc57c7b57cd3510e076062d9e476114bc0e5f0444ae1a8f5185"
+    },
+    {
+      "path": "images/page_6_img_8.png",
+      "bytes": 58752,
+      "sha256": "0a8a058068d2fd214b3c31add542a30aa69bb23baedcffd802afb004268de24e"
+    },
+    {
+      "path": "images/page_6_img_9.png",
+      "bytes": 58871,
+      "sha256": "1a5cb1141925c8a3b1806d0437a6474aa0f0ef21656f99c58f0b0098198bd175"
+    },
+    {
+      "path": "images/page_7_img_1.png",
+      "bytes": 61680,
+      "sha256": "c483d097210db6dba35b48447957a079fe178efd1c920183cb8479b422342596"
+    },
+    {
+      "path": "images/page_7_img_2.png",
+      "bytes": 65141,
+      "sha256": "3a8a8887fd99ab95a2f6fe8614d34c9dbbaa0716bad52bb607e8e906a30a9519"
+    },
+    {
+      "path": "images/page_7_img_3.png",
+      "bytes": 61457,
+      "sha256": "762826687e167debe354e8ddcd8e926a4e88f9eed76d871f6aa6d59088dd47b9"
+    },
+    {
+      "path": "images/page_8_img_1.png",
+      "bytes": 373784,
+      "sha256": "86e3b9245aeab7ba7d1f3caa2eb54e6fad3360295e0d2132bc0b8af65a6546a9"
+    },
+    {
+      "path": "images/page_8_img_2.png",
+      "bytes": 383521,
+      "sha256": "b409cbe0506ff33d98dcc7a5ceb857771d3cd30b9bf5137ba66f30b2b2237eec"
+    },
+    {
+      "path": "images/page_8_img_3.png",
+      "bytes": 374109,
+      "sha256": "290ecf1a6e21a63bbb23faa031aa2f2b764bf544502ec0178bbed50a5d79e89b"
+    },
+    {
+      "path": "images/page_8_img_4.png",
+      "bytes": 353618,
+      "sha256": "dd888f2bdbdfd1034185be7a5f8ddb7362b483f79e59c8d0bd594b9a4779ff04"
+    },
+    {
+      "path": "images/page_8_img_5.png",
+      "bytes": 372934,
+      "sha256": "c5c300cbb72bf3472b694a39427f83fdca6f5d97578c36c233e5e78a9af1aba8"
+    },
+    {
+      "path": "images/policy-evaluation.png",
+      "bytes": 179994,
+      "sha256": "210ffcfe5850e54c08864e4ae5a4fe4bb4e1be949f38283678eed8c438b6f1ea"
+    },
+    {
+      "path": "images/study-page-preview.png",
+      "bytes": 73729,
+      "sha256": "56790f22b50f3f93ff54b8c680e4363ef17ff3638ab45131eef84d8d5df7bc8e"
+    },
+    {
+      "path": "index.html",
+      "bytes": 53426,
+      "sha256": "b8eb3a789b326bcaa46fd11e93f67404c2419ab0a3e2c93af23c1d2328069ea6"
+    },
+    {
+      "path": "insights.md",
+      "bytes": 4922,
+      "sha256": "f5df3c0b1631fbcf859468d767c3f1f3c2c01e0b55604bed06f26aa31c81d1bd"
+    },
+    {
+      "path": "mental-model.md",
+      "bytes": 2274,
+      "sha256": "4d15d748e7c4607a366f30fb8cf10bccb0ce0a97df70379a454fca5198502822"
+    },
+    {
+      "path": "meta.json",
+      "bytes": 43231,
+      "sha256": "0a0fa83cc620cdb4deacf05609f67c3c9353e1d49dad85720cbb89b1fcb14528"
+    },
+    {
+      "path": "method.md",
+      "bytes": 7842,
+      "sha256": "14a02eccb88255b66bbdca4f40d9ed3ad714e3e7bb35a3609b5d018a9602a6e2"
+    },
+    {
+      "path": "paper.pdf",
+      "bytes": 3319213,
+      "sha256": "fc3600439f1a75f3a6ad948e41f33c85443e250450effc8abb2f362ec67553f3"
+    },
+    {
+      "path": "qa.md",
+      "bytes": 5368,
+      "sha256": "cb4e4649bbcb6e72b51ab8688a4047f35d38c639572dcf303401cdbd4cf78b7b"
+    },
+    {
+      "path": "reflection.md",
+      "bytes": 2158,
+      "sha256": "038dd7a812209fe7a2a2e612aa44ae99f57fe4741233c7a2322823647131f726"
+    },
+    {
+      "path": "sources/arxiv-2609.28766v2.html",
+      "bytes": 154553,
+      "sha256": "05711a81845eb48dcdc8c1d94d529b659e44a39095b83df9be18580951576d4d"
+    },
+    {
+      "path": "sources/assessment.json",
+      "bytes": 399,
+      "sha256": "93900144a1ee1d356663d7fcac53fadbc24b1c76bb6773c1eeb7fef35513f94d"
+    },
+    {
+      "path": "sources/browser-checks.json",
+      "bytes": 2847,
+      "sha256": "658dc98dddaebc5d9bd35a2cf18ff99294651e0f12789472e2c2b82c8586a9ef"
+    },
+    {
+      "path": "sources/citation.bib",
+      "bytes": 549,
+      "sha256": "c974ee2e6d729defa4ad7c614c2c564b4a0694a1ab5c99438911fafe3cc83de0"
+    },
+    {
+      "path": "sources/evidence-official.json",
+      "bytes": 48670,
+      "sha256": "b1fd8c18e7718c3f18dbfe3f5930e06a6137be5d9e84864b70369176fd8b9a26"
+    },
+    {
+      "path": "sources/image-extraction.log",
+      "bytes": 3336,
+      "sha256": "32a23dc57f128200c1cb1a6cae40b0767974e3ac01b258a2f91fdb69e0161d22"
+    },
+    {
+      "path": "sources/index-before.json",
+      "bytes": 85001,
+      "sha256": "f7c6949c7db4bd774dc7b7683c818c428cdadc488ab5c53bfad562cd5d5f1ed1"
+    },
+    {
+      "path": "sources/page-script.js",
+      "bytes": 34286,
+      "sha256": "2b9111779fbc9444a7541279c3f71e6745b172d2bbd4d00de04280eba07af014"
+    },
+    {
+      "path": "sources/paper-layout.txt",
+      "bytes": 65244,
+      "sha256": "96b4f48c7f85f8d3233d7b9833ea972105f4a34007df3889471fc9b727a89a44"
+    },
+    {
+      "path": "sources/parser-raw.json",
+      "bytes": 43169,
+      "sha256": "2e9c741cd0eba47e4393f9af62ea48524c1999d822b995456de6da32f298acd7"
+    },
+    {
+      "path": "sources/pdfinfo.txt",
+      "bytes": 703,
+      "sha256": "a2b47c8a17691b8288cc26c7a5b305353946fc58ffe14c0db5f444e1b28b566a"
+    },
+    {
+      "path": "sources/project-app.js",
+      "bytes": 36502,
+      "sha256": "a42667e9a92cd64a8c7963316613a6cac3d6aea10cb9abdeff3195998df500a1"
+    },
+    {
+      "path": "sources/project-page.html",
+      "bytes": 32395,
+      "sha256": "c50668b7916484a09ec6b57a504ef82056ef4c60b0b5fafdd38f872a856dfa6d"
+    },
+    {
+      "path": "sources/sandbox-check.html",
+      "bytes": 68713,
+      "sha256": "d47b2c5d52e089b910a13449f12cc87960e0ac4bccc98112115d85c9ae797b4f"
+    },
+    {
+      "path": "sources/study-data.json",
+      "bytes": 21510,
+      "sha256": "45dc30cbf11c4a3630791735890fa5f12b3f159f87b9452d15e2dfdf665ebddb"
+    },
+    {
+      "path": "sources/study-validation.json",
+      "bytes": 3848,
+      "sha256": "754568abc1ea65aa40bc1c63e167086d388e22b122012da1100594b3e08d410b"
+    },
+    {
+      "path": "summary.md",
+      "bytes": 5003,
+      "sha256": "7443ca3e9eb01f28e64b8a74015351f6d0fa6ccba27c08c7cda01d869dd32ac2"
+    }
+  ]
+}

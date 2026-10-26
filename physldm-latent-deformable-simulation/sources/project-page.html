@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Layout: Nerfies project page template (CC BY-SA 4.0), https://github.com/nerfies/nerfies.github.io -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PhysLDM: Latent Diffusion for High-Fidelity Deformable Simulation</title>
+  <meta name="description"
+        content="PhysLDM: a latent-diffusion paradigm for one-shot simulation of high-fidelity volumetric deformable bodies, built on a holistic spatiotemporal VAE.">
+  <meta name="keywords" content="PhysLDM, latent diffusion, deformable simulation, spatiotemporal VAE, neural simulation, volumetric mesh">
+  <link rel="canonical" href="https://yucrazing.github.io/physldm/">
+  <meta property="og:title" content="PhysLDM: Latent Diffusion for High-Fidelity Deformable Simulation">
+  <meta property="og:description" content="A latent-diffusion paradigm for one-shot volumetric deformable simulation.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yucrazing.github.io/physldm/">
+  <meta property="og:image" content="https://yucrazing.github.io/physldm/static/images/og_image.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Ground truth (rose) versus ST-VAE reconstruction (blue) of a high-resolution soft mug">
+  <meta name="twitter:image" content="https://yucrazing.github.io/physldm/static/images/og_image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <style>
+    .publication-title .product { font-weight: 700; }
+    .section .title.is-3 { margin-bottom: 1.2rem; }
+    .media-block { margin: 0 auto 0.6rem auto; }
+    .media-block video, .media-block img { width: 100%; height: auto; display: block; border-radius: 6px; }
+    .media-caption { color: #555; font-size: 0.95rem; text-align: left; margin-top: 0.4rem; }
+    .media-caption strong { color: #333; }
+    .section.is-tight { padding-top: 2rem; padding-bottom: 2rem; }
+    .hero.teaser .subtitle { margin-top: 1rem; font-size: 1.05rem; }
+    .result-heading { margin-top: 2.2rem !important; }
+    .stat-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 2.5rem; margin: 0.8rem 0 0.4rem 0; }
+    .stat-row .stat { text-align: center; }
+    .stat-row .num { font-family: 'Google Sans', sans-serif; font-size: 1.9rem; font-weight: 700; color: #222; }
+    .stat-row .lbl { font-size: 0.9rem; color: #666; }
+    pre code { font-size: 0.85rem; }
+    .title-hero .hero-body { padding-bottom: 1rem; }   /* template default 3rem left a large gap above the nav */
+    html { scroll-padding-top: 3.2rem; }
+    .page-nav { position: sticky; top: 0; z-index: 30; display: flex; justify-content: center; flex-wrap: nowrap;
+                overflow-x: auto; gap: 1.6rem; padding: 0.65rem 1rem; background: rgba(255,255,255,0.95);
+                border-bottom: 1px solid #ececec; font-family: 'Google Sans', sans-serif; font-size: 0.95rem; }
+    .page-nav a { color: #444; white-space: nowrap; }
+    .page-nav a:hover { color: #3273dc; }
+    .block-intro { text-align: center; color: #444; max-width: 46rem; margin: -0.4rem auto 1.1rem auto; }
+    .video-tabs .tabs { margin-bottom: 0.9rem; }
+    .video-tabs .tabs a { font-size: 0.85rem; }
+    .video-tabs .tabs ul { flex-wrap: wrap; justify-content: center; row-gap: 0.3rem; }
+    .tab-panel { display: none; }
+    .tab-panel.is-active { display: block; }
+    .media-block video.lazy { background: #fff; aspect-ratio: 16 / 9; }
+    .fig-card { background: #f5f6f8; border-radius: 10px; padding: 12px 12px 10px 12px; margin: 0 auto 1.5rem auto; }
+    .fig-card.is-narrow { max-width: 78%; }
+    .fig-card img { display: block; width: 100%; height: auto; border-radius: 4px; }
+    .fig-card figcaption { font-size: 0.86rem; line-height: 1.5; color: #555; text-align: left; margin-top: 0.55rem; padding: 0 2px; }
+    @media (max-width: 768px) { .fig-card.is-narrow { max-width: 100%; } }
+    .pair-wrap { position: relative; }
+    .pair-arrow .approx { font-size: 1.5rem; line-height: 1; color: #333; font-weight: 600; margin-top: -2px; }
+    .seg-labels { position: relative; height: 1.5rem; margin-top: 0.35rem; font-size: 0.86rem; color: #333; }
+    .seg-labels span { position: absolute; top: 0; text-align: center; white-space: nowrap; }
+    .seg-legend { text-align: center; font-size: 0.8rem; color: #555; margin-top: 0.15rem; }
+    .seg-legend .sw { display: inline-block; width: 18px; height: 0; border-top: 3px solid; vertical-align: middle; margin: 0 6px 0 14px; }
+    .seg-legend .note { margin-left: 14px; color: #777; }
+    @media (max-width: 768px) { .seg-labels { font-size: 0.68rem; } .seg-labels b { display: none; } }
+    .pair-arrow { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 42px; height: 42px;
+                  border-radius: 50%; background: rgba(255,255,255,0.95); box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+                  display: flex; align-items: center; justify-content: center; }
+    @media (max-width: 768px) { .pair-arrow { width: 30px; height: 30px; } .pair-arrow svg { width: 16px; height: 16px; } }
+    .more-link { text-align: right; font-size: 0.9rem; margin-top: 0.3rem; }
+    ol.toc ol { margin-top: 0.2rem; }
+    figcaption, .media-caption, .block-intro, .abstract-text p { text-wrap: pretty; }   /* avoid one-word last lines */
+    .abstract-text p { hyphens: auto; -webkit-hyphens: auto; }   /* justified abstract: hyphenate long words instead of stretching gaps */
+    .sf { font-family: "Helvetica Neue", Arial, sans-serif; }
+  </style>
+</head>
+<body>
+
+<section class="hero title-hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title"><span class="product">PhysLDM</span>: Latent Diffusion for<br>High-Fidelity Deformable Simulation</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><a href="https://yucrazing.github.io/">Yu Zhang</a><sup>1</sup>,</span>
+            <span class="author-block"><a href="https://sheldontsui.github.io/">Xudong Xu</a><sup>2</sup>,</span>
+            <span class="author-block"><a href="https://xingangpan.github.io/">Xingang Pan</a><sup>1</sup></span>
+          </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>S-Lab, Nanyang Technological University,</span>
+            <span class="author-block"><sup>2</sup>Shanghai AI Laboratory</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://arxiv.org/pdf/2610.07609" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-file-pdf"></i></span><span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2610.07609" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="ai ai-arxiv"></i></span><span>arXiv</span>
+                </a>
+              </span>
+              <!-- Code / Demo hidden for now (2026-10-17); remove these comment markers to show them.
+              <span class="link-block">
+                <a href="https://github.com/YuCrazing/PhysLDM" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fab fa-github"></i></span><span>Code</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://huggingface.co/spaces/YuCrazing/PhysLDM" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-play-circle"></i></span><span>Demo</span>
+                </a>
+              </span>
+              -->
+              <span class="link-block">
+                <a href="#video" class="button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-video"></i></span><span>Video</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="./videos.html" class="button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-th-large"></i></span><span>All Results</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<nav class="page-nav">
+  <a href="#video">Video</a>
+  <a href="#stvae">Reconstruction</a>
+  <a href="#prediction">Prediction</a>
+  <a href="#diff">Applications</a>
+  <a href="#method">Method</a>
+  <a href="#generalization">Real-World Data</a>
+  <a href="./videos.html">All Results</a>
+  <a href="#bibtex">BibTeX</a>
+</nav>
+
+<section class="hero teaser" id="video">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <div class="media-block">
+        <video controls playsinline preload="metadata" poster="./static/images/video_poster.webp">
+          <source src="./static/videos/paper_video.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section is-tight">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified abstract-text">
+          <p>
+            Neural simulation of high-fidelity deformable bodies is a foundational challenge in computer graphics and
+            physical AI. Long-horizon prediction for high-resolution 3D volumetric meshes is difficult: autoregressive
+            methods are susceptible to error accumulation, while direct multi-frame prediction at native resolution is
+            computationally prohibitive. This motivates a compact spatiotemporal latent representation, which remains
+            largely unexplored for mesh-based volumetric physics. Meanwhile, it remains unclear whether deterministic
+            regression or generative diffusion is the more appropriate predictive paradigm.
+          </p>
+          <p>
+            To address these coupled
+            challenges, we introduce PhysLDM, a unified latent-diffusion paradigm for one-shot volumetric deformable
+            simulation. Its core is a holistic spatiotemporal VAE (ST-VAE) that avoids the &ldquo;staircase&rdquo; artifacts of
+            standard temporal compression (as in common video VAEs) and disentangles rigid motion from local deformation,
+            achieving &sim;2.48&nbsp;mm reconstruction precision on meter-scale scenes at up to 78&times; token compression.
+            Based on this reliable latent space, we systematically compare regression and diffusion paradigms. Our
+            experiments uncover a key modeling insight: complex deformable dynamics are often chaotic, and in this regime
+            deterministic regression tends to produce damped, non-physical averages, whereas diffusion better models their
+            distribution. Accordingly, we employ a latent diffusion model that effectively learns from the chaotic data to
+            generate physically plausible trajectories.
+          </p>
+          <p>
+            Trained purely kinematically on an Objaverse-scale simulation
+            dataset, a single PhysLDM generalizes zero-shot to unseen OOD object datasets (GSO and Toys4K). Its
+            differentiability further enables efficient solution of inverse problems and higher-order design
+            optimization. To our knowledge, PhysLDM is the first high-fidelity spatiotemporal autoencoder and
+            latent-diffusion paradigm for volumetric deformable dynamics, offering a scalable and robust approach to
+            neural simulation.
+          </p>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="num">~2.48&nbsp;mm</div><div class="lbl">reconstruction precision<br>on meter-scale scenes</div></div>
+          <div class="stat"><div class="num">78&times;</div><div class="lbl">token compression<br>(up to)</div></div>
+          <div class="stat"><div class="num">64</div><div class="lbl">frames predicted<br>in one diffusion pass</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section is-tight" id="stvae">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Reconstruction</h2>
+    <p class="block-intro">A holistic spatiotemporal VAE compresses a whole 64-frame trajectory into one compact latent while keeping millimeter-scale geometric detail.</p>
+    <figure class="fig-card">
+      <img src="./static/images/fig1_recon.webp" alt="Ground truth versus ST-VAE reconstruction of a high-resolution soft mug" loading="lazy">
+      <figcaption>Ground truth (rose) versus ST-VAE reconstruction (blue) for an unseen high-resolution soft mug (11,621 nodes, &gt;2&times; the training cap). The trajectory is compressed by &sim;182&times; with only a 5.3&nbsp;mm mean error. Far right: a cross-section of the final frame visualizing the internal tetrahedral&nbsp;structure.</figcaption>
+    </figure>
+    <div class="video-tabs" id="stvae-tabs">
+      <div class="tabs is-toggle is-small is-centered">
+        <ul>
+          <li class="is-active"><a>Staircase</a></li>
+          <li><a>Held-out &amp; OOD</a></li>
+          <li><a>Tet Nodes</a></li>
+          <li><a>Challenging</a></li>
+          <li><a>vs. Baselines</a></li>
+          <li><a>More Examples</a></li>
+          <li><a>Multi-body</a></li>
+        </ul>
+      </div>
+      <div class="tab-panel is-active">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/stvae_intro.mp4"></video></div>
+        <p class="media-caption">Standard temporal compression, as in common video VAEs, loses high-frequency information and produces &ldquo;staircase&rdquo; artifacts: unnatural, abrupt temporal deformations. Directly compressing world coordinates entangles features across scales and fails to preserve geometric detail. Our holistic ST-VAE, which decouples rigid motion from deformation, removes the staircase problem and keeps the geometric&nbsp;detail.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/recon_heldout_ood.mp4"></video></div>
+        <p class="media-caption">Ground truth (left) and ST-VAE reconstruction (right) on held-out Objaverse scenes, followed by out-of-distribution (OOD) objects from GSO and Toys4K. The ST-VAE reconstructs the OOD objects zero-shot. Achieves ~2.48&nbsp;mm precision on meter-scale scenes. The Young&rsquo;s moduli were chosen to show both soft bodies with large deformation and stiff, nearly rigid ones, so some values do not match the real material of the&nbsp;object.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/xray.mp4"></video></div>
+        <p class="media-caption">Cut-away views reveal the reconstructed interior tetrahedral&nbsp;nodes.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/recon_challenging.mp4"></video></div>
+        <p class="media-caption">Complex unseen shapes, with the motion frozen at the moment of maximum&nbsp;deformation.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/staircase.mp4"></video></div>
+        <p class="media-caption">Five variants on the same scene: ground truth, Holistic (ours), Standard temporal compression, Standard + velocity loss, and direct world-coordinate compression. Each case is shown with the per-frame deformation change and a frame-by-frame silhouette&nbsp;difference.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/recon_grid.mp4"></video></div>
+        <p class="media-caption">Sixteen unseen cases. Rose: ground truth; blue: ST-VAE&nbsp;reconstruction.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/mb_recon.mp4"></video></div>
+        <p class="media-caption">ST-VAE reconstruction of two- and three-body scenes, each body with a random Young&rsquo;s modulus and initial&nbsp;velocity.</p>
+      </div>
+    </div>
+    <p class="more-link"><a href="./videos.html#reconstruction">All reconstruction videos &rarr;</a></p>
+  </div>
+</section>
+
+<section class="section is-tight" id="prediction">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Prediction</h2>
+    <p class="block-intro">From the initial state, the latent diffusion model predicts all 64 frames in a single diffusion pass, with random stiffness and initial velocity.</p>
+    <figure class="fig-card">
+      <div class="pair-wrap">
+        <img src="./static/images/fig1_pred_pair.webp" alt="Initial state (left) and predicted settled state (right) of 26 objects" loading="lazy">
+        <span class="pair-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 12h13M12 6l6 6-6 6" fill="none" stroke="#333" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+      <figcaption>One-shot prediction of 64-frame trajectories for diverse out-of-distribution (OOD) objects (GSO/Toys4K) across varying materials and initial velocities (left: initial state; right: predicted settled&nbsp;state).</figcaption>
+    </figure>
+    <div class="video-tabs" id="pred-tabs">
+      <div class="tabs is-toggle is-small is-centered">
+        <ul>
+          <li class="is-active"><a>Chaos</a></li>
+          <li><a>vs. Regression &amp; MGN</a></li>
+          <li><a>OOD</a></li>
+          <li><a>Challenging</a></li>
+          <li><a>More Examples</a></li>
+          <li><a>Multi-body</a></li>
+        </ul>
+      </div>
+      <div class="tab-panel is-active">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/chaos.mp4"></video></div>
+        <p class="media-caption">Five reruns of the same scene with identical initial input on a GPU IPC solver end in significantly different states. In this regime deterministic regression tends to produce damped, non-physical averages, whereas diffusion better models their&nbsp;distribution.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/baselines.mp4"></video></div>
+        <p class="media-caption">Ground truth, our latent diffusion model, a capacity-matched regression model, and an MGN-style autoregressive baseline (shown as &ldquo;GNS&rdquo; in the video), from the same initial&nbsp;state.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/ood.mp4"></video></div>
+        <p class="media-caption">Out-of-distribution (OOD) objects from GSO and Toys4K, with random stiffness and initial velocity. The diffusion model is applied&nbsp;zero-shot.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/pred_challenging.mp4"></video></div>
+        <p class="media-caption">Harder unseen cases from held-out Objaverse and&nbsp;GSO.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/grid28.mp4"></video></div>
+        <p class="media-caption">Twenty-eight unseen cases from held-out Objaverse, GSO and&nbsp;Toys4K.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/mb_pred.mp4"></video></div>
+        <p class="media-caption">One-shot prediction on two- and three-body scenes, each body with a random Young&rsquo;s modulus and initial&nbsp;velocity.</p>
+      </div>
+    </div>
+    <p class="more-link"><a href="./videos.html#prediction">All prediction videos &rarr;</a></p>
+  </div>
+</section>
+
+<section class="section is-tight" id="diff">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Differentiable Applications</h2>
+    <p class="block-intro">PhysLDM is differentiable end to end, so gradients flow from a trajectory objective back to physical parameters and initial conditions.</p>
+    <figure class="fig-card">
+      <div class="pair-wrap">
+        <img src="./static/images/fig_app_pair.webp" alt="Target trajectory (left) and recovering Young&rsquo;s modulus by gradient descent (right)" loading="lazy">
+        <span class="pair-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 12h13M12 6l6 6-6 6" fill="none" stroke="#333" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+      <figcaption>A classic material estimation task: recovering Young&rsquo;s modulus <i>E</i> (blue sequence) by matching a target state (textured) via gradient descent. Furthermore, designing the throw that best reveals the material is a second-order inverse task. PhysLDM easily solves it with native support for higher-order derivatives. By contrast, all other differentiable simulators we tested either fail or are computationally prohibitive on this&nbsp;task.</figcaption>
+    </figure>
+    <div class="video-tabs" id="diff-tabs">
+      <div class="tabs is-toggle is-small is-centered">
+        <ul>
+          <li class="is-active"><a>Task 1: Material estimation</a></li>
+          <li><a>Task 2: Designing the throw</a></li>
+        </ul>
+      </div>
+      <div class="tab-panel is-active">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/diff_task1.mp4"></video></div>
+        <p class="media-caption">Given a single trajectory of a body with unknown stiffness, PhysLDM recovers its Young&rsquo;s modulus by gradient descent through the model, within 0.06&nbsp;dex in about 40 seconds on all seven test bodies. DiffIPC solves the task only after hand-tuning its solver and then needs 26 minutes on 48 threads; Newton/Warp fails in the backward&nbsp;pass.</p>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/diff_task2.mp4"></video></div>
+        <p class="media-caption">Which throw reveals the stiffness best? We maximize the sensitivity of the predicted trajectory to the stiffness over the release velocity. The objective is itself a derivative, so its gradient is second-order; PhysLDM provides it directly through automatic differentiation. Replayed in the ground-truth simulator, the optimized throw makes the rigid motion 13&times; more sensitive to the stiffness. DiffIPC offers only first-order derivatives, and Newton/Warp does not produce a usable gradient on this&nbsp;scene.</p>
+      </div>
+    </div>
+    <p class="more-link"><a href="./videos.html#differentiable">All differentiable application videos &rarr;</a></p>
+  </div>
+</section>
+
+<section class="section is-tight" id="method">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Method</h2>
+    <div class="media-block">
+      <img src="./static/images/arch.webp" alt="PhysLDM architecture: Spatial VAE, ST-VAE and latent diffusion model" loading="lazy">
+    </div>
+    <p class="media-caption"><strong>Overview of PhysLDM.</strong> The framework consists of three main components: (1) A <strong>Spatial VAE</strong> (top left) that encodes the per-frame canonical mesh into a compact set of resolution-independent latent tokens. (2) An <strong>ST-VAE</strong> (bottom) that compresses the temporal trajectory into a single joint latent <b><i style="color:#0A307C">Z</i></b>, which serves as the training target of the LDM. (3) An <strong>LDM</strong> (top right) that predicts the entire latent trajectory from the initial state in a single diffusion pass. <span class="sf">Dec</span>&thinsp;&lowast; denotes the frozen decoders, which decode the latent into the final full&nbsp;trajectory.</p>
+  </div>
+</section>
+
+<section class="section is-tight" id="generalization">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Constitutive-Model-Agnostic Supervision</h2>
+    <p class="block-intro">PhysLDM is trained with kinematic supervision only: no energy model or material law enters the data format, the losses, or the architecture. The ST-VAE therefore generalizes zero-shot across energy models (4.6&nbsp;mm reconstruction error under ARAP) and to real-world data (6.0&nbsp;mm reconstruction&nbsp;error).</p>
+    <div class="video-tabs" id="gen-tabs">
+      <div class="tabs is-toggle is-small is-centered">
+        <ul>
+          <li><a>ARAP</a></li>
+          <li class="is-active"><a>Real-World Data</a></li>
+        </ul>
+      </div>
+      <div class="tab-panel">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/gen_arap.mp4"></video></div>
+        <p class="media-caption">Ground truth (left) and zero-shot ST-VAE reconstruction (right) under an as-rigid-as-possible (ARAP) energy. The ST-VAE was trained only on Stable Neo-Hookean simulations, so this energy model never appears in&nbsp;training.</p>
+      </div>
+      <div class="tab-panel is-active">
+        <div class="media-block"><video class="lazy" muted loop playsinline controls preload="none" data-src="./static/videos/gen_real.mp4"></video></div>
+        <p class="media-caption"><strong>Seamless support for other data formats, such as surface meshes and point clouds.</strong> Our training data are tetrahedral meshes, but PhysLDM runs on these formats without any change to the model or the training code. Shown here are real captured point clouds from PhysTwin: tracked points (left) and zero-shot ST-VAE reconstruction (right). There is no mesh and no explicit energy model, and the objects are manipulated by a human hand instead of being thrown onto the&nbsp;ground.</p>
+      </div>
+    </div>
+    <p class="more-link"><a href="./videos.html#generalization">All constitutive-model-agnostic videos &rarr;</a></p>
+  </div>
+</section>
+
+<section class="section" id="bibtex">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@article{zhang2026physldm,
+  title   = {PhysLDM: Latent Diffusion for High-Fidelity Deformable Simulation},
+  author  = {Zhang, Yu and Xu, Xudong and Pan, Xingang},
+  journal = {arXiv preprint arXiv:2610.07609},
+  year    = {2026}
+}</code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <a class="icon-link" href="https://arxiv.org/pdf/2610.07609"><i class="fas fa-file-pdf"></i></a>
+      <!-- hidden for now: <a class="icon-link" href="https://github.com/YuCrazing/PhysLDM"><i class="fab fa-github"></i></a> -->
+    </div>
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content has-text-centered">
+          <p>
+            This page is built on the <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a> project page
+            template, licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="./static/js/page.js"></script>
+</body>
+</html>

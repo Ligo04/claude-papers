@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-19",
+  "url": "http://127.0.0.1:5815/papers/diffgipc-mixed-coordinate-contact",
+  "checks": [
+    {
+      "check": "关闭接触耦合",
+      "value": "H̃ = [ H_AA　0 ; 0　H_FF ]"
+    },
+    {
+      "check": "高分辨率自由度",
+      "value": "ABD+ABD / 两只 bunny，运动自由度推导\n24\nABD+FEM / 两只 bunny，运动自由度推导\n85,317\nFEM+FEM / 两只 bunny，运动自由度推导\n170,610"
+    },
+    {
+      "check": "摩擦历史公式",
+      "value": "δx_t = A_t δx̄ ; δx_(t−1) = A_(t−1) δx̄"
+    },
+    {
+      "check": "高分辨率计时",
+      "value": "系统\t前向 + 反向 / s\t最慢显示时间 / 本行\nDiffGIPC ABD+ABD\t0.37\t≈ 4,054.1×\nDiffGIPC ABD+FEM\t5.4\t≈ 277.78×\nDiffGIPC FEM+FEM\t10\t≈ 150×\nDiffIPC FEM+FEM\t1,500\t≈ 1×"
+    },
+    {
+      "check": "切换反向时间",
+      "value": "系统\t反向 / s\t最慢显示时间 / 本行\nDiffGIPC ABD+ABD\t0.048\t≈ 4,583.3×\nDiffGIPC ABD+FEM\t1.1\t≈ 200×\nDiffGIPC FEM+FEM\t2.5\t≈ 88×\nDiffIPC FEM+FEM\t220\t≈ 1×"
+    },
+    {
+      "check": "线性条形",
+      "value": [
+        "width:0.021818181818181816%",
+        "width:0.5000000000000001%",
+        "width:1.1363636363636365%",
+        "width:100%"
+      ]
+    },
+    {
+      "check": "Graph 合计模式固定",
+      "value": true,
+      "table": "系统\t前向 + 反向 / s\t最慢显示时间 / 本行\nCUDA Graph Off\t0.62\t≈ 1×\nCUDA Graph On\t0.49\t≈ 1.2653×"
+    },
+    {
+      "check": "衣服尺寸差分误差",
+      "value": "9.45e-3"
+    },
+    {
+      "check": "自测反馈",
+      "value": "这个解释符合 §8。必须考察相关轨迹中的接触范围；已经发生过的接触仍可能通过时间递推影响终点损失。"
+    },
+    {
+      "check": "抓取控制成本",
+      "total": "41 s",
+      "counts": "44 / 20",
+      "simulated": "2.4 s"
+    },
+    {
+      "check": "共享 FEM 材料辨识",
+      "value": "系统\t前向 + 反向 / s\t最慢显示时间 / 本行\nDiffIPC FEM+FEM\t3.2\t≈ 1×\nDiffGIPC FEM+FEM\t0.053\t≈ 60.377×",
+      "sourceRatio": "表 1 直接报告此部分加速 60.7×。显示时间已取整，估算值可以不同。"
+    },
+    {
+      "check": "退出 Graph 模式后恢复计时选择",
+      "value": true
+    },
+    {
+      "check": "共享 FEM 反向切换",
+      "value": "系统\t反向 / s\t最慢显示时间 / 本行\nDiffIPC FEM+FEM\t0.94\t≈ 1×\nDiffGIPC FEM+FEM\t0.028\t≈ 33.571×"
+    }
+  ],
+  "errorLogs": [],
+  "sandboxedIframe": true
+}

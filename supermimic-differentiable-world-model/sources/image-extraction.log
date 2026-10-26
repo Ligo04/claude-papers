@@ -1,0 +1,10 @@
+Processing PDF: /home/ligo/claude-papers/papers/supermimic-differentiable-world-model/paper.pdf
+Total pages: 19
+Page 1: Found 1 image(s)
+Page 4: Found 2 image(s)
+Page 9: Found 4 image(s)
+
+Summary:
+  Total images extracted: 7
+  Images by page: {1: 1, 4: 2, 9: 4}
+["/home/ligo/claude-papers/papers/supermimic-differentiable-world-model/images/page_1_img_1.png", "/home/ligo/claude-papers/papers/supermimic-differentiable-world-model/images/page_4_img_1.png", "/home/ligo/claude-papers/papers/supermimic-differentiable-world-model/images/page_4_img_2.png", "/home/ligo/claude-papers/papers/supermimic-differentiable-world-model/images/page_9_img_1.jpeg", "/home/ligo/claude-papers/papers/supermimic-differentiable-world-model/images/page_9_img_2.jpeg", "/home/ligo/claude-papers/papers/supermimic-differentiable-world-model/images/page_9_img_3.jpeg", "/home/ligo/claude-papers/papers/supermimic-differentiable-world-model/images/page_9_img_4.jpeg"]

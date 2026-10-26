@@ -1,0 +1,5 @@
+# One 24-tooth gear on its axle.
+kind: gear
+teeth: 24
+module: 0.003
+face_width: 0.008

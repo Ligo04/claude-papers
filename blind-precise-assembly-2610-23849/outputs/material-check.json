@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-20",
+  "requiredFiles": [
+    "README.md",
+    "summary.md",
+    "insights.md",
+    "qa.md",
+    "method.md",
+    "mental-model.md",
+    "reflection.md",
+    "sources.md",
+    "validation.md",
+    "index.html",
+    "paper.pdf",
+    "meta.json"
+  ],
+  "requiredFilesPresent": true,
+  "priorIndexEntriesPreserved": true,
+  "indexCountBefore": 59,
+  "indexCountAfter": 60,
+  "paperIndexMatchesMetadata": true,
+  "tags": [
+    "精密装配",
+    "本体感知策略"
+  ],
+  "qaQuestions": 15,
+  "realSuccessSum": 173,
+  "realTrialSum": 237,
+  "pdfSha256": "5bc66905c70d821a0d70a728e66ba80acb2269f6b4231f2e57de0b3470f122fb",
+  "brokenLocalMarkdownLinks": [],
+  "demoChecks": {
+    "性质": "未训练网络、合成输入、教学信息流检查",
+    "设备": "CPU",
+    "PyTorch版本": "2.14.0+cu130",
+    "输入形状": [
+      4,
+      30,
+      33
+    ],
+    "输出形状": [
+      4,
+      7
+    ],
+    "辅助损失对编码器有梯度": true,
+    "辅助损失对decoder有梯度": true,
+    "辅助损失对actor动作头无梯度": true,
+    "删除decoder后动作逐值不变": true,
+    "已运行原论文训练": false,
+    "原论文成功率复现": false
+  },
+  "browserChecked": [
+    "训练/部署切换",
+    "三任务数据切换",
+    "选择螺母反例",
+    "真机C组计数",
+    "两个几何滑块"
+  ],
+  "browserScreenshot": "outputs/explorer-preview.png",
+  "notExecuted": [
+    "原论文PPO训练",
+    "原论文MuJoCo/Warp碰撞基准",
+    "GPU动力学",
+    "真机实验"
+  ]
+}

@@ -1,0 +1,46 @@
+                                                                                          DiffGIPC: Differentiable Mixed-Coordinate Contact Dynamics on GPU   •  11
+
+5.4   Joint targets and forces                                          derivatives account for changes in both the lengths and orientations
+Revolute and prismatic joint targets and forces provide actuation      of these directions. The angle derivatives used by the torque term
+parameters alongside rest shapes and initial states. Their reference     −𝑓𝛼are given in Appendix A.3.geometry and driving stiffness remain fixed during control opti-       The partial derivatives with respect to the applied target and joint
+mization. Let 𝑢𝑗,𝑡denote the scalar target, force, or torque applied to      force are                                                                                               𝜕grev
+joint 𝑗at frame 𝑡, and let gjoint𝑡,𝑗  denote its contribution to the frame                      𝜕𝑎  = 𝑘 (−𝐶r −𝑤𝑐(1 −𝐶r))∇𝑆r
+energy gradient. Equation (33) gives this joint’s contribution Δ¯𝑢𝑗,𝑡                                                                                                ,to the control gradient:                                                 + (𝑤𝑐−1)𝑆r∇𝐶r                    (56)
+                                                                                               𝜕grev
+                                        𝜕gjoint𝑡,𝑗  !T                                                 𝜕𝑓  = −∇𝛼.
+                     Δ¯𝑢𝑗,𝑡= −   𝜕𝑢𝑗,𝑡    𝝀𝑡.                   (52)      All control derivatives are evaluated at the converged frame states.
+                                                           At fixed control values, differentiating the state gradients gives the
+ Although the local control derivative involves only the two joint-
+                                                                                     full joint Hessians ∇2Φpri and ∇2Φrev. These include the secondconnected bodies, its product with the coupled adjoint includes their                                                                           derivatives of the joint coordinates and of the potential terms linear
+response through contact with the rest of the scene. Joint targets                                                                           in the joint force. Appendix A.3 gives the geometric definitions of 𝜉,
+and forces can therefore be optimized for objectives on interacting                                                                                               𝑠r, and 𝑐r, their first and second coordinate derivatives, and the fullobjects, using the same backward system as shape and initial-state                                                                  Hessians in Equation (91).
+parameters.
+  Actuation energies and parameter derivatives. For the local formu-     6 GPU Backward and Reusable Interface
+las, we omit the joint and frame indices. Let 𝑎be the applied target,     Compact coordinates and GPU parallelism reduce different parts of
+𝑓the joint force (a linear force for a prismatic joint and a torque      the backward cost. The coupled adjoint solve captures interactions
+for a revolute joint), and 𝑘the effective driving stiffness. The affine      across the scene, while local derivative products expose parallel
+DoFs of the two bodies connected by the joint are denoted by q𝑝     work over elements, surface triangles, contacts, and joints. Condi-
+and q𝑐. The vector q = [qT𝑝, qT𝑐]T collects both bodies’ DoFs, with       tional CUDA Graphs reduce repeated CPU coordination during the
+∇= ∇q. For a prismatic joint, let 𝜉denote the relative displacement       solve, and parallel accumulation returns gradients to earlier statesbetween the two joint attachment points, projected onto the joint     and physical parameters (Figure 5). A PyTorch interface makes this
+axis of body 𝑐in world space. Its energy and control derivatives are      computation reusable across task-specific designs and objectives.
+                             1                                      The adjoint system is assembled from each frame’s converged
+                   Φpri = 2𝑘(𝜉−𝑎)2 −𝑓𝜉,                     FEM and affine states. Equation (2) recovers the affine surface po-
+                      gpri = ∇Φpri                    = [𝑘(𝜉−𝑎) −𝑓]∇𝜉,                         sitions. The backward pass evaluates contact derivatives using the
+                   𝜕gpri                 𝜕gpri                         same contact pairs and distance formulas as the forward solve at
+                𝜕𝑎              = −𝑘∇𝜉,       𝜕𝑓  = −∇𝜉.               (53)       this converged state. Previous-frame friction weights, contact-plane
+                                                                          bases, and normal forces retain the history dependence derived in
+The gradient ∇𝜉also accounts for how the world-space joint axis of      Section 4.5. StiffGIPC’s parallel global Hessian assembly [Huangbody 𝑐changes with q𝑐. The quadratic term penalizes displacement                                                                               et al. 2025a] combines element, body, collision, friction, and joint con-
+away from the target 𝑎, whereas −𝑓𝜉specifies the applied joint force       tributions, including FEM-affine cross terms. The resulting Hessianalong the joint coordinate. Targets and joint forces therefore enter                                                                                          is assembled once per reverse frame and remains fixed throughoutthe same frame equation through different parameter derivatives.                                                                                             its PCG solve, avoiding a repeat of the nonlinear forward iterations.
+  For a revolute joint, two scalar quantities 𝑠r and 𝑐r computed from
+the bodies’ transformed reference directions define the relative angle                                                                      6.1  PCG with conditional CUDA Graphs
+𝛼= atan2(𝑠r,𝑐r). For target 𝑎, define                            The adjoint in Equation (31) uses the same frame Hessian as the
+         𝑆r = 𝑠r cos𝑎−𝑐r sin𝑎,     𝐶r = 𝑐r cos𝑎+ 𝑠r sin𝑎.     (54)     converged forward equations, allowing StiffGIPC’s highly paral-
+These quantities compare the relative orientation with the target. For        lel GPU PCG solver [Huang et al. 2025a] to serve both forward
+rigid rotations with orthonormal reference directions and aligned     and backward computations. Compact affine coordinates reduce
+joint axes, they reduce to 𝑆r = sin(𝛼−𝑎) and 𝐶r = cos(𝛼−𝑎).     PCG’s numerical workload, making repeated CPU kernel launchesThe squared sine vanishes both at the target and a half-turn away.     and convergence synchronization a larger fraction of solve time.
+The cosine term below gives the half-turn a positive penalty. The     The stricter backward residual tolerance can amplify this cost over
+periodic target energy is                                      more iterations. To address this, we build a PCG pipeline managed
+                                                          by a conditional CUDA Graph, based on the PCG recurrence ker-             Φrev = 12𝑘 𝑆2r                 + 𝑤𝑐(1 −𝐶r)2 −𝑓𝛼,                          nels [Baraff and Witkin 1998], their execution dependencies, and the
+                                                              convergence checks (Figure 5). Once launched from the CPU, the               grev = ∇Φrev
+           = 𝑘                                             (55)      graph initializes PCG and then repeats its iterations and convergence                    𝑆r∇𝑆r −𝑤𝑐(1 −𝐶r)∇𝐶r −𝑓∇𝛼.                 checks entirely on the GPU until convergence or the iteration limitHere 𝑤𝑐= 0.02 is the fixed relative weight of the cosine penalty,                                                                                            is reached, eliminating per-iteration kernel launches and CPU–GPU
+not an optimized control. The joint energy uses 𝑠r and 𝑐r computed                                                                      synchronization.directly from the affine-transformed joint reference directions. Their

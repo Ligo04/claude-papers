@@ -1,0 +1,40 @@
+{
+  "checked_date": "2026-10-20",
+  "status": "通过",
+  "required_files": 17,
+  "pdf_pages": 45,
+  "full_text_saved": true,
+  "question_count": 15,
+  "semantic_tags": 2,
+  "html": {
+    "javascript_syntax_checked": true,
+    "embedded_data_matches_data_json": true,
+    "external_assets": 0,
+    "sandboxed_iframe_verified": true,
+    "browser_checks": 17,
+    "console_errors": 0,
+    "math_blocks": 5,
+    "math_errors": 0,
+    "preview": "images/explorer-preview.png"
+  },
+  "demo": {
+    "executed": true,
+    "assertions_passed": true,
+    "mean_trajectory_end_volume_ratio": 0.38639895265345653,
+    "flow_50step_ks": 0.027074226406322843,
+    "kabsch_max_residual": 8.326672684688674e-17
+  },
+  "library": {
+    "before": 58,
+    "after": 59,
+    "preexisting_entries_unchanged": true,
+    "previous_index_sha256": "10004bb907b2474416a89db753a13871fefef56bfcdaffed7dba76fcc8b21e09",
+    "new_entry": "physldm-latent-deformable-simulation"
+  },
+  "not_verified": [
+    "官方模型训练与推理",
+    "论文 H200 benchmark",
+    "真实捕捉数据实验",
+    "仿真仓库与机器人集成"
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "scope": "一维合成系统教学验证，不是 SuperMimic 论文复现",
+  "device": "cpu",
+  "torch_version": "2.14.0+cu130",
+  "seed": 7,
+  "model_fit_window": 8,
+  "imagination_horizon": 32,
+  "discount": 0.99,
+  "omissions": [
+    "接触",
+    "观测历史",
+    "学习式 critic",
+    "终止头",
+    "机器人及真机"
+  ],
+  "gradient_checks": {
+    "analytic_gradient": [
+      -0.26103450232466974,
+      -0.9813700886056042
+    ],
+    "finite_difference_gradient": [
+      -0.261034502291313,
+      -0.9813700886096566
+    ],
+    "max_absolute_error": 3.335676179716529e-11,
+    "frozen_model_weights_unchanged": true,
+    "frozen_model_parameter_has_no_grad": true,
+    "gradient_through_frozen_model_nonzero": true,
+    "detached_state_objective_requires_grad": false
+  },
+  "training": {
+    "iterations": 70,
+    "true_coefficients": [
+      0.84,
+      0.08,
+      0.25
+    ],
+    "learned_coefficients": [
+      0.8400000333786011,
+      0.07999997586011887,
+      0.2499999701976776
+    ],
+    "policy_weights": [
+      -0.4459557831287384,
+      0.6531027555465698
+    ],
+    "initial_real_system_rmse": 0.5108278393745422,
+    "final_real_system_rmse": 0.098324254155159,
+    "trace": [
+      {
+        "iteration": 1,
+        "model_loss": 0.007552316412329674,
+        "imagined_cost": 0.3244216740131378,
+        "real_system_rmse": 0.37902095913887024
+      },
+      {
+        "iteration": 11,
+        "model_loss": 1.7998203475144692e-05,
+        "imagined_cost": 0.04506022483110428,
+        "real_system_rmse": 0.1970919668674469
+      },
+      {
+        "iteration": 21,
+        "model_loss": 4.727900293488574e-10,
+        "imagined_cost": 0.03367622196674347,
+        "real_system_rmse": 0.1462552547454834
+      },
+      {
+        "iteration": 31,
+        "model_loss": 1.1903021970849359e-14,
+        "imagined_cost": 0.02653861977159977,
+        "real_system_rmse": 0.1357356756925583
+      },
+      {
+        "iteration": 41,
+        "model_loss": 6.694921310043678e-15,
+        "imagined_cost": 0.020708931609988213,
+        "real_system_rmse": 0.1178426668047905
+      },
+      {
+        "iteration": 51,
+        "model_loss": 6.936427343964824e-15,
+        "imagined_cost": 0.01723153330385685,
+        "real_system_rmse": 0.1106562465429306
+      },
+      {
+        "iteration": 61,
+        "model_loss": 7.633216975166945e-15,
+        "imagined_cost": 0.015934107825160027,
+        "real_system_rmse": 0.10183311998844147
+      },
+      {
+        "iteration": 70,
+        "model_loss": 1.0811230383156456e-14,
+        "imagined_cost": 0.01407487690448761,
+        "real_system_rmse": 0.098324254155159
+      }
+    ]
+  },
+  "prediction_error_does_not_bound_jacobian_error": {
+    "example": "f_hat(a)=f(a)+epsilon*sin(frequency*a)",
+    "synthetic_epsilon": 0.001,
+    "synthetic_frequency": 10000,
+    "prediction_error_at_zero": 0.0,
+    "derivative_error_at_zero": 10.0,
+    "maximum_prediction_error": 0.001
+  },
+  "elapsed_cpu_wall_seconds": 1.0472025519702584
+}

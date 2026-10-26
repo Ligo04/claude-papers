@@ -1,0 +1,23 @@
+# The FurnitureBench square-table leg in its tabletop hole, measured from the
+# FurnitureBench meshes (github.com/clvrai/furniture-bench, square_table).
+# A round-wire thread: the leg is a 20 mm stud with a 4.36 mm wire centered on
+# its surface; the hole is a 25 mm bore with the same wire 3.1 mm further out.
+# Pitch 9.375 mm, single start, right-handed, and loose like the 3D-printed
+# parts: about +-1.6 mm of axial play at zero clearance.
+kind: thread
+major_diameter: 0.02436
+pitch: 0.009375
+thread_length: 0.019
+form: wire
+form_params: {wire_diameter: 0.00436, nut_wire_offset: 0.0031, bore_diameter: 0.025}
+clearance: 0.0
+bolt_head: cylinder            # a cylinder stands in for the leg
+bolt_head_size: 0.03
+bolt_head_height: 0.02
+bolt_density: 1250             # PLA
+nut_shape: cylinder            # the tabletop hole, as a round boss
+nut_size: 0.04
+nut_height: 0.017
+nut_density: 1250
+friction: 0.3
+condim: 3

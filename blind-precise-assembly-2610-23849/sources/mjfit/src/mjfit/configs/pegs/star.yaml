@@ -1,0 +1,8 @@
+# A five-point star: a non-convex hole that is star-shaped from its center,
+# so the plate is cut into one radial wedge per edge and the peg is fanned.
+kind: peg
+hole: {type: star, points: 5, outer_radius: 0.012, inner_radius: 0.0054}
+clearance: 1.0e-4
+plate_size: 0.05
+plate_thickness: 0.01
+peg_length: 0.03

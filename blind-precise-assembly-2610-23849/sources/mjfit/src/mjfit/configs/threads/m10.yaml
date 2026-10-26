@@ -1,0 +1,18 @@
+# A steel M10 x 1.5 hex bolt (ISO coarse) engaged in its hex nut, with
+# 100 um between the flanks. Spin the bolt about -z and it threads down.
+# The 5 um seam relief lets a spun bolt run freely across the wedge seams.
+kind: thread
+major_diameter: 0.010
+pitch: 0.0015
+thread_length: 0.020
+clearance: 1.0e-4
+seam_relief: 5.0e-6
+bolt_shank_length: 0.008
+bolt_head: hex
+bolt_head_size: 0.016
+bolt_head_height: 0.0064
+nut_shape: hex
+nut_size: 0.016
+nut_height: 0.008
+friction: 0.3
+condim: 3

@@ -1,0 +1,29 @@
+# A nine-pin D-sub: a 20 x 10 mm shell, keyed by its two chamfered top
+# corners, around nine 1 mm pins in two staggered rows (5 and 4) at 2.77 mm
+# pitch. The plug is a shell with nine pockets.
+kind: peg
+hole:
+  type: polygon
+  vertices:
+    - [-0.010, -0.005]
+    - [ 0.010, -0.005]
+    - [ 0.010,  0.0035]
+    - [ 0.0085, 0.005]
+    - [-0.0085, 0.005]
+    - [-0.010,  0.0035]
+islands:
+  - {type: circle, radius: 0.0005, n: 12, center: [-0.00554, -0.00142]}
+  - {type: circle, radius: 0.0005, n: 12, center: [-0.00277, -0.00142]}
+  - {type: circle, radius: 0.0005, n: 12, center: [ 0.0,     -0.00142]}
+  - {type: circle, radius: 0.0005, n: 12, center: [ 0.00277, -0.00142]}
+  - {type: circle, radius: 0.0005, n: 12, center: [ 0.00554, -0.00142]}
+  - {type: circle, radius: 0.0005, n: 12, center: [-0.004155, 0.00142]}
+  - {type: circle, radius: 0.0005, n: 12, center: [-0.001385, 0.00142]}
+  - {type: circle, radius: 0.0005, n: 12, center: [ 0.001385, 0.00142]}
+  - {type: circle, radius: 0.0005, n: 12, center: [ 0.004155, 0.00142]}
+clearance: 1.0e-4
+plate_size: 0.04
+plate_thickness: 0.004
+peg_length: 0.008
+handle_height: 0.012
+handle_margin: 0.003

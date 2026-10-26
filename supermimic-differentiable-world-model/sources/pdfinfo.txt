@@ -1,0 +1,18 @@
+Title:           SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World Model
+Author:          Qiayuan Liao; Yiyang Shao; Junfeng Long; Kevin Zakka; Roberto Horowitz; Pieter Abbeel; Koushil Sreenath
+Creator:         arXiv GenPDF (tex2pdf:07e334b)
+Producer:        pikepdf 8.15.1
+Custom Metadata: yes
+Metadata Stream: yes
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           19
+Encrypted:       no
+Page size:       612 x 792 pts (letter)
+Page rot:        0
+File size:       3524904 bytes
+Optimized:       no
+PDF version:     1.7

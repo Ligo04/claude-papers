@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 530">
+<rect width="760" height="530" fill="#f7f6f1"/>
+<g font-family="sans-serif" fill="#183128">
+<text x="30" y="38" font-size="23">固定方向下，销中心允许平移到哪里？</text>
+<polygon points="420.000,178.132 291.987,76.045 132.356,112.480 61.314,260.000 132.356,407.520 291.987,443.955 420.000,341.868" fill="#b4dfcd" stroke="#187653" stroke-width="3"/>
+<circle cx="250" cy="260" r="170" fill="#f7f6f1" stroke="#2b66bd" stroke-width="2" stroke-dasharray="7 5"/>
+<circle cx="250" cy="260" r="4"/>
+<line x1="250" y1="260" x2="420" y2="260" stroke="#2b66bd" stroke-width="2"/>
+<text x="304" y="250" font-size="18">c</text>
+<text x="472" y="145" font-size="19">理想圆孔：蓝色圆盘</text>
+<text x="472" y="180" font-size="19">外接离散化：绿色区域</text>
+<text x="472" y="234" font-size="18">c = 100 μm</text>
+<text x="472" y="269" font-size="18">n = 7</text>
+<text x="472" y="304" font-size="18">额外游隙 = 10.991626 μm</text>
+<text x="472" y="339" font-size="18">相对间隙 = 10.9916%</text>
+<text x="30" y="465" font-size="17">e = c × (sec(π/n) − 1) · 由论文公式计算，非仿真测量</text>
+<text x="30" y="499" font-size="16">绿色角落增加可行平移；这里画的是中心位移集合，不是实物孔的尺寸。</text>
+</g></svg>

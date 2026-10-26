@@ -1,0 +1,9 @@
+{
+  "beforeCount": 60,
+  "afterCount": 61,
+  "beforeSha256": "8050080e7d74a6b9743c307b66e6419e4ae896b438a2178c80dbfe4b1015a0da",
+  "afterSha256": "f7c6949c7db4bd774dc7b7683c818c428cdadc488ab5c53bfad562cd5d5f1ed1",
+  "previousEntriesPreserved": true,
+  "addedSlug": "supermimic-differentiable-world-model",
+  "backup": "sources/index-before.json"
+}

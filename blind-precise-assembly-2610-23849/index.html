@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>盲视精密装配 · 论文交互学习</title>
+<style>
+:root{--bg:#f4f3ee;--paper:#fffefa;--ink:#17392f;--muted:#59675f;--line:#d9dfd6;--green:#17694d;--green-soft:#dcece3;--orange:#b85725;--orange-soft:#f6e5da;--blue:#456ba5;--radius:18px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;line-height:1.65}button,select,input{font:inherit}button,select{cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--orange);outline-offset:4px}button{color:inherit}a{color:var(--green);text-underline-offset:4px}
+.wrap{max-width:1180px;margin:auto;padding:40px 32px 70px}.kicker{font-size:12px;letter-spacing:2px;font-weight:700;color:var(--green)}header{display:grid;grid-template-columns:1fr 250px;gap:44px;padding:8px 0 32px}h1{font-size:clamp(32px,5vw,56px);line-height:1.18;letter-spacing:-1px;margin:14px 0 18px}h2{font-size:27px;line-height:1.35;margin:0 0 12px}h3{font-size:18px;margin:0 0 12px}p{margin:0 0 16px}.lead{font-size:17px;color:var(--muted);max-width:760px}.meta{font-size:12px;color:var(--muted)}.hero-note{border-left:1px solid var(--line);padding:12px 0 4px 28px;align-self:center}.hero-number{font-size:48px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-2px}.hero-note small{display:block;color:var(--muted);margin-top:12px}.pill{display:inline-block;border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:12px;margin:0 4px 6px 0}
+nav{display:flex;gap:8px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px;flex-wrap:wrap}.tab,.segment{border:1px solid transparent;background:transparent;border-radius:9px;padding:10px 16px;transition:background .15s}.tab[aria-selected=true],.segment[aria-pressed=true]{background:var(--ink);color:white}.tab:hover,.segment:hover{border-color:var(--green)}
+.panel[hidden]{display:none}.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);gap:22px}.card{border:1px solid var(--line);border-radius:var(--radius);background:var(--paper);padding:26px}.card.soft{background:var(--green-soft);border-color:#cbded2}.card.warning{background:var(--orange-soft);border-color:#ead3c3}.eyebrow{font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:12px}.small{font-size:13px;color:var(--muted)}.source{font-size:12px;color:var(--muted);margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:18px 0}.controls label{font-size:14px}.controls select{background:white;color:var(--ink);padding:8px 12px;border:1px solid var(--line);border-radius:8px}
+.flow{display:grid;gap:9px;margin-top:18px}.node{padding:14px 18px;border:1px solid var(--line);border-radius:10px;background:white}.node strong{display:block;font-size:15px}.node span{font-size:12px;color:var(--muted)}.node.green{border-color:#a6c5b4;background:#edf5ef}.node.amber{border-color:#dfb89f;background:#fcf0e8}.arrow{text-align:center;color:var(--green);font-size:18px;line-height:1}.train-branch{margin:18px 0 0 22px;border-left:3px dashed var(--orange);padding-left:18px}.train-branch[hidden]{display:none}.formula{font-family:ui-monospace,monospace;background:var(--bg);padding:16px;border-radius:10px;font-size:14px;overflow-wrap:anywhere}.legend{display:flex;gap:20px;font-size:13px;margin:16px 0}.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;background:var(--green)}.dot.orange{background:var(--orange)}
+.chart{display:grid;gap:12px}.bar-group{width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:10px;padding:9px 10px}.bar-group:hover,.bar-group[aria-pressed=true]{border-color:#b9cbbb;background:#f1f5ee}.bar-heading{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;font-size:13px}.bar-heading small{color:var(--muted);font-size:11px}.bar-line{display:flex;gap:8px;align-items:center;height:22px}.track{background:#ebece6;height:10px;border-radius:4px;flex:1;overflow:hidden}.fill{height:100%;background:var(--green);border-radius:4px}.fill.orange{background:var(--orange)}.bar-value{width:66px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}.big{font-size:42px;line-height:1.2;letter-spacing:-1px;font-variant-numeric:tabular-nums;margin:12px 0}.info-line{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}.real-row{display:grid;grid-template-columns:24px 1fr 75px;align-items:center;gap:12px;margin:13px 0;font-size:13px;opacity:.45}.real-row.selected{opacity:1}.real-row .track{height:14px}.real-row .count{text-align:right;font-variant-numeric:tabular-nums}
+.slider-block{margin:25px 0}.slider-block label{display:flex;justify-content:space-between;gap:15px;font-size:14px}.slider-block input{width:100%;accent-color:var(--green);margin-top:14px}.geometry{width:100%;display:block;max-height:400px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}.stat{background:var(--bg);padding:18px;border-radius:10px}.stat strong{font-size:23px;display:block;font-variant-numeric:tabular-nums}.stat small{color:var(--muted)}footer{margin-top:36px;border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:12px}.footlinks{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}.note-list{padding-left:20px;font-size:14px}.note-list li{margin-bottom:10px}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}output{font-weight:700}
+@media(max-width:800px){.wrap{padding:22px 18px 45px}header{grid-template-columns:1fr;gap:20px}.hero-note{border-left:0;border-top:1px solid var(--line);padding:20px 0 0}.hero-number{font-size:36px}.grid{grid-template-columns:1fr}.card{padding:20px}h2{font-size:23px}.tab{padding:9px 12px;font-size:14px}.stats{gap:8px}.stat{padding:12px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+ <div>
+  <div class="kicker">PAPER STUDY / ARXIV 2610.23849 v1</div>
+  <h1>盲视精密装配</h1>
+  <p class="lead">从动作指令与实际关节运动中识别接触，学习最后一段插入、啮合与起扣。这里把信息流、泛化结果和几何间隙放在一起读。</p>
+  <span class="pill">精密装配</span><span class="pill">本体感知策略</span><span class="pill">高级 · 中文学习材料</span>
+  <div class="meta">Bronars · Park · Kedia · Agrawal / MIT / 2026-10-16</div>
+ </div>
+ <aside class="hero-note">
+  <div class="eyebrow">真机插销 · 报告计数</div>
+  <div class="hero-number">173 / 237</div>
+  <small>约 73% 成功。试验从已接触、靠近孔的状态开始；齿轮与螺母仅在仿真验证。</small>
+ </aside>
+</header>
+<nav role="tablist" aria-label="学习章节">
+ <button class="tab" id="tab-flow" role="tab" aria-selected="true" aria-controls="flow" data-tab="flow">01 · 信息怎样进入策略</button>
+ <button class="tab" id="tab-results" role="tab" aria-selected="false" aria-controls="results" data-tab="results" tabindex="-1">02 · 泛化与代价</button>
+ <button class="tab" id="tab-real" role="tab" aria-selected="false" aria-controls="real" data-tab="real" tabindex="-1">03 · 真机证据</button>
+ <button class="tab" id="tab-geometry" role="tab" aria-selected="false" aria-controls="geometry" data-tab="geometry" tabindex="-1">04 · 间隙为什么重要</button>
+</nav>
+<main>
+<section class="panel" id="flow" role="tabpanel" aria-labelledby="tab-flow">
+ <div class="grid">
+  <div class="card">
+   <div class="eyebrow">图 7 · 附录 A</div><h2>用历史识别接触，用当前状态决定动作</h2>
+   <p class="small">下图以插销为例。切换到部署，查看哪些模块会被移除。</p>
+   <div class="controls" role="group" aria-label="运行阶段">
+    <button class="segment" id="training" aria-pressed="true">训练阶段</button>
+    <button class="segment" id="deployment" aria-pressed="false">部署阶段</button>
+   </div>
+   <div class="flow">
+    <div class="node"><strong>编码器可导出的观测与上一动作 · 33 维</strong><span>q(7) + q̇(7) + 夹爪 pose / twist(12) + aₜ₋₁(7)</span></div>
+    <div class="arrow" aria-hidden="true">↓</div>
+    <div class="node green"><strong>30 帧历史 → temporal convolution → 32 维 latent</strong><span>50 Hz 策略，论文以 0.6 秒描述历史窗口</span></div>
+    <div class="arrow" aria-hidden="true">↓</div>
+    <div class="node"><strong>latent + 当前观测 → MLP → 7 个关节增量</strong><span>隐藏层 256 / 256 / 128；目标角相对测得 q 更新</span></div>
+    <div class="arrow" aria-hidden="true">↓</div>
+    <div class="node green"><strong>关节阻抗控制 → 接触改变实际运动 → 新观测</strong><span>仿真物理 1 kHz；接触反馈通过关节运动返回</span></div>
+   </div>
+   <div class="train-branch" id="auxiliary">
+    <div class="node amber"><strong>训练分支：latent → 接触 decoder → 分类损失</strong><span>插销底边 64 点；仿真真值监督编码器。预测不输入 actor。</span></div>
+    <p class="small" style="margin:12px 0 0">非对称 critic 也可读取特权位姿和接触标签，仅用于训练。</p>
+   </div>
+   <p class="source">来源：图 7，pp.5–6；附录 A，p.14。螺母使用 36 维观测与四类接触标签。</p>
+  </div>
+  <div>
+   <div class="card soft" aria-live="polite">
+    <div class="eyebrow" id="mode-label">训练阶段</div>
+    <h3 id="mode-title">标签给梯度，部署输入不增加</h3>
+    <p id="mode-description">decoder 从 latent 预测接触类别，损失更新编码器；接触真值和预测都不作为 actor 的输入。</p>
+    <div class="formula">q_target = q_measured + s · action</div>
+    <p class="small" style="margin-top:14px">study 插销 s = 0.02 rad；deployed 插销 s = 0.04 rad。两套策略的训练分布和增益也不同。</p>
+   </div>
+   <div class="card" style="margin-top:22px">
+    <h3>先理解“碰到了什么阶段”</h3>
+    <p class="small">关节响应可帮助识别抬起、部分进入、移动和卡住。论文没有证明 latent 精确重建了孔位置。</p>
+    <ul class="note-list">
+     <li>插销 latent probe 平衡准确率 70%，当前观测 56%。</li>
+     <li>无接触监督仍能学会插销，但达到 90% 成功需 2.7× 环境步数。</li>
+     <li>这是表征和样本效率证据，不是推理加速。</li>
+    </ul>
+   </div>
+  </div>
+ </div>
+</section>
+<section class="panel" id="results" role="tabpanel" aria-labelledby="tab-results" hidden>
+ <div class="grid">
+  <div class="card">
+   <div class="eyebrow">表 7 · 完整逐列数据</div><h2>换了零件，成功率怎样变化</h2>
+   <p class="small">每一列只改变一个几何属性。点击任意一行，查看该测试的具体条件。</p>
+   <div class="controls" role="group" aria-label="任务">
+    <button class="segment task" data-task="peg" aria-pressed="true">插销入孔</button>
+    <button class="segment task" data-task="gear" aria-pressed="false">齿轮啮合</button>
+    <button class="segment task" data-task="nut" aria-pressed="false">螺母起扣</button>
+   </div>
+   <div class="legend"><span><i class="dot"></i>本体感知</span><span><i class="dot orange"></i>仅 RGB</span></div>
+   <div id="generalization-chart" class="chart" aria-label="成功率比较"></div>
+   <p class="source" id="seed-note"></p>
+  </div>
+  <div>
+   <div class="card soft" aria-live="polite">
+    <div class="eyebrow" id="condition-name">随机截面</div>
+    <h3 id="condition-title"></h3>
+    <div class="big" id="condition-gap"></div>
+    <p id="condition-description"></p>
+    <p class="small" id="condition-interpretation"></p>
+   </div>
+   <div class="card warning" style="margin-top:22px">
+    <h3>泛化优势有代价，也有反例</h3>
+    <p class="small" id="speed-description"></p>
+    <p class="small">视觉基线只读 64×64 RGB 历史，未比较“视觉 + 本体感知”。这些结果不证明去掉视觉总是更好。</p>
+   </div>
+  </div>
+ </div>
+</section>
+<section class="panel" id="real" role="tabpanel" aria-labelledby="tab-real" hidden>
+ <div class="grid">
+  <div class="card">
+   <div class="eyebrow">图 12 · §3.4 · 附录 C</div><h2>真机的 237 次尝试</h2>
+   <div class="controls"><label for="real-select">查看组别</label>
+    <select id="real-select">
+     <option value="all">全部 8 个零件</option><option value="id">5 个分布内零件</option><option value="ood">3 个分布外零件</option>
+     <option value="I1">I1</option><option value="I2">I2</option><option value="I3">I3</option><option value="I4">I4</option><option value="I5">I5</option>
+     <option value="C">C · 更紧间隙</option><option value="L">L · 更大截面</option><option value="H">H · 更高手柄</option>
+    </select>
+   </div>
+   <div id="real-chart"></div>
+   <p class="source">条形长度为报告计数计算的成功率。图 12 未标注对应仿真柱的准确值，因此本页不估读这些值。</p>
+  </div>
+  <div>
+   <div class="card soft" aria-live="polite">
+    <div class="eyebrow" id="real-label">全部零件</div>
+    <div class="big" id="real-rate"></div>
+    <h3 id="real-count"></h3>
+    <p id="real-ci" class="small"></p>
+    <p id="real-condition" class="small"></p>
+   </div>
+   <div class="card" style="margin-top:22px">
+    <h3>试验从哪里开始</h3>
+    <p class="small">Flexiv Rizon 4S + Robotiq 2F-85，冻结策略。零件已抓住，并已在孔附近接触夹具；操作员判定，20 秒超时计失败。</p>
+    <p class="small">计划每个零件 30 个 reset；实际报告 C / L / H 各 29 次。缺少的 3 次原因未说明，分母保持 237。</p>
+    <p class="small">零真机策略微调不等于系统从未使用真实信息：机械臂动力学参数经过真实测量辨识。</p>
+   </div>
+  </div>
+ </div>
+</section>
+<section class="panel" id="geometry" role="tabpanel" aria-labelledby="tab-geometry" hidden>
+ <div class="grid">
+  <div class="card">
+   <div class="eyebrow">§2.2 · 由原文公式推导</div><h2>先保留空隙，再学习装配</h2>
+   <p class="small">绿色是外接多边形孔允许销中心平移的区域；虚线圆是理想圆孔的区域。固定方向下，角落增加游隙。</p>
+   <svg id="geometry-svg" class="geometry" viewBox="0 0 560 390" role="img" aria-label="可行平移区域">
+    <line x1="280" y1="30" x2="280" y2="360" stroke="#d9dfd6"/>
+    <line x1="90" y1="195" x2="470" y2="195" stroke="#d9dfd6"/>
+    <polygon id="feasible" fill="#b9dfc9" stroke="#17694d" stroke-width="2"/>
+    <circle id="ideal" cx="280" cy="195" r="145" fill="#fffefa" stroke="#456ba5" stroke-width="2" stroke-dasharray="6 5"/>
+    <line id="radius-line" x1="280" y1="195" x2="425" y2="195" stroke="#456ba5" stroke-width="2"/>
+    <circle cx="280" cy="195" r="4" fill="#17392f"/>
+    <text id="radius-label" x="320" y="181" font-size="16" fill="#456ba5">c = 100 μm</text>
+    <text x="280" y="380" text-anchor="middle" font-size="12" fill="#59675f">位置表示中心位移；不是实物孔的尺寸图</text>
+   </svg>
+   <div class="stats"><div class="stat"><small>最大额外游隙</small><strong id="extra-play"></strong></div><div class="stat"><small>占规定间隙</small><strong id="relative-play"></strong></div></div>
+   <p class="source">几何公式：e = c × (sec(π/n) − 1)。图形与数值是公式计算，未执行物理仿真。c 取自附录 B 的 20–200 μm 范围，n 覆盖表 4 的 7–281 边。</p>
+  </div>
+  <div>
+   <div class="card soft">
+    <h3>调整几何离散化</h3>
+    <div class="slider-block"><label for="sides">多边形边数 n <output id="sides-out" for="sides">7</output></label><input id="sides" type="range" min="7" max="281" step="1" value="7"></div>
+    <div class="slider-block"><label for="clearance">径向间隙 c <output id="clearance-out" for="clearance">100 μm</output></label><input id="clearance" type="range" min="20" max="200" step="10" value="100"></div>
+    <p class="small">边数增加使绿色角落缩小。固定绘图比例下，间隙增大使可行平移区域变大。论文没有给出每个滑块位置的运行速度，页面不预测速度。</p>
+   </div>
+   <div class="card warning" style="margin-top:22px">
+    <h3>20 μm 是几何基准条件</h3>
+    <p class="small">真机插销最小单边间隙是 0.5 mm。二者属于不同实验。</p>
+    <p class="small">附录 B 指出，2 ms 接触时间常数可让约 20 μm 超大销在无摩擦下落中进入。因此仅看“落进去了”无法分辨这一级别的几何误差。</p>
+    <p class="small">“exact”描述凸片构造与偏移关系；曲线仍离散化，接触求解器也存在柔顺。</p>
+   </div>
+  </div>
+ </div>
+</section>
+</main>
+<footer>
+<p>中文学习整理 · 原文 v1 · 核对于 2026-10-20。所有实验数值来自作者报告；区间、比例和几何误差标明为计算结果。未运行原作者训练、GPU benchmark 或真机实验。</p>
+<div class="footlinks"><a href="https://arxiv.org/abs/2610.23849v1" target="_blank" rel="noopener">原论文</a><a href="https://younghyopark.me/blind-proprioceptive-assembly/" target="_blank" rel="noopener">作者项目页</a><a href="https://github.com/younghyopark/mjfit" target="_blank" rel="noopener">mjfit 几何生成器</a></div>
+</footer>
+</div>
+<script id="paper-data" type="application/json">
+{
+ "source":{"arxiv":"2610.23849v1","generalization":"表7，PDF p.20","real":"图12，PDF p.9","ranges":"表6，PDF p.20"},
+ "categories":["训练分布内","更小间隙","比例 / 深度轻度变化","比例 / 深度强变化","尺寸轻度变化","尺寸极端变化","随机形状"],
+ "tasks":{
+  "peg":{"name":"插销入孔","blind":[99.4,93.8,97.1,93.3,97.1,91.9,36.2],"visual":[97.2,54.1,62.7,40.1,57.7,16.4,3.9],"seeds":2,
+   "conditions":["训练 stadium 截面，scale 1.35–2.45，长宽比 1.25–2.5，单边间隙 1.0–1.5 mm。","单边间隙 0.5–0.625 mm。","长宽比 3.54–4.20。","长宽比 4.20–5.0。","scale 1.075–1.35 或 2.45–2.725。","scale 0.8–1.075 或 2.725–3.0。","匹配 stadium 包围盒每边一个顶点的随机凸截面；保持相同间隙。"],
+   "speed":"表5：分布内就位时间中位数为盲策略 0.80 s、视觉 0.44 s。横向移动为 37 mm 对 20 mm，配对移动统计只包含双方都成功的起点。"},
+  "gear":{"name":"齿轮啮合","blind":[">99.9",">99.9",">99.9",">99.9",">99.9",">99.9",">99.9"],"visual":[98.4,98.0,98.6,98.5,96.5,90.2,87.9],"seeds":1,
+   "conditions":["训练模数 2.375–3.125 mm，16–24 齿，侧隙 0.4–0.6 mm。","每个配对齿轮的侧隙 0.2–0.25 mm。","节圆以上齿高为 1.1–1.2 模数。","节圆以上齿高为 1.2–1.3 模数。","模数 2.19–2.375 或 3.125–3.31 mm。","模数 2.0–2.19 或 3.31–3.5 mm。","每个齿使用渐开线齿形内部的随机四边形。"],
+   "speed":"附录C：成功 episode 的时间中位数为盲策略 0.58 s、视觉 0.64 s。单 seed，不是包括失败与重置的全流程时间。"},
+  "nut":{"name":"螺母起扣","blind":[99.7,99.2,99.2,98.2,98.8,98.4,99.7],"visual":[99.7,98.7,99.1,98.8,25.5,1.6,57.1],"seeds":1,
+   "conditions":["训练 M36 / M42 六角螺母，ISO 螺纹深度，侧面间隙 0.1–0.2 mm。","螺纹侧面间隙 0.05–0.0625 mm。","螺纹深度 1.1–1.2×，保持相同牙侧角。","螺纹深度 1.2–1.3×。","M30 或 M48。","M24 或 M52。","5–8 边凸外形，保留两个平行夹持面；面积为六角形的 0.75–1.35×。"],
+   "speed":"附录C：成功 episode 的时间中位数为盲策略 0.76 s、视觉 0.64 s。成功条件是咬合后继续四分之一圈，尚不是完整拧紧。"}
+ },
+ "real":[
+  {"id":"I1","group":"id","success":23,"trials":30,"clearance":1.23,"condition":"分布内截面"},
+  {"id":"I2","group":"id","success":24,"trials":30,"clearance":1.11,"condition":"分布内截面"},
+  {"id":"I3","group":"id","success":22,"trials":30,"clearance":1.24,"condition":"分布内截面"},
+  {"id":"I4","group":"id","success":22,"trials":30,"clearance":1.49,"condition":"分布内截面"},
+  {"id":"I5","group":"id","success":23,"trials":30,"clearance":1.47,"condition":"分布内截面"},
+  {"id":"C","group":"ood","success":19,"trials":29,"clearance":0.5,"condition":"更紧单边间隙"},
+  {"id":"L","group":"ood","success":19,"trials":29,"clearance":1.25,"condition":"更大截面，孔 101×37 mm"},
+  {"id":"H","group":"ood","success":21,"trials":29,"clearance":1.29,"condition":"手柄高度 70 mm，训练手柄 40 mm"}
+ ]
+}
+</script>
+<script>
+"use strict";
+const data=JSON.parse(document.getElementById("paper-data").textContent);
+const $=id=>document.getElementById(id);
+const tabs=[...document.querySelectorAll("[data-tab]")];
+function showTab(id){
+ tabs.forEach(button=>{const on=button.dataset.tab===id;button.setAttribute("aria-selected",String(on));button.tabIndex=on?0:-1;});
+ document.querySelectorAll(".panel").forEach(panel=>panel.hidden=panel.id!==id);
+ if(id==="geometry")renderGeometry();
+}
+tabs.forEach((button,index)=>{
+ button.addEventListener("click",()=>showTab(button.dataset.tab));
+ button.addEventListener("keydown",event=>{
+  let next=index;
+  if(event.key==="ArrowRight")next=(index+1)%tabs.length;
+  else if(event.key==="ArrowLeft")next=(index+tabs.length-1)%tabs.length;
+  else if(event.key==="Home")next=0;
+  else if(event.key==="End")next=tabs.length-1;
+  else return;
+  event.preventDefault();showTab(tabs[next].dataset.tab);tabs[next].focus();
+ });
+});
+function setMode(training){
+ $("training").setAttribute("aria-pressed",String(training));
+ $("deployment").setAttribute("aria-pressed",String(!training));
+ $("auxiliary").hidden=!training;
+ $("mode-label").textContent=training?"训练阶段":"部署阶段";
+ $("mode-title").textContent=training?"标签给梯度，部署输入不增加":"删除 critic 和 decoder，actor 继续工作";
+ $("mode-description").textContent=training?"decoder 从 latent 预测接触类别，损失更新编码器；接触真值和预测都不作为 actor 的输入。":"推理只使用可部署的本体感知历史。接触监督已经改变编码器参数，不需要实时提供接触标签或 decoder 预测。";
+}
+$("training").addEventListener("click",()=>setMode(true));
+$("deployment").addEventListener("click",()=>setMode(false));
+let task="peg",condition=6;
+const numeric=value=>Number(String(value).replace(">",""));
+const formatted=value=>typeof value==="string"?value:Number(value).toFixed(1);
+function renderResults(){
+ const item=data.tasks[task];
+ document.querySelectorAll(".task").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.task===task)));
+ $("generalization-chart").replaceChildren();
+ data.categories.forEach((label,index)=>{
+  const row=document.createElement("button");row.className="bar-group";row.type="button";
+  row.setAttribute("aria-pressed",String(index===condition));
+  const heading=document.createElement("div");heading.className="bar-heading";
+  const title=document.createElement("span");title.textContent=label;
+  const hint=document.createElement("small");hint.textContent=index===0?"训练范围":"单属性变化";
+  heading.append(title,hint);row.append(heading);
+  [["blind","本体感知",""],["visual","仅RGB","orange"]].forEach(([key,name,color])=>{
+   const line=document.createElement("div");line.className="bar-line";
+   const track=document.createElement("div");track.className="track";
+   const fill=document.createElement("div");fill.className="fill "+color;fill.style.width=numeric(item[key][index])+"%";
+   track.append(fill);
+   const value=document.createElement("span");value.className="bar-value";value.textContent=formatted(item[key][index])+"%";
+   line.append(track,value);row.append(line);
+  });
+  row.setAttribute("aria-label",label+"：本体感知 "+formatted(item.blind[index])+"%，RGB "+formatted(item.visual[index])+"%");
+  row.addEventListener("click",()=>{condition=index;renderResults();});
+  $("generalization-chart").append(row);
+ });
+ const b=item.blind[condition],v=item.visual[condition],gap=numeric(b)-v;
+ $("condition-name").textContent=item.name+" · "+data.categories[condition];
+ $("condition-title").textContent="成功率 "+formatted(b)+"% / "+formatted(v)+"%";
+ $("condition-gap").textContent=(typeof b==="string"?"> ":"")+(gap>=0?"+":"")+gap.toFixed(1)+" pp";
+ $("condition-description").textContent=item.conditions[condition];
+ $("condition-interpretation").textContent=task==="peg"&&condition===6?"优势为 32.3 个百分点，但盲策略仍失败超过一半。相对优势和绝对可靠性要分别判断。":task==="nut"&&condition===3?"这里视觉略高。表7并不支持“每个几何变化都由盲策略胜出”。":typeof b==="string"?"作者报告 >99.9%，图形用 99.9% 下界绘制。差值同样是下界，不当作精确 100%。":"pp 表示百分点差，由表7报告值相减，不代表相对百分比提升。";
+ $("seed-note").textContent="来源：表6–7，p.20。"+(item.seeds===2?"插销为两组训练 seed 的平均。":"本任务仅一组训练 seed。")+"双方均有30步历史；图中没有推断未报告的置信区间。";
+ $("speed-description").textContent=item.speed;
+}
+document.querySelectorAll(".task").forEach(button=>button.addEventListener("click",()=>{task=button.dataset.task;renderResults();}));
+function wilson(k,n){
+ const z=1.959963984540054,p=k/n,den=1+z*z/n;
+ const center=(p+z*z/(2*n))/den,half=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/den;
+ return [100*(center-half),100*(center+half)];
+}
+function renderReal(){
+ const choice=$("real-select").value;
+ const selected=data.real.filter(item=>choice==="all"||item.group===choice||item.id===choice);
+ const k=selected.reduce((a,item)=>a+item.success,0),n=selected.reduce((a,item)=>a+item.trials,0),ci=wilson(k,n);
+ $("real-chart").replaceChildren();
+ data.real.forEach(item=>{
+  const row=document.createElement("div");row.className="real-row"+(selected.includes(item)?" selected":"");
+  const label=document.createElement("span");label.textContent=item.id;
+  const track=document.createElement("div");track.className="track";
+  const fill=document.createElement("div");fill.className="fill";fill.style.width=100*item.success/item.trials+"%";track.append(fill);
+  const value=document.createElement("span");value.className="count";value.textContent=item.success+" / "+item.trials;
+  row.append(label,track,value);$("real-chart").append(row);
+ });
+ $("real-label").textContent=$("real-select").selectedOptions[0].textContent;
+ $("real-rate").textContent=(100*k/n).toFixed(1)+"%";
+ $("real-count").textContent=k+" / "+n+" 次成功";
+ $("real-ci").textContent="95% Wilson 区间："+ci[0].toFixed(1)+"%–"+ci[1].toFixed(1)+"%。由报告计数计算。合并区间未建模零件与试验间的相关性。";
+ $("real-condition").textContent=selected.length===1?selected[0].condition+"；单边间隙 "+selected[0].clearance.toFixed(2)+" mm。":"所选组含 "+selected.length+" 个零件；单边间隙 "+Math.min(...selected.map(x=>x.clearance)).toFixed(2)+"–"+Math.max(...selected.map(x=>x.clearance)).toFixed(2)+" mm。";
+}
+$("real-select").addEventListener("change",renderReal);
+function renderGeometry(){
+ const n=Number($("sides").value),c=Number($("clearance").value),radius=c*0.78,max=radius/Math.cos(Math.PI/n),e=c*(1/Math.cos(Math.PI/n)-1);
+ $("sides-out").textContent=n;$("clearance-out").textContent=c+" μm";
+ $("feasible").setAttribute("points",Array.from({length:n},(_,i)=>{const theta=(2*i+1)*Math.PI/n;return (280+max*Math.cos(theta)).toFixed(3)+","+(195-max*Math.sin(theta)).toFixed(3);}).join(" "));
+ $("ideal").setAttribute("r",radius);$("radius-line").setAttribute("x2",280+radius);
+ $("radius-label").textContent="c = "+c+" μm";
+ $("extra-play").textContent=e.toFixed(4)+" μm";$("relative-play").textContent=(100*e/c).toFixed(4)+"%";
+ $("geometry-svg").setAttribute("aria-label",n+"边外接多边形，径向间隙"+c+"微米，额外游隙"+e.toFixed(4)+"微米");
+}
+$("sides").addEventListener("input",renderGeometry);$("clearance").addEventListener("input",renderGeometry);
+renderResults();renderReal();renderGeometry();
+</script>
+</body>
+</html>

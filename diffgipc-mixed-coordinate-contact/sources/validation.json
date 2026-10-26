@@ -1,0 +1,43 @@
+{
+  "checked_date": "2026-10-19",
+  "status": "通过",
+  "pdf": {
+    "pages": 30,
+    "full_text_characters": 262533,
+    "metadata_corrected": true,
+    "sha256_verified": true
+  },
+  "materials": {
+    "questions": 15,
+    "answers": 15,
+    "semantic_tags": 2,
+    "all_required_files_exist": true
+  },
+  "python_demo": {
+    "executed": true,
+    "adjoint_vs_tangent_relative_error": 6.888921493954275e-15,
+    "finite_difference_relative_error_epsilon_1e_6": 5.51377295643071e-10,
+    "shape_derivative_relative_error": 3.2011353376266123e-12,
+    "omitted_point_map_term_error": 0.2581358946171441
+  },
+  "html": {
+    "javascript_syntax_checked": true,
+    "unique_ids": 46,
+    "external_assets": 0,
+    "embedded_data_matches_data_json": true,
+    "sandboxed_iframe_rendered": true,
+    "browser_interaction_checks": 13,
+    "console_errors": 0,
+    "screenshot": "images/explorer-preview.png"
+  },
+  "library": {
+    "before": 57,
+    "after": 58,
+    "preexisting_entries_unchanged": true
+  },
+  "limitations": [
+    "未运行官方 DiffGIPC",
+    "未复现论文 GPU benchmark",
+    "未验证本机 Newton/libuipc/IsaacLab 集成"
+  ]
+}

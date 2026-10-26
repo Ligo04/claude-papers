@@ -1,0 +1,49 @@
+20   •  Huang et al.
+
+                                                                          £10¡3                                                                       280
+     1.5             400               10                6                                  1
+
+
+                                                                       140Loss 0.75             200                5                3                                       0.5
+
+
+      0               0                0                0                0                0
+       0   40   80     0   2     5      0    15   30     0    9   18      0  2  4  6      0  2  4   7
+
+                                      Optimization Iteration
+
+
+                 (a) Fig. 1                 (b) Fig. 12                   (c) Fig. 4                 (d) Fig. 13                  (e) Fig. 14                   (f) Fig. 15
+
+Fig. 16. Optimization histories for the additional tasks. Stone placement changes its centroid tolerance after 50 updates. Garment Hanger, cup catching, and
+Dual-arm grasp use constant offsets that set their final plotted values to zero.
+
+ Table 2. Finite-difference checks at the initial optimization parameters.                                                            Garment Hanger: ABD versus FEM. This comparison keeps the
+         Example           System  Dim      Relative FD error          surface discretization fixed at 4,476 vertices and 8,952 triangles
+                                                                while changing the motion representation. The FEM replacement   Stone placement (Fig. 1)    DiffGIPC   14         7.53   10−11                                       ×               adds 902 interior vertices and 18,256 tetrahedra, with a harmonic
+  Garment Hanger (Fig. 4)    DiffGIPC   2          5.45 × 10−3            extension of the two Bézier shape fields to the interior. The mean                            DiffGIPC   3          1.21   10−6   Bunny collision (Fig. 6)                      ×                forward-plus-backward cost is 7.1 s for ABD and 16 s for FEM, giving
+                               DiffIPC    3          1.01 × 10−4            a speedup of     The backward costs are 0.27 and 1.0 s. The corre-                            DiffGIPC   3          3.33   10−5                          2.2×.  Tentacle matching (Fig. 7)                                       ×                                                                sponding optimized control-point scales (𝑠𝑥,𝑠𝑦) are (0.8285, 0.8000)                               DiffIPC    3          3.83                                                           10−11                                                            and                                                                                                    fixed surface                                                                                                                        discretization,                                                                                                                       the two                                                                                                                 models                                       ×                                                                                 (0.8301,                                                                                         0.8000). At                            DiffGIPC  9939         2.56                                                                            allocate                                                                       computation                                                                                                         differently.                                                                     FEM                                                                                                               resolves non-affine                                                                                                                   deforma-   Loaded Support (Fig. 8)                                       × 10−6
+                               DiffIPC  9939         4.02 × 10−4            tion through an interior tetrahedral mesh, whereas ABD retains
+                            DiffGIPC   2          8.37   10−7           a compact motion state and differentiates mass directly from the   Material fitting (Fig. 9)                      ×
+                               DiffIPC    2          6.71   10−7             surface. The timings compare forward and backward evaluations of                                       ×
+                            DiffGIPC   1          4.38   10−5            the ABD and FEM models for the same cloth-support design task.Friction optimization (Fig. 10)                    ×
+                               DiffIPC    1          6.27 × 10−3            7.5 GPU execution and optimization cost
+   Cloth rest scale (Fig. 12)    DiffGIPC   1          9.45 × 10−3    Grasp angle (Fig. 13)      DiffGIPC   1          9.04   10−7           This section measures the speedup from CUDA Graphs and the                                       ×                                                                   time spent on forward simulation and backward differentiation dur-
+   Cup catching (Fig. 14)     DiffGIPC  700         4.48 × 10−4            ing optimization. Conditional CUDA Graphs reduce coordination
+  Dual-arm grasp (Fig. 15)    DiffGIPC   1          1.70 × 10−3           during PCG, while parallel assembly and derivative accumulation
+                                                                   process the local work surrounding each solve. Table 4 gives a  Bunny resolution study. Table 3 compares three body repre-
+                                                                        detailed breakdown of the time spent on forward simulation andsentations as bunny resolution increases. FEM+FEM uses two
+                                                            backward differentiation, together with the evaluation counts anddeformable bodies, ABD+FEM uses one affine and one FEM body,
+                                                              accumulated evaluation time for each optimization. Table 5 com-and ABD+ABD uses two affine bodies. As resolution grows from
+                                                                      pares execution with CUDA Graphs enabled and disabled, reporting933 to 28,435 vertices, the combined forward and backward time
+                                               PCG and total evaluation times for forward simulation and back-for DiffGIPC FEM+FEM increases from 0.98 to 10 s, whereas the
+                                                         ward differentiation, together with the resulting speedups.ABD+ABD time increases from 0.14 to 0.37 s. The increases are
+                                              CUDA Graph execution provides         speedups in forwardabout      and       respectively.                                                                    1.4–1.8×      10.0×     2.6×,                                 PCG and           in backward PCG over conventional kernel  At the highest resolution, ABD+ABD has a forward-plus-               1.3–1.8×                                                                  launches (Table 5). The PCG recurrence and convergence criterion
+backward speedup of about 27× over DiffGIPC FEM+FEM. The      are unchanged. These gains demonstrate the benefit of reducingtime spent in backward linear solves falls from 2.3 to 0.0044 s (about
+                                                                     kernel-launch overhead and CPU–GPU synchronization within the
+520×), while the time for a complete backward evaluation falls from       iterative solve (Section 6.1).
+2.5 to 0.048 s (about 52×). With twelve motion DoFs per body, ABD      PCG is the largest contributor to backward time in most tasksreduces the adjoint-system size without simplifying the surface
+                                                                      (Table 4), making the adjoint solver a major source of savings inmesh used for contact and shape derivatives. For FEM+FEM, the
+                                                                       gradient evaluation. The acceleration remains visible in the complete
+speedup of DiffGIPC over DiffIPC grows from 25.4× to 150.0×      computation: combined forward and backward evaluations achieveacross resolutions. Combining GPU execution with an affine motion
+                                                                       speedups across all reported tasks. These timings includerepresentation gives a        speedup for DiffGIPC ABD+ABD      1.2–1.5×                     4133.3×                                           collision detection, Hessian assembly, line search, and derivativeover DiffIPC FEM+FEM at the highest resolution.

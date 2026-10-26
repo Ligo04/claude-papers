@@ -1,0 +1,7 @@
+# A 3:1 reduction.
+kind: gear
+teeth: [12, 36]
+module: 0.0025
+face_width: 0.007
+tooth_width: 0.46
+friction: 0.75

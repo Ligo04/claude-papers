@@ -1,0 +1,48 @@
+12   •  Huang et al.
+
+        (a) One PCG iteration after initialization
+
+
+           1. Matrix product           2. Step update             3. Precondition          4. Reduce + update         5. Stop or repeat
+            u = H𝑡d                     𝛼cg, 𝝀𝑡, r          w = P−1𝑡r                  𝜒, 𝜒new/𝜒, d               𝜒,  𝜒tol, 𝑘, 𝑘max
+
+                                                                        Continue
+        (b) CPU-controlled iterations                                       (c) Conditional CUDA Graph
+                                      Every iteration
+                                                  CPU     Launch graph                       Collect status
+      CPU     Launch kernels                   Check 𝜒,𝑘
+                                                                                                        On exit
+
+                                                  Copy + sync                                                 GPU       Init.          Steps 1-4           Check 𝜒,𝑘
+      GPU               PCG steps 1-4
+                      CPU-GPU round trip in every iteration                                                        Continue
+
+Fig. 5. PCG computation and execution control. (a) Five stages of one iteration (Algorithm 2). (b) A host-controlled loop retrieves a convergence value after
+each GPU iteration. (c) A conditional CUDA Graph keeps iteration and stopping on the GPU. Frame restoration, Hessian assembly, and gradient accumulation
+remain outside the graph. Both execution modes use the same PCG recurrence and stopping criterion.
+
+Algorithm 2 PCG with Conditional CUDA Graphs                  reduced numerical workload. The GPU convergence check com-
+                                                                      pares the preconditioned residual measure |𝜒(𝑘) | = |(r(𝑘))TP−1𝑡r(𝑘) |Input: Current H𝑡, b𝑡, P𝑡, relative target 𝜂cg, iteration limit 𝑘max
+Output: Candidate 𝝀𝑡and convergence status                          with the target 𝜒tol = 𝜂cg|𝜒(0) |, set at the start of each solve. The   CPU: construct or reuse CUDA Graph                               conditional loop stops when this target is reached or the iteration
+  1: Use H𝑡, b𝑡, and P𝑡as inputs to the CUDA Graph                      count reaches 𝑘max. The default backward settings are 𝜂cg = 10−14
+  2: if no compatible CUDA Graph exists then                         and 𝑘max = 3   104. Only an adjoint whose final residual measure  3:    Construct a CUDA Graph from the GPU kernels of PCG                   ×                                                               meets the target is accepted for the gradient accumulation described
+  4:    Connect dependent kernels                                                                          next.  5:    Add conditional loop node that reads GPU-updated continue flag
+  6: end if                                                                      6.2  GPU-parallel gradient accumulation  7: Launch the CUDA Graph once from the CPU
+   GPU: PCG initialization within CUDA Graph                   The parameter-gradient and earlier-frame contributions in Equa-
+  8: 𝝀𝑡←0; r ←b𝑡−H𝑡𝝀𝑡; w ←P−1𝑡r; d ←w                             tions (33) and (32) share the coupled adjoint 𝝀𝑡. Its entries contain  9:   𝜒←rTw;                  𝜒tol ←𝜂cg|𝜒|; 10:    Set       the continue                       flag from              𝑘←0> 𝜒tol       𝑘max on the GPU             theproductinfluenceaccessesof interactionsthe DoFs of aacrosslocal element,the scene,contactbut eachandderivativejoint. Sur-                                |𝜒|    ∧𝑘<
+   GPU: PCG iterations within CUDA Graph                           face triangles provide the local mass and volume derivatives for
+ 11: while the graph’s continue flag is true do                                  affine shape design. This locality exposes parallel work even when
+ 12:    u ←H𝑡d; 𝛼cg ←𝜒/(dTu)                                      a body has a compact motion state.
+ 13:   𝝀𝑡←𝝀𝑡+ 𝛼cgd; r ←r −𝛼cgu                                The parameter-gradient update is organized as parallel GPU tasks
+ 14:   w ←P−1𝑡r;                  𝜒new ←rTw                                        over FEM elements, contact pairs, joints, and affine surface triangles. 15:                                            1      d    ←w          +                (𝜒new/𝜒)d;                    𝜒←𝜒new;                   𝑘←𝑘+ 16:     A      GPU               kernel                       clears the                              continue                                              flag if                                                       or               Each task computes one local contribution to the gradient of a                                                  |𝜒| ≤𝜒tol  𝑘≥𝑘max          selected parameter. For affine rest-shape gradients, tasks assigned 17: end while
+   CPU: read final convergence status                                   to individual surface triangles compute the mass-matrix and volume
+ 18: Read 𝜒and 𝑘                                                        derivative contributions. Each task reads only the adjoint entries
+ 19: return 𝝀𝑡                                                             for the DoFs involved and evaluates their inner product with the
+                                                                corresponding parameter derivative. With the frame adjoint 𝝀𝑡
+  For each reverse frame, we solve the assembled adjoint system       solved, the local derivative products are independent and evaluated
+using a reusable CUDA Graph (Algorithm 2). Its inputs H𝑡, b𝑡, and      in parallel. Atomic additions combine contributions to the same
+preconditioner P𝑡are updated between frames and stay fixed during      parameter-gradient entry. Let g[𝜄]𝑡  denote a local contribution to g𝑡.
+each solve. The graph preserves the dependencies between PCG     The total loss gradient for parameter 𝜃𝑘is
+kernels, while GPU convergence checks govern its conditional loop,
+so the same graph can run a different number of iterations. It can                                 𝑇∑︁ ∑︁  𝜕g[𝜄]𝑡  !T                                                                             ¯𝜃𝑘=                            𝝀[𝜄]𝑡.             (57)still be reused when contact sets change, as long as the kernel con-                       (ℓ𝜃)𝑘−                                                                                                                 𝑡=1    𝜄    𝜕𝜃𝑘
+figuration and storage stay compatible. This reuse spreads graph                                                            Here        the direct loss derivative with all solved states fixed.construction across frames and removes per-iteration CPU coordina-            (ℓ𝜃)𝑘is                                                                  This decomposition sums the frame contributions in Equation (33)tion, so compact FEM-affine adjoint systems can benefit from their                                                                  without assembling the global parameter-derivative matrix G𝑡. The

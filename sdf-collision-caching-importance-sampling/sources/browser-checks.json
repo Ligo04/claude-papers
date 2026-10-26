@@ -1,0 +1,1 @@
+{"status":"passed","assertions":112,"algorithmSteps":5,"gpuScenes":5,"cpuAblationModes":4,"distortionConfigurations":10,"budgetCombinations":12,"offlineSandbox":true,"opaqueOrigin":true,"mobileLayout":{"width":390,"scroll":390},"errors":[],"externalRequests":[],"scope":"验证本地 HTML 交互、数据选择和离线 iframe；不验证原作者仿真。"}

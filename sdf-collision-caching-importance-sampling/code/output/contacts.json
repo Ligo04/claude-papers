@@ -1,0 +1,737 @@
+{
+  "scope": "二维几何优化教学演示，不是论文实验复现",
+  "config": {
+    "frames": 12,
+    "cache": 4,
+    "random": 1,
+    "sampling": "curvature",
+    "epsilon": 0.1,
+    "alpha": 0.01,
+    "tolerance": 0.01,
+    "seed": 7,
+    "output_dir": "/home/ligo/claude-papers/papers/sdf-collision-caching-importance-sampling/code/output",
+    "self_check": true
+  },
+  "frames": [
+    {
+      "frame": 0,
+      "offset": 0.0,
+      "objective_evaluations": 121,
+      "individual_sdf_queries_in_objective": 242,
+      "iterations": 57,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.28698083496093724,
+            -0.03012295532226567
+          ],
+          "phi_a": -0.029877044677734332,
+          "phi_b": -0.030122955322265665,
+          "smooth_max": 0.12811393081576106,
+          "active": true,
+          "cached": false
+        },
+        {
+          "x": [
+            -0.36468750000000005,
+            -0.03862500000000003
+          ],
+          "phi_a": -0.021374999999999977,
+          "phi_b": -0.03862500000000002,
+          "smooth_max": 0.12834895208052374,
+          "active": true,
+          "cached": false
+        },
+        {
+          "x": [
+            0.35953124999999964,
+            -0.03004687500000002
+          ],
+          "phi_a": -0.02995312499999997,
+          "phi_b": -0.03004687500000003,
+          "smooth_max": 0.12811388995678283,
+          "active": true,
+          "cached": false
+        },
+        {
+          "x": [
+            -0.35412304687500046,
+            -0.02761816406250002
+          ],
+          "phi_a": -0.03238183593749999,
+          "phi_b": -0.02761816406250002,
+          "smooth_max": 0.1281318220423491,
+          "active": true,
+          "cached": false
+        }
+      ]
+    },
+    {
+      "frame": 1,
+      "offset": 0.00128,
+      "objective_evaluations": 128,
+      "individual_sdf_queries_in_objective": 256,
+      "iterations": 59,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.32211593749999967,
+            -0.03000000000000002
+          ],
+          "phi_a": -0.02999999999999997,
+          "phi_b": -0.030000000000000027,
+          "smooth_max": 0.12811388300841897,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.35610058471679734,
+            -0.02743304443359377
+          ],
+          "phi_a": -0.032566955566406236,
+          "phi_b": -0.027433044433593762,
+          "smooth_max": 0.12813471870806836,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.36218875000000006,
+            -0.03693750000000003
+          ],
+          "phi_a": -0.023062499999999958,
+          "phi_b": -0.03693750000000004,
+          "smooth_max": 0.1282660067931519,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.3546827099609373,
+            -0.030474517822265672
+          ],
+          "phi_a": -0.02952548217773432,
+          "phi_b": -0.03047451782226568,
+          "smooth_max": 0.1281145950479071,
+          "active": true,
+          "cached": true
+        }
+      ]
+    },
+    {
+      "frame": 2,
+      "offset": 0.00256,
+      "objective_evaluations": 101,
+      "individual_sdf_queries_in_objective": 202,
+      "iterations": 46,
+      "candidate_count": 4,
+      "active_count": 3,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.29859874206542947,
+            -0.029994323730468793
+          ],
+          "phi_a": -0.030005676269531212,
+          "phi_b": -0.029994323730468786,
+          "smooth_max": 0.12811388311030766,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.35482058471679734,
+            -0.02743304443359377
+          ],
+          "phi_a": -0.032566955566406236,
+          "phi_b": -0.027433044433593762,
+          "smooth_max": 0.12813471870806836,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.3599584374999997,
+            -0.03196875000000002
+          ],
+          "phi_a": -0.02803124999999998,
+          "phi_b": -0.03196875000000002,
+          "smooth_max": 0.1281261394474756,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.39256,
+            -0.06
+          ],
+          "phi_a": 2.7755575615628914e-17,
+          "phi_b": -0.06,
+          "smooth_max": 0.1309347693943108,
+          "active": false,
+          "cached": false
+        }
+      ]
+    },
+    {
+      "frame": 3,
+      "offset": 0.0038400000000000005,
+      "objective_evaluations": 104,
+      "individual_sdf_queries_in_objective": 208,
+      "iterations": 47,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            -0.2851763269042974,
+            -0.02992327880859377
+          ],
+          "phi_a": -0.030076721191406225,
+          "phi_b": -0.029923278808593773,
+          "smooth_max": 0.12811390162203073,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.3636759374999997,
+            -0.02981250000000002
+          ],
+          "phi_a": -0.030164062500000283,
+          "phi_b": -0.02981250000000002,
+          "smooth_max": 0.12812569946975738,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.29987874206542947,
+            -0.029994323730468793
+          ],
+          "phi_a": -0.030005676269531212,
+          "phi_b": -0.029994323730468786,
+          "smooth_max": 0.12811388311030766,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.3727537500000001,
+            -0.047390625000000006
+          ],
+          "phi_a": -0.012609374999999978,
+          "phi_b": -0.047390625000000006,
+          "smooth_max": 0.12906738772573914,
+          "active": true,
+          "cached": false
+        }
+      ]
+    },
+    {
+      "frame": 4,
+      "offset": 0.00512,
+      "objective_evaluations": 99,
+      "individual_sdf_queries_in_objective": 198,
+      "iterations": 45,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.309799763793945,
+            -0.030026458740234394
+          ],
+          "phi_a": -0.02997354125976559,
+          "phi_b": -0.030026458740234394,
+          "smooth_max": 0.12811388522221864,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.35380187500000015,
+            -0.03492187499999995
+          ],
+          "phi_a": -0.025078125000000062,
+          "phi_b": -0.03492187499999995,
+          "smooth_max": 0.1281904701728762,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.3596587420654295,
+            -0.03224432373046879
+          ],
+          "phi_a": -0.02775567626953121,
+          "phi_b": -0.03224432373046879,
+          "smooth_max": 0.12812981056400197,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.36238000000000004,
+            -0.04200000000000002
+          ],
+          "phi_a": -0.01799999999999996,
+          "phi_b": -0.04200000000000002,
+          "smooth_max": 0.1285685971433184,
+          "active": true,
+          "cached": false
+        }
+      ]
+    },
+    {
+      "frame": 5,
+      "offset": 0.0064,
+      "objective_evaluations": 87,
+      "individual_sdf_queries_in_objective": 174,
+      "iterations": 37,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.3137693084716795,
+            -0.029885925292968785
+          ],
+          "phi_a": -0.030114074707031202,
+          "phi_b": -0.029885925292968782,
+          "smooth_max": 0.12811392415925546,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.24587663879394495,
+            -0.0341280212402344
+          ],
+          "phi_a": -0.0258719787597656,
+          "phi_b": -0.034128021240234396,
+          "smooth_max": 0.12816776080908468,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.35252187500000015,
+            -0.02892187499999995
+          ],
+          "phi_a": -0.031078124999999818,
+          "phi_b": -0.028921874999999958,
+          "smooth_max": 0.12811755865025132,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.356225,
+            -0.03843750000000003
+          ],
+          "phi_a": -0.021562499999999984,
+          "phi_b": -0.03843750000000003,
+          "smooth_max": 0.12833884995871986,
+          "active": true,
+          "cached": true
+        }
+      ]
+    },
+    {
+      "frame": 6,
+      "offset": 0.007680000000000001,
+      "objective_evaluations": 116,
+      "individual_sdf_queries_in_objective": 232,
+      "iterations": 52,
+      "candidate_count": 3,
+      "active_count": 3,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.29741432922363265,
+            -0.02999107360839847
+          ],
+          "phi_a": -0.03000892639160152,
+          "phi_b": -0.029991073608398477,
+          "smooth_max": 0.12811388326039072,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.35124187500000015,
+            -0.02892187499999995
+          ],
+          "phi_a": -0.031078124999999818,
+          "phi_b": -0.028921874999999958,
+          "smooth_max": 0.12811755865025132,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.364156638793945,
+            -0.034128021240234396
+          ],
+          "phi_a": -0.0258719787597656,
+          "phi_b": -0.034128021240234396,
+          "smooth_max": 0.12816776080908468,
+          "active": true,
+          "cached": true
+        }
+      ]
+    },
+    {
+      "frame": 7,
+      "offset": 0.008960000000000001,
+      "objective_evaluations": 118,
+      "individual_sdf_queries_in_objective": 236,
+      "iterations": 55,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            -0.3193968315505983,
+            -0.030005407333373972
+          ],
+          "phi_a": -0.02999459266662602,
+          "phi_b": -0.03000540733337398,
+          "smooth_max": 0.12811388310088162,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.365436638793945,
+            -0.028128021240234398
+          ],
+          "phi_a": -0.03187197875976561,
+          "phi_b": -0.02812802124023439,
+          "smooth_max": 0.12812496420387584,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.24783500000000003,
+            -0.0320625
+          ],
+          "phi_a": -0.027937500000000004,
+          "phi_b": -0.032062499999999994,
+          "smooth_max": 0.12812733446893362,
+          "active": true,
+          "cached": false
+        },
+        {
+          "x": [
+            0.3348804101562499,
+            -0.029877685546875015
+          ],
+          "phi_a": -0.030122314453124993,
+          "phi_b": -0.02987768554687502,
+          "smooth_max": 0.12811393031869597,
+          "active": true,
+          "cached": false
+        }
+      ]
+    },
+    {
+      "frame": 8,
+      "offset": 0.01024,
+      "objective_evaluations": 149,
+      "individual_sdf_queries_in_objective": 298,
+      "iterations": 69,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            -0.2823542341610791,
+            -0.030000036433339067
+          ],
+          "phi_a": -0.02999996356666093,
+          "phi_b": -0.030000036433339067,
+          "smooth_max": 0.12811388300842316,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.366716638793945,
+            -0.028128021240234398
+          ],
+          "phi_a": -0.03187197875976561,
+          "phi_b": -0.02812802124023439,
+          "smooth_max": 0.12812496420387584,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.24911500000000003,
+            -0.0320625
+          ],
+          "phi_a": -0.027937500000000004,
+          "phi_b": -0.032062499999999994,
+          "smooth_max": 0.12812733446893362,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.36635375000000003,
+            -0.047390625000000006
+          ],
+          "phi_a": -0.012609374999999978,
+          "phi_b": -0.047390625000000006,
+          "smooth_max": 0.12906738772573914,
+          "active": true,
+          "cached": false
+        }
+      ]
+    },
+    {
+      "frame": 9,
+      "offset": 0.01152,
+      "objective_evaluations": 114,
+      "individual_sdf_queries_in_objective": 228,
+      "iterations": 52,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.3213565402221677,
+            -0.030010665893554708
+          ],
+          "phi_a": -0.029989334106445276,
+          "phi_b": -0.030010665893554708,
+          "smooth_max": 0.12811388336816373,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.3474018750000001,
+            -0.03492187499999995
+          ],
+          "phi_a": -0.025078125000000062,
+          "phi_b": -0.03492187499999995,
+          "smooth_max": 0.1281904701728762,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.367395,
+            -0.030562499999999992
+          ],
+          "phi_a": -0.029437500000000005,
+          "phi_b": -0.030562499999999992,
+          "smooth_max": 0.12811488356966905,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.3559800000000001,
+            -0.04200000000000002
+          ],
+          "phi_a": -0.01799999999999996,
+          "phi_b": -0.04200000000000002,
+          "smooth_max": 0.1285685971433184,
+          "active": true,
+          "cached": false
+        }
+      ]
+    },
+    {
+      "frame": 10,
+      "offset": 0.0128,
+      "objective_evaluations": 89,
+      "individual_sdf_queries_in_objective": 178,
+      "iterations": 38,
+      "candidate_count": 5,
+      "active_count": 5,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.3028125122070312,
+            -0.03001062011718749
+          ],
+          "phi_a": -0.0299893798828125,
+          "phi_b": -0.030010620117187498,
+          "smooth_max": 0.12811388336508242,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.36163654022216773,
+            -0.0300106658935547
+          ],
+          "phi_a": -0.029989334106445303,
+          "phi_b": -0.030010665893554694,
+          "smooth_max": 0.12811388336816373,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.3461218750000001,
+            -0.02892187499999995
+          ],
+          "phi_a": -0.03107812499999993,
+          "phi_b": -0.028921874999999958,
+          "smooth_max": 0.12811755865025126,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.34982500000000005,
+            -0.03843750000000003
+          ],
+          "phi_a": -0.021562499999999984,
+          "phi_b": -0.03843750000000003,
+          "smooth_max": 0.12833884995871986,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.33058281250000016,
+            -0.028066406250000002
+          ],
+          "phi_a": -0.03193359374999999,
+          "phi_b": -0.02806640625000001,
+          "smooth_max": 0.12812570564203038,
+          "active": true,
+          "cached": false
+        }
+      ]
+    },
+    {
+      "frame": 11,
+      "offset": 0.01408,
+      "objective_evaluations": 115,
+      "individual_sdf_queries_in_objective": 230,
+      "iterations": 52,
+      "candidate_count": 4,
+      "active_count": 4,
+      "curvature_candidates_in_overlap": 4,
+      "contact_regions_found": [
+        "left",
+        "right"
+      ],
+      "points": [
+        {
+          "x": [
+            0.31987999339580514,
+            -0.029999959230422986
+          ],
+          "phi_a": -0.03000004076957702,
+          "phi_b": -0.02999995923042298,
+          "smooth_max": 0.12811388300842422,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.36259251220703115,
+            -0.030760620117187484
+          ],
+          "phi_a": -0.0292393798828125,
+          "phi_b": -0.030760620117187484,
+          "smooth_max": 0.12811571251132087,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            -0.3448418750000001,
+            -0.02892187499999995
+          ],
+          "phi_a": -0.03107812499999993,
+          "phi_b": -0.028921874999999958,
+          "smooth_max": 0.12811755865025126,
+          "active": true,
+          "cached": true
+        },
+        {
+          "x": [
+            0.39067375,
+            -0.047390625000000006
+          ],
+          "phi_a": -0.012609374999999978,
+          "phi_b": -0.047390625000000006,
+          "smooth_max": 0.12906738772573914,
+          "active": true,
+          "cached": false
+        }
+      ]
+    }
+  ]
+}

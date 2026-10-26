@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<title>SDF 稀疏接触流形 · 论文交互研读</title>
+<style>
+:root{--paper:#f7f5ee;--ink:#173b38;--muted:#5d716b;--line:#d5ddd3;--teal:#28796e;--pale:#e8eee6;--amber:#b16b33;--white:#fffef9;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans CJK SC",sans-serif;font-size:15px;line-height:1.7}a{color:var(--teal);text-underline-offset:4px}button,select,input{font:inherit}button,select{cursor:pointer}button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:4px}button{color:inherit}main{max-width:1220px;margin:auto;padding:40px 42px 65px}.eyebrow{font:11px var(--mono);letter-spacing:2px;text-transform:uppercase}.top{display:flex;justify-content:space-between;gap:20px;padding-bottom:22px;border-bottom:1px solid var(--line)}.top a{font-size:13px;margin-left:20px}.hero{display:grid;grid-template-columns:1.4fr 1fr;gap:55px;align-items:center;padding:64px 0 50px}.hero h1{font-size:clamp(32px,4vw,51px);line-height:1.25;letter-spacing:-1.8px;margin:16px 0 22px;font-weight:650}.hero p{color:var(--muted);max-width:600px}.hero-mark{border-left:2px solid var(--teal);padding:20px 28px;background:var(--pale);font-size:16px}.hero-mark .formula{margin:10px 0;font-size:21px}.pill{display:inline-block;border:1px solid var(--line);border-radius:20px;padding:3px 11px;font-size:11px;letter-spacing:.5px;margin-right:5px}.section{border-top:1px solid var(--line);padding-top:30px;margin-top:26px}.section-heading{display:flex;gap:18px;align-items:baseline;margin-bottom:22px}.section-heading .number{font:13px var(--mono);color:var(--amber)}h2{font-size:25px;letter-spacing:-.7px;margin:0;font-weight:600}h3{font-size:16px;font-weight:650;margin:0 0 10px}.sub{font-size:13px;color:var(--muted);margin:2px 0}.algorithm{display:grid;grid-template-columns:285px 1fr;gap:28px}.steps{display:grid;gap:7px;align-content:start}.step{border:1px solid var(--line);background:transparent;text-align:left;padding:11px 14px;border-radius:5px;display:flex;align-items:center;gap:14px}.step small{font:11px var(--mono);color:var(--muted)}.step[aria-pressed=true]{background:var(--ink);color:white;border-color:var(--ink)}.step[aria-pressed=true] small{color:#b8d7cc}.card{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:23px}.diagram{width:100%;height:195px;display:block;margin:0 0 12px}#stepDescription{min-height:78px}.formula{font-family:var(--mono);font-size:14px;line-height:1.7;overflow-wrap:anywhere}.note{color:var(--muted);font-size:12px;line-height:1.8}.note strong{font-weight:600;color:var(--ink)}.warning{border-left:2px solid var(--amber);padding:10px 15px;background:#f5eddf}.controls{display:flex;flex-wrap:wrap;align-items:end;gap:15px;margin-bottom:20px}label{display:grid;gap:5px;color:var(--muted);font-size:12px}select{background:var(--white);border:1px solid #abbdb1;padding:8px 32px 8px 11px;border-radius:4px;color:var(--ink);min-width:150px}.check{display:flex;align-items:center;gap:7px;padding-bottom:9px;font-size:13px}.check input{accent-color:var(--teal);width:15px;height:15px}.columns{display:grid;grid-template-columns:1.55fr 1fr;gap:22px;align-items:start}.kicker{font:11px var(--mono);color:var(--muted);letter-spacing:.4px}.big{font:42px var(--mono);letter-spacing:-2px;line-height:1.25;margin:12px 0 8px}.big span{font:15px system-ui;letter-spacing:0}.measure{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:16px}.bar-chart{width:100%;display:block}.table-wrap{overflow-x:auto;margin-top:20px;border-top:1px solid var(--line)}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:right;padding:9px 11px;border-bottom:1px solid var(--line);white-space:nowrap}th:first-child,td:first-child{text-align:left}th{font-weight:500;color:var(--muted)}tbody tr:hover{background:var(--pale)}.budget{display:grid;grid-template-columns:1.25fr 1fr;gap:28px}.heat{width:100%;height:285px;display:block}.params{display:flex;flex-wrap:wrap;gap:7px;margin:15px 0}.params code{background:var(--pale);padding:4px 9px;font:12px var(--mono);border-radius:3px}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.fact{border-top:2px solid var(--teal);padding:14px 4px}.fact p{color:var(--muted);font-size:13px;margin:7px 0}.footer{border-top:1px solid var(--line);margin-top:40px;padding-top:22px;display:flex;gap:24px;justify-content:space-between;color:var(--muted);font-size:12px}button:hover{filter:brightness(.96)}.hidden,[hidden]{display:none!important}svg text{font-family:system-ui,sans-serif}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:880px){main{padding:24px 20px}.hero{gap:24px;padding:36px 0;grid-template-columns:1fr}.hero-mark{padding:14px 20px}.algorithm,.columns,.budget{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,1fr)}.step:last-child{grid-column:1/-1}#stepDescription{min-height:0}.facts{grid-template-columns:1fr}.footer{flex-direction:column;gap:10px}.top a{margin-left:12px}.section-heading{align-items:start}.hero h1{letter-spacing:-1px}}
+</style>
+</head>
+<body>
+<main>
+  <header class="top"><div class="eyebrow">SDF / CONTACT MANIFOLDS</div><nav aria-label="原始资料"><a href="https://savant117.github.io/sdf-dcd-demo/paper.pdf" target="_blank" rel="noreferrer">论文 PDF</a><a href="https://github.com/savant117/sdf-dcd-demo/tree/08539dd3ad5fa9b41fdd160c730747de0b510b4e" target="_blank" rel="noreferrer">作者代码</a></nav></header>
+  <section class="hero">
+    <div><span class="pill">Pacific Graphics 2026</span><span class="pill">DCD · 刚体</span><h1>少量接触点，<br>跨帧持续更新。</h1><p>用历史候选追踪已有接触，用曲率种子探索新区域，再用排斥项让支撑点分散。重点是有限查询预算下的流形质量。</p><p class="sub">Chris Giles · Sheldon Andrews<br>Real-Time Collision Handling for Signed Distance Fields via Caching and Importance Sampling</p></div>
+    <aside class="hero-mark"><div class="eyebrow">核心目标 · Eq. 3</div><div class="formula">g(x) = s<sub>ε</sub>(φ<sub>A</sub>, φ<sub>B</sub>)<br> − α Σ ‖x − x<sub>i</sub>‖</div><p class="note">搜索点位于两个 AABB 的重叠区域。判定接触仍需检查 <strong>φ<sub>A</sub> &lt; 0 且 φ<sub>B</sub> &lt; 0</strong>，不能用 g 的符号替代。</p></aside>
+  </section>
+
+  <section class="section" aria-labelledby="algorithmTitle">
+    <div class="section-heading"><span class="number">01</span><div><h2 id="algorithmTitle">一次流形更新</h2><p class="sub">点击步骤查看候选如何产生。图中位置仅为算法示意，没有测量含义。</p></div></div>
+    <div class="algorithm">
+      <div class="steps" role="group" aria-label="算法步骤">
+        <button class="step" data-step="0" aria-pressed="true"><small>01</small> 限定搜索域</button>
+        <button class="step" data-step="1" aria-pressed="false"><small>02</small> 移动历史种子</button>
+        <button class="step" data-step="2" aria-pressed="false"><small>03</small> 加入探索种子</button>
+        <button class="step" data-step="3" aria-pressed="false"><small>04</small> 优化并检查原始场</button>
+        <button class="step" data-step="4" aria-pressed="false"><small>05</small> 去重与保留缓存</button>
+      </div>
+      <div class="card"><svg id="algorithmDiagram" class="diagram" viewBox="0 0 650 195" role="img" aria-label="AABB 重叠域"></svg><h3 id="stepTitle">限定搜索域</h3><p id="stepDescription"></p><div class="formula" id="stepFormula"></div><p class="note">绿色为历史候选，棕色为新种子。示意使用论文默认预算 4 个缓存候选与 1 个新种子；实际激活数量取决于去重及原始场值。</p></div>
+    </div>
+    <div class="params"><code>n_cache = 4</code><code>n_rand = 1</code><code>ε = 0.1</code><code>α = 0.01</code><code>τ = 0.01</code><code>Δt = 16 ms</code><code>体素 = 100³</code><code>κ = 4</code><code>δ = 0.001</code></div>
+  </section>
+
+  <section class="section" aria-labelledby="resultsTitle">
+    <div class="section-heading"><span class="number">02</span><div><h2 id="resultsTitle">逐表比较真实数据</h2><p class="sub">数值转录自表 1、3、4、5。CPU 与 GPU 分开查看，不做跨表速度排名。</p></div></div>
+    <div class="controls">
+      <label>实验<select id="dataset"><option value="gpu">表 1 · GPU 大场景</option><option value="boxes">表 3 · CPU 盒体堆叠</option><option value="gears">表 4 · CPU 齿轮堆叠</option><option value="distortion">表 5 · CPU 失真场</option></select></label>
+      <label id="gpuLabel">场景<select id="gpuScene"></select></label>
+      <label id="distortionLabel" hidden>算子与参数<select id="distortionScene"></select></label>
+      <label>统计项<select id="metric"><option value="ms">碰撞检测耗时 / ms</option></select></label>
+      <label class="check" id="ablationLabel" hidden><input type="checkbox" id="ablations">显示无缓存 / 无平滑消融</label>
+    </div>
+    <div class="columns">
+      <div class="card"><div class="kicker" id="chartHeading"></div><svg class="bar-chart" id="barChart" viewBox="0 0 650 240" role="img" aria-label="论文实验数据条形图"></svg><p class="note" id="chartContext"></p></div>
+      <aside class="card"><div class="measure"><div class="kicker" id="bestLabel"></div><div class="big" id="bestValue"></div><div id="bestMethod"></div></div><h3>怎样解释这张表</h3><p id="resultExplanation" class="note"></p><p class="note warning">t_coll 只表示碰撞检测。它的倒数不能当成整套仿真的 FPS。FAIL 与原文未报告值均不会画成零。</p></aside>
+    </div>
+    <div class="table-wrap" id="dataTable"></div>
+    <p class="note" id="tableCaveat"></p>
+    <p id="liveResults" class="sr-only" aria-live="polite"></p>
+  </section>
+
+  <section class="section" aria-labelledby="budgetTitle">
+    <div class="section-heading"><span class="number">03</span><div><h2 id="budgetTitle">预算增加，代价怎样变化</h2><p class="sub">表 2 · Bunnies · GPU。只展示论文实测的 12 个组合，不插值预测。</p></div></div>
+    <div class="budget">
+      <div class="card"><svg id="heatMap" class="heat" viewBox="0 0 590 285" role="img" aria-label="表 2 的缓存预算热力图"></svg><p class="note">每格单位为 ms；外框标出选择的组合。颜色越深，检测耗时越高。</p></div>
+      <div class="card"><div class="controls"><label>缓存容量<select id="cacheBudget"><option>4</option><option>6</option><option>8</option><option>16</option></select></label><label>每步新种子<select id="randomBudget"><option>1</option><option>2</option><option>4</option></select></label></div><div class="big" id="budgetValue"></div><p id="budgetComparison" class="note"></p><p class="note">缓存容量是上限，激活接触数可能更少。图 6 的精度曲线采用另一组 CPU 实验；不能把两张表拼成同一次性能与精度测量。</p></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="limitsTitle">
+    <div class="section-heading"><span class="number">04</span><h2 id="limitsTitle">理解结论的边界</h2></div>
+    <div class="facts"><article class="fact"><h3>空间搜索连续，时间检测离散</h3><p>算法在给定时刻优化空间点，没有求首次接触时间。高速运动、薄结构和未命中的吸引域仍可能漏检。</p></article><article class="fact"><h3>局部启发式，需要实测验收</h3><p>缓存和曲率采样提高成功机会，没有给出非凸全局最优或全部接触区域的完备性保证。1,000 点参考仍是离散 oracle。</p></article><article class="fact"><h3>公开 demo 有额外实现选择</h3><p>包含 margin、法向连续性、缓存替换门槛和 4 个子步。公开实现运行在 CPU；它与论文 GPU benchmark 的耗时不可直接互换。</p></article></div>
+    <p class="note warning">原文数字不一致之处：Box 正文的 0.6 ms 与表 3 条目不同；失真段落写 NM ≤ 1.00 ms，但表 5 含 1.14 和 1.01 ms。本页保留表格数值。</p>
+  </section>
+  <footer class="footer"><div>数据来自原论文表 1–5；公式解释和实现差异经原文与固定 commit 核对。<br>本页无外部依赖、无网络请求、无存储操作，可单独复制使用。</div><div>中文研读 · 樵樵<br>收录：2026-10-19</div></footer>
+</main>
+<script id="paperData" type="application/json">{"provenance":{"source":"paper.pdf","tables":"人工从表格转录，并对照 PDF 页面图像；曲线未数字化。","gpu":"表 1、2；RTX 4090；接触响应使用 AVBD。","cpu":"表 3、4、5；单线程 Core i9-13900H；顺序冲量接触响应。","timing":"ms 是 t_coll，不是整帧耗时。","missing":"null 表示原文未报告或 FAIL，详见 status。","queryWarning":"表中保留原报告的 SDF queries；公开 demo 的计数器按一次目标评估计数，内部同时查询两个场，不能直接视为单次场调用。"},"table1":[{"scene":"Spikes (cows)","bodies":583,"NM":0.7,"Ellipsoid":1.0,"SGD":1.3},{"scene":"Funnel (cylinders)","bodies":16000,"NM":2.2,"Ellipsoid":1.8,"SGD":7.1},{"scene":"Funnel (horses)","bodies":16000,"NM":20.0,"Ellipsoid":20.2,"SGD":42.3},{"scene":"Colosseum","bodies":8819,"NM":0.5,"Ellipsoid":0.4,"SGD":1.9},{"scene":"Bunnies","bodies":4314,"NM":1.8,"Ellipsoid":2.4,"SGD":5.1}],"table2":[{"cache":4,"random":1,"ms":1.8},{"cache":4,"random":2,"ms":2.4},{"cache":4,"random":4,"ms":4.2},{"cache":6,"random":1,"ms":2.7},{"cache":6,"random":2,"ms":3.0},{"cache":6,"random":4,"ms":4.4},{"cache":8,"random":1,"ms":3.9},{"cache":8,"random":2,"ms":4.2},{"cache":8,"random":4,"ms":5.0},{"cache":16,"random":1,"ms":7.7},{"cache":16,"random":2,"ms":8.1},{"cache":16,"random":4,"ms":8.9}],"table3":[{"method":"SAT","ms":0.09,"contacts":116,"iterations":null,"queries":null},{"method":"GJK+EPA","ms":0.18,"contacts":116,"iterations":1000,"queries":null},{"method":"Liu et al. 2024","ms":12.75,"contacts":372,"iterations":12000,"queries":12000},{"method":"NM","ms":1.15,"contacts":116,"iterations":1000,"queries":2500},{"method":"NM / no softmax","ms":2.23,"contacts":116,"iterations":2840,"queries":7100},{"method":"NM / no cache","ms":3.03,"contacts":116,"iterations":3800,"queries":7700},{"method":"Ellipsoid","ms":0.46,"contacts":116,"iterations":550,"queries":550},{"method":"Ellipsoid / no softmax","ms":3.67,"contacts":116,"iterations":8100,"queries":8100},{"method":"Ellipsoid / no cache","ms":1.75,"contacts":116,"iterations":3600,"queries":3600},{"method":"SGD","ms":2.07,"contacts":116,"iterations":6600,"queries":6000},{"method":"SGD / no softmax","ms":3.19,"contacts":116,"iterations":8700,"queries":8700},{"method":"SGD / no cache","ms":2.87,"contacts":116,"iterations":8500,"queries":8500}],"table4":[{"method":"SAT","ms":1.36,"contacts":182,"iterations":null,"queries":null,"status":"ok"},{"method":"GJK+EPA","ms":2.39,"contacts":182,"iterations":26600,"queries":null,"status":"ok"},{"method":"Liu et al. 2024","ms":3.99,"contacts":62,"iterations":1200,"queries":1200,"status":"ok"},{"method":"NM","ms":0.1,"contacts":12,"iterations":180,"queries":420,"status":"ok"},{"method":"NM / no softmax","ms":0.14,"contacts":12,"iterations":460,"queries":980,"status":"ok"},{"method":"NM / no cache","ms":0.19,"contacts":12,"iterations":420,"queries":860,"status":"ok"},{"method":"Ellipsoid","ms":0.1,"contacts":12,"iterations":160,"queries":160,"status":"ok"},{"method":"Ellipsoid / no softmax","ms":0.29,"contacts":12,"iterations":1100,"queries":1100,"status":"ok"},{"method":"Ellipsoid / no cache","ms":0.19,"contacts":12,"iterations":510,"queries":510,"status":"ok"},{"method":"SGD","ms":0.16,"contacts":12,"iterations":700,"queries":700,"status":"ok"},{"method":"SGD / no softmax","ms":0.21,"contacts":12,"iterations":1200,"queries":1200,"status":"ok"},{"method":"SGD / no cache","ms":null,"contacts":null,"iterations":null,"queries":null,"status":"FAIL"}],"table5":[{"operator":"Undistorted","k":null,"method":"NM","ms":0.33,"contacts":45.7,"iterations":1066,"queries":2302},{"operator":"Undistorted","k":null,"method":"Ellipsoid","ms":0.66,"contacts":36.8,"iterations":1949,"queries":1949},{"operator":"Undistorted","k":null,"method":"SGD","ms":0.71,"contacts":52.2,"iterations":5269,"queries":5269},{"operator":"BEND","k":0.15,"method":"NM","ms":0.77,"contacts":46.0,"iterations":2389,"queries":5010},{"operator":"BEND","k":0.15,"method":"Ellipsoid","ms":1.8,"contacts":39.8,"iterations":5149,"queries":5149},{"operator":"BEND","k":0.15,"method":"SGD","ms":1.25,"contacts":49.8,"iterations":8166,"queries":8166},{"operator":"BEND","k":0.55,"method":"NM","ms":0.75,"contacts":39.8,"iterations":2346,"queries":4896},{"operator":"BEND","k":0.55,"method":"Ellipsoid","ms":1.78,"contacts":37.2,"iterations":5223,"queries":5223},{"operator":"BEND","k":0.55,"method":"SGD","ms":1.22,"contacts":40.5,"iterations":8054,"queries":8054},{"operator":"BEND","k":0.95,"method":"NM","ms":0.9,"contacts":36.4,"iterations":2842,"queries":5870},{"operator":"BEND","k":0.95,"method":"Ellipsoid","ms":1.78,"contacts":36.8,"iterations":5224,"queries":5224},{"operator":"BEND","k":0.95,"method":"SGD","ms":1.24,"contacts":43.7,"iterations":7557,"queries":7557},{"operator":"DISPLACE","k":0.05,"method":"NM","ms":0.69,"contacts":42.0,"iterations":1707,"queries":3600},{"operator":"DISPLACE","k":0.05,"method":"Ellipsoid","ms":1.28,"contacts":34.5,"iterations":3317,"queries":3317},{"operator":"DISPLACE","k":0.05,"method":"SGD","ms":1.27,"contacts":42.3,"iterations":6506,"queries":6506},{"operator":"DISPLACE","k":0.1,"method":"NM","ms":0.73,"contacts":36.1,"iterations":1861,"queries":3939},{"operator":"DISPLACE","k":0.1,"method":"Ellipsoid","ms":1.87,"contacts":33.4,"iterations":5077,"queries":5077},{"operator":"DISPLACE","k":0.1,"method":"SGD","ms":1.26,"contacts":41.6,"iterations":6734,"queries":6734},{"operator":"DISPLACE","k":0.2,"method":"NM","ms":0.91,"contacts":36.1,"iterations":2330,"queries":4982},{"operator":"DISPLACE","k":0.2,"method":"Ellipsoid","ms":2.25,"contacts":32.6,"iterations":6144,"queries":6144},{"operator":"DISPLACE","k":0.2,"method":"SGD","ms":1.51,"contacts":41.5,"iterations":7992,"queries":7992},{"operator":"TWIST","k":0.5,"method":"NM","ms":0.99,"contacts":45.8,"iterations":3161,"queries":6561},{"operator":"TWIST","k":0.5,"method":"Ellipsoid","ms":2.47,"contacts":44.4,"iterations":7092,"queries":7092},{"operator":"TWIST","k":0.5,"method":"SGD","ms":1.38,"contacts":47.8,"iterations":8635,"queries":8635},{"operator":"TWIST","k":2.5,"method":"NM","ms":1.14,"contacts":42.1,"iterations":3354,"queries":7081},{"operator":"TWIST","k":2.5,"method":"Ellipsoid","ms":2.41,"contacts":38.0,"iterations":7073,"queries":7073},{"operator":"TWIST","k":2.5,"method":"SGD","ms":1.6,"contacts":52.8,"iterations":9636,"queries":9636},{"operator":"TWIST","k":5.0,"method":"NM","ms":1.01,"contacts":43.5,"iterations":2743,"queries":5871},{"operator":"TWIST","k":5.0,"method":"Ellipsoid","ms":2.26,"contacts":39.2,"iterations":6747,"queries":6747},{"operator":"TWIST","k":5.0,"method":"SGD","ms":1.43,"contacts":50.6,"iterations":8526,"queries":8526}],"parameters":{"cache":4,"random":1,"alpha":0.01,"epsilon":0.1,"tau":0.01,"dt_seconds":0.016,"voxel_resolution":100,"kappa":4,"delta":0.001}}</script>
+<script>
+'use strict';
+const data = JSON.parse(document.getElementById('paperData').textContent);
+const $ = id => document.getElementById(id);
+const colors = ['#28796e','#6b9280','#b16b33','#9b9970','#8a9c96','#678580'];
+const fmt = value => value === null || value === undefined ? '原文未报告' : Number(value).toLocaleString('zh-CN',{maximumFractionDigits:2});
+const unit = {ms:'ms',contacts:'个接触',iterations:'次迭代',queries:'次查询'};
+const labels = {ms:'碰撞检测耗时',contacts:'接触数量',iterations:'报告的迭代次数',queries:'报告的 SDF 查询次数'};
+const descriptions = [
+ ['限定搜索域','先求两个物体世界坐标 AABB 的交集 V，只在这里初始化和优化候选。它限制搜索成本，也限制排斥目标的可行域。','V = B_A ∩ B_B'],
+ ['移动历史种子','把上一帧候选按两物体的点速度预测到新位置，再重新优化。两者均运动时使用平均速度，一方静止时用运动方的完整速度。','p ← p + Δt · average(VEL(A,p), VEL(B,p))'],
+ ['加入探索种子','从重叠域内的高曲率特征点抽样，寻找缓存未覆盖的区域。缓存不足时额外补齐；首次碰撞默认会尝试 5 个新种子。','新种子数 = n_rand + max(0, n_cache − |cache|)'],
+ ['优化并检查原始场','逐个优化平滑最大值与排斥目标，随后查两个原始场。排斥只鼓励空间覆盖；最终候选是否激活由原始场符号决定。','g = s_ε(φ_A, φ_B) − α Σ ‖x − x_i‖；接触：φ_A < 0 且 φ_B < 0'],
+ ['去重与保留缓存','移除距离小于 τ 的重复候选，按目标值选择至多 n_cache 个点供下帧使用。候选集合、缓存集合和真正激活的接触集合可能有不同大小。','cache ← best n_cache candidates；τ = 0.01']
+];
+function showStep(index){
+ document.querySelectorAll('.step').forEach((el,i)=>el.setAttribute('aria-pressed',String(i===index)));
+ const [title,text,formula]=descriptions[index];
+ $('stepTitle').textContent=title; $('stepDescription').textContent=text; $('stepFormula').textContent=formula;
+ let svg='<rect x="100" y="30" width="330" height="120" rx="12" fill="#dce9e0" stroke="#28796e" stroke-width="2"/><rect x="235" y="75" width="310" height="100" rx="12" fill="#c5d6c9" fill-opacity="0.5" stroke="#859776" stroke-width="2" stroke-dasharray="6 4"/><rect x="235" y="75" width="195" height="75" fill="#f7e6b9" fill-opacity="0.65"/><text x="115" y="55" font-size="14" fill="#28796e">物体 A 的 AABB</text><text x="440" y="162" font-size="13" fill="#617452">B 的 AABB</text>';
+ if(index===0)svg+='<text x="305" y="118" fill="#6e602e" font-size="18">V</text>';
+ const points=index===4?[[263,104],[291,126],[369,104],[404,126]]:[[266,106],[294,124],[362,106],[396,124]];
+ if(index>=1)points.forEach(([x,y],i)=>{
+  if(index===1)svg+=`<line x1="${x-18}" y1="${y-17}" x2="${x}" y2="${y}" stroke="#28796e" stroke-dasharray="3 3"/>`;
+  svg+=`<circle cx="${x}" cy="${y}" r="${index===4?7:6}" fill="#28796e" stroke="white" stroke-width="2"/>`;
+ });
+ if(index===2||index===3)svg+='<circle cx="330" cy="90" r="7" fill="#b16b33" stroke="white" stroke-width="2"/>';
+ if(index===3)svg+='<path d="M330 91 L337 117 M293 122 L270 130 M362 106 L395 95" stroke="#b16b33" stroke-width="2" stroke-dasharray="4 3"/>';
+ if(index===4)svg+='<text x="249" y="67" fill="#28796e" font-size="12">保留至下一帧，重新预测和验证</text>';
+ $('algorithmDiagram').innerHTML=svg; $('algorithmDiagram').setAttribute('aria-label',title+'，示意图');
+}
+document.querySelectorAll('.step').forEach(el=>el.addEventListener('click',()=>showStep(Number(el.dataset.step))));
+data.table1.forEach((r,i)=>$('gpuScene').add(new Option(r.scene,i)));
+const distortions=[...new Set(data.table5.map(r=>r.operator+'|'+r.k))];
+distortions.forEach(key=>{const [op,k]=key.split('|');$('distortionScene').add(new Option(op==='Undistorted'?'未失真':op+' · k = '+k,key));});
+let previousDataset=null;
+function renderResults(){
+ const dataset=$('dataset').value;
+ const cpuBaseline=dataset==='boxes'||dataset==='gears';
+ $('gpuLabel').hidden=dataset!=='gpu';$('distortionLabel').hidden=dataset!=='distortion';$('ablationLabel').hidden=!cpuBaseline;
+ if(previousDataset!==dataset){
+  const oldMetric=$('metric').value;
+  $('metric').replaceChildren(...(dataset==='gpu'?['ms']:['ms','contacts','iterations','queries']).map(k=>new Option(labels[k]+(k==='ms'?' / ms':''),k)));
+  if(Array.from($('metric').options).some(o=>o.value===oldMetric))$('metric').value=oldMetric;
+  previousDataset=dataset;
+ }
+ const metric=$('metric').value;
+ let rows,heading,context,explanation,caveat;
+ if(dataset==='gpu'){
+  const scene=data.table1[Number($('gpuScene').value)];
+  rows=['NM','Ellipsoid','SGD'].map(method=>({method,ms:scene[method]}));
+  heading='表 1 · '+scene.scene+' · GPU';
+  context=fmt(scene.bodies)+' 个刚体；RTX 4090；Δt = 16 ms；τ = 0.01。';
+  explanation=scene.scene==='Funnel (horses)'?'16,000 个 horses 的 NM 检测耗时为 20.0 ms，已经超过 16 ms 步长。论文称其接近实时，不能写成全部场景 60 FPS。':'GPU 按物体对并行检测，响应使用 AVBD。NM 对非凸场较稳健，Ellipsoid 在 cylinders 和 Colosseum 中更快。';
+  caveat='体数相同不代表查询代价相同。cylinders 是凸解析场，horses 使用非凸体素场；不以体数单独归因。';
+ }else if(cpuBaseline){
+  rows=data[dataset==='boxes'?'table3':'table4'].filter(r=>$('ablations').checked||!r.method.includes('/'));
+  heading=(dataset==='boxes'?'表 3 · Box-stacking':'表 4 · Gear-stacking')+' · 单线程 CPU';
+  context='Core i9-13900H；顺序冲量接触响应；Liu et al. 为本文作者重实现，octree depth = 3。';
+  explanation=dataset==='boxes'?'简单凸盒体上 SAT 和 GJK+EPA 更快。NM、Ellipsoid 的消融展示缓存和平滑的重要性；正文另写的 0.6 ms 与表格不一致，这里使用表值。':'NM 和 Ellipsoid 都为 0.10 ms，但只生成 12 个接触，SAT/GJK 为 182 个。效率收益包含稀疏接触和不同几何表示的影响。SGD 无缓存配置失败。';
+  caveat='“iterations”保留原报告口径。SDF queries 不能直接与其他实现的单场调用数对齐；未报告项显示为空缺语义，不设为零。';
+ }else{
+  rows=data.table5.filter(r=>r.operator+'|'+r.k===$('distortionScene').value);
+  const first=rows[0];
+  heading='表 5 · '+(first.operator==='Undistorted'?'未失真':first.operator+' / k = '+first.k)+' · 单线程 CPU';
+  context='Falling Boxes；表中为所有仿真帧的平均统计。';
+  explanation='NM 在表 5 的各配置中具有最低绝对检测耗时，但 TWIST 的部分配置超过 1.00 ms。局部搜索不求梯度，最终法向和曲率预处理仍需要梯度。';
+  caveat='公开 demo 的 DISPLACE 参数采用幅值定义，正文公式把 k 写在频率中，不能把相同 k 当作相同几何。接触点数也随配置变化。';
+ }
+ $('chartHeading').textContent=heading+' / '+labels[metric];$('chartContext').textContent=context;$('resultExplanation').textContent=explanation;$('tableCaveat').textContent=caveat;
+ const finite=rows.filter(r=>Number.isFinite(r[metric]));
+ const minimum=finite.length?Math.min(...finite.map(r=>r[metric])):null;
+ $('bestLabel').textContent='该表可用条目的最小值 · '+labels[metric];
+ $('bestValue').replaceChildren(document.createTextNode(minimum===null?'—':fmt(minimum)),Object.assign(document.createElement('span'),{textContent:' '+unit[metric]}));
+ $('bestMethod').textContent=finite.filter(r=>r[metric]===minimum).map(r=>r.method).join(' / ');
+ let max=finite.length?Math.max(...finite.map(r=>r[metric])):1;if(max===0)max=1;
+ const h=rows.length*34+38;
+ $('barChart').setAttribute('viewBox',`0 0 650 ${h}`);
+ $('barChart').setAttribute('aria-label',heading+'，'+labels[metric]+'：'+rows.map(r=>r.method+' '+(r.status==='FAIL'?'FAIL':fmt(r[metric]))).join('；'));
+ $('barChart').innerHTML=rows.map((r,i)=>{
+  const y=22+i*34,value=r[metric],width=Number.isFinite(value)?value/max*340:0;
+  const display=r.status==='FAIL'?'FAIL':Number.isFinite(value)?fmt(value):'未报告';
+  return `<text x="0" y="${y+14}" font-size="12" fill="#335550">${r.method}</text><rect x="185" y="${y}" width="${width}" height="21" rx="2" fill="${colors[i%colors.length]}"/><text x="${195+width}" y="${y+15}" font-size="12" fill="#335550">${display}</text>`;
+ }).join('')+`<line x1="185" x2="525" y1="${h-12}" y2="${h-12}" stroke="#d5ddd3"/><text x="185" y="${h}" font-size="10" fill="#5d716b">0</text><text x="525" y="${h}" text-anchor="end" font-size="10" fill="#5d716b">${unit[metric]}</text>`;
+ const tableColumns=dataset==='gpu'?['ms']:['ms','contacts','iterations','queries'];
+ $('dataTable').innerHTML='<table><caption class="sr-only">'+heading+'</caption><thead><tr><th>方法</th>'+tableColumns.map(k=>'<th>'+labels[k]+(k==='ms'?' / ms':'')+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr><td>'+r.method+'</td>'+tableColumns.map(k=>'<td>'+(r.status==='FAIL'?'FAIL':fmt(r[k]))+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+ $('liveResults').textContent=heading+'。最小'+labels[metric]+'为 '+fmt(minimum)+' '+unit[metric]+'。';
+}
+['dataset','gpuScene','distortionScene','metric','ablations'].forEach(id=>$(id).addEventListener('change',renderResults));
+function renderBudget(){
+ const cache=Number($('cacheBudget').value),random=Number($('randomBudget').value);
+ const row=data.table2.find(r=>r.cache===cache&&r.random===random);
+ $('budgetValue').replaceChildren(document.createTextNode(fmt(row.ms)),Object.assign(document.createElement('span'),{textContent:' ms'}));
+ $('budgetComparison').textContent=`n_cache = ${cache}，n_rand = ${random}。相对表中默认 4 / 1 的 1.8 ms，耗时比为 ${(row.ms/1.8).toFixed(2)}×，该比值由表值相除得到。`;
+ let svg='<text x="20" y="28" font-size="12" fill="#5d716b">缓存容量 ↓ / 新种子 →</text>';
+ [1,2,4].forEach((n,i)=>svg+=`<text x="${172+i*132}" y="53" text-anchor="middle" font-size="13" fill="#173b38">${n}</text>`);
+ [4,6,8,16].forEach((n,j)=>{svg+=`<text x="58" y="${95+j*51}" text-anchor="end" font-size="14" fill="#173b38">${n}</text>`;
+  [1,2,4].forEach((m,i)=>{const r=data.table2.find(v=>v.cache===n&&v.random===m);const x=108+i*132,y=66+j*51;const selected=n===cache&&m===random;const light=92-((r.ms-1.8)/(8.9-1.8))*55;
+   svg+=`<rect x="${x}" y="${y}" width="126" height="45" rx="4" fill="hsl(158,27%,${light}%)" stroke="${selected?'#b16b33':'#f7f5ee'}" stroke-width="${selected?3:1}"/><text x="${x+63}" y="${y+28}" text-anchor="middle" font-size="14" fill="${light<50?'white':'#173b38'}">${fmt(r.ms)}</text>`;
+  });
+ });
+ $('heatMap').innerHTML=svg;$('heatMap').setAttribute('aria-label',`表 2 热力图，所选缓存 ${cache}，新种子 ${random}，${row.ms} ms`);
+}
+['cacheBudget','randomBudget'].forEach(id=>$(id).addEventListener('change',renderBudget));
+showStep(0);renderResults();renderBudget();
+</script>
+</body>
+</html>

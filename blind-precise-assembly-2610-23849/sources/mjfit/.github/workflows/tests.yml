@@ -1,0 +1,37 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {python: "3.10", mujoco: "mujoco==3.3.0", numpy: "numpy<2"}   # oldest supported
+          - {python: "3.11", mujoco: "mujoco", numpy: "numpy"}
+          - {python: "3.12", mujoco: "mujoco", numpy: "numpy"}
+          - {python: "3.13", mujoco: "mujoco", numpy: "numpy"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: pip install -e ".[test]" "${{ matrix.mujoco }}" "${{ matrix.numpy }}"
+      - name: Tests
+        # The benchmark's own tests need its extra dependencies (pip install -e ".[benchmark]").
+        run: pytest -q --ignore-glob="tests/test_benchmark_*.py"
+      - name: README commands
+        run: |
+          cd "$(mktemp -d)"
+          mjfit peg --shape star -o star.xml
+          mjfit peg --config usb_c -o usb_c.xml
+          mjfit thread --config m10 -o m10.xml
+          mjfit gear --teeth 18 24 -o gears.xml
+          mjfit sample -n 4 --family convex --grid -o samples
+          python -c "import mujoco; [mujoco.MjModel.from_xml_path(f) for f in ('star.xml', 'usb_c.xml', 'm10.xml', 'gears.xml', 'samples/grid.xml')]"

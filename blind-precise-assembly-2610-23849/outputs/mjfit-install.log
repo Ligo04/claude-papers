@@ -1,0 +1,47 @@
+Obtaining file:///home/ligo/claude-papers/papers/blind-precise-assembly-2610-23849/sources/mjfit
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Installing backend dependencies: started
+  Installing backend dependencies: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Collecting mapbox-earcut>=1.0 (from mjfit==0.1.0)
+  Downloading mapbox_earcut-2.1.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (2.5 kB)
+Collecting mujoco>=3.3 (from mjfit==0.1.0)
+  Downloading mujoco-3.16.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (232 kB)
+Requirement already satisfied: numpy>=1.24 in ./miniforge3/lib/python3.13/site-packages (from mjfit==0.1.0) (2.5.3)
+Requirement already satisfied: pyyaml>=6.0 in ./miniforge3/lib/python3.13/site-packages (from mjfit==0.1.0) (6.0.3)
+Requirement already satisfied: absl-py in ./miniforge3/lib/python3.13/site-packages (from mujoco>=3.3->mjfit==0.1.0) (2.4.0)
+Collecting etils[epath] (from mujoco>=3.3->mjfit==0.1.0)
+  Downloading etils-1.14.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting glfw (from mujoco>=3.3->mjfit==0.1.0)
+  Downloading glfw-2.11.0-py2.py3-none-manylinux_2_28_x86_64.whl.metadata (5.5 kB)
+Collecting pyopengl (from mujoco>=3.3->mjfit==0.1.0)
+  Downloading pyopengl-3.1.10-py3-none-any.whl.metadata (3.3 kB)
+Requirement already satisfied: websockets>=13 in ./miniforge3/lib/python3.13/site-packages (from mujoco>=3.3->mjfit==0.1.0) (16.0)
+Requirement already satisfied: fsspec in ./miniforge3/lib/python3.13/site-packages (from etils[epath]->mujoco>=3.3->mjfit==0.1.0) (2026.2.0)
+Requirement already satisfied: typing_extensions in ./miniforge3/lib/python3.13/site-packages (from etils[epath]->mujoco>=3.3->mjfit==0.1.0) (4.15.0)
+Requirement already satisfied: zipp in ./miniforge3/lib/python3.13/site-packages (from etils[epath]->mujoco>=3.3->mjfit==0.1.0) (3.23.0)
+Downloading mapbox_earcut-2.1.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (76 kB)
+Downloading mujoco-3.16.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (30.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 30.6/30.6 MB 793.5 kB/s  0:00:38
+Downloading etils-1.14.0-py3-none-any.whl (172 kB)
+Downloading glfw-2.11.0-py2.py3-none-manylinux_2_28_x86_64.whl (248 kB)
+Downloading pyopengl-3.1.10-py3-none-any.whl (3.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.2/3.2 MB 616.0 kB/s  0:00:05
+Building wheels for collected packages: mjfit
+  Building editable for mjfit (pyproject.toml): started
+  Building editable for mjfit (pyproject.toml): finished with status 'done'
+  Created wheel for mjfit: filename=mjfit-0.1.0-py3-none-any.whl size=6485 sha256=6000db95ed7dd61d32c14c8ee052a2382adb2496fc6c686a34d3875984c3061b
+  Stored in directory: /tmp/pip-ephem-wheel-cache-o_29uwfa/wheels/d9/b8/1f/3182035fbdb58c3de7f96388b133bf51be2a5891185204885b
+Successfully built mjfit
+Installing collected packages: pyopengl, glfw, mapbox-earcut, etils, mujoco, mjfit
+
+Successfully installed etils-1.14.0 glfw-2.11.0 mapbox-earcut-2.1.0 mjfit-0.1.0 mujoco-3.16.0 pyopengl-3.1.10
+
+[notice] A new release of pip is available: 25.3 -> 26.2.1
+[notice] To update, run: /home/ligo/claude-papers/papers/blind-precise-assembly-2610-23849/.geometry-venv/bin/python -m pip install --upgrade pip

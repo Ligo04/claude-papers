@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="TapeSim: efficient simulation of adhesive tape dispensing for robotic manipulation. Explore adhesion, a moving release front, real–sim comparisons, and a continuous box-sealing task.">
+  <meta property="og:title" content="TapeSim: Efficient Simulation of Adhesive Tape Dispensing for Robotic Manipulation">
+  <meta property="og:description" content="Efficient adhesive tape simulation with a rigid cluster, an advancing deformable collar, and releasable interface bonds.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://genesis-embodied-ai.github.io/tapesim-website/assets/media/film.webp">
+  <meta property="og:url" content="https://genesis-embodied-ai.github.io/tapesim-website/">
+  <link rel="canonical" href="https://genesis-embodied-ai.github.io/tapesim-website/">
+  <meta name="citation_title" content="TAPESIM: Efficient Simulation of Adhesive Tape Dispensing for Robotic Manipulation">
+  <meta name="citation_author" content="Zhaofeng Luo">
+  <meta name="citation_author" content="Xinyu Lu">
+  <meta name="citation_author" content="Jaehoon Choi">
+  <meta name="citation_author" content="Zhehuan Chen">
+  <meta name="citation_author" content="Trinity Chung">
+  <meta name="citation_author" content="Xiaowen Qiu">
+  <meta name="citation_author" content="Hugh Nicholas Perkins">
+  <meta name="citation_author" content="Gianna Calderon">
+  <meta name="citation_author" content="Alexis Duburcq">
+  <meta name="citation_author" content="Sanghyun Son">
+  <meta name="citation_author" content="Tsun-Hsuan Wang">
+  <meta name="citation_author" content="Yi-Ling Qiao">
+  <meta name="citation_author" content="Minchen Li">
+  <meta name="citation_publication_date" content="2026/09/23">
+  <meta name="citation_arxiv_id" content="2609.28766">
+  <meta name="citation_pdf_url" content="https://arxiv.org/pdf/2609.28766">
+  <title>TapeSim: Efficient Simulation of Adhesive Tape Dispensing for Robotic Manipulation</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/DMSans.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a href="#" class="brand" aria-label="TapeSim home"><svg viewBox="0 0 40 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="5"/><path d="M16 4H37V11"/></svg>TapeSim</a>
+    <nav aria-label="Main navigation" id="nav"><a href="#video">Video</a><a href="#abstract">Overview</a><a href="#method">Method</a><a href="#dynamics">Dynamics</a><a href="#reality">Replay</a><a href="#policies">Evaluation</a><a href="#bibtex">BibTeX</a></nav>
+    <div class="header-actions"><button id="menu-toggle" class="menu-toggle" aria-label="Open navigation" aria-controls="nav" aria-expanded="false"><span></span><span></span></button></div>
+  </header>
+
+  <main id="main">
+    <noscript><p class="noscript-note">Interactive diagrams and synchronized controls need JavaScript. The full film, individual video players, success-rate plots and citation remain available.</p></noscript>
+    <section class="hero section-shell" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Robotic manipulation · Physically based simulation</p>
+        <h1 id="hero-title"><span class="project-name">TapeSim:</span> Efficient Simulation of Adhesive Tape Dispensing for Robotic Manipulation</h1>
+        <ul class="authors" aria-label="Authors">
+          <li><span>Zhaofeng Luo</span><sup>1,2</sup></li>
+          <li><span>Xinyu Lu</span><sup>2</sup></li>
+          <li><span>Jaehoon Choi</span><sup>2</sup></li>
+          <li><span>Zhehuan Chen</span><sup>2</sup></li>
+          <li><span>Trinity Chung</span><sup>2</sup></li>
+          <li><span>Xiaowen Qiu</span><sup>2</sup></li>
+          <li><span>Hugh Nicholas Perkins</span><sup>2</sup></li>
+          <li><span>Gianna Calderon</span><sup>2</sup></li>
+          <li><span>Alexis Duburcq</span><sup>2</sup></li>
+          <li><span>Sanghyun Son</span><sup>2</sup></li>
+          <li><span>Tsun-Hsuan Wang</span><sup>2</sup></li>
+          <li><span>Yi-Ling Qiao</span><sup>2</sup></li>
+          <li><span>Minchen Li</span><sup>1,2</sup></li>
+        </ul>
+        <p class="affiliations"><span><sup>1</sup> Carnegie Mellon University</span><span><sup>2</sup> Genesis AI</span></p>
+        <nav class="hero-actions" aria-label="Project resources">
+          <a class="button button-dark" href="https://arxiv.org/abs/2609.28766" target="_blank" rel="noopener noreferrer">arXiv <span aria-hidden="true">↗</span></a>
+          <button class="button button-outline code-pending" disabled title="Source code release coming soon">Code <small>Coming soon</small></button>
+        </nav>
+        <p class="hero-description">A moving roll, a flexible strip, and surfaces that attach and detach.</p>
+      </div>
+      <figure class="hero-visual" id="video">
+        <video id="research-video" controls playsinline preload="metadata" poster="assets/media/film.webp" aria-label="Complete TapeSim research video, 2 minutes 59 seconds">
+          <source src="assets/media/film.mp4" type="video/mp4">
+          <track kind="captions" label="English" srclang="en" src="assets/media/film.vtt">
+          <p><a href="assets/media/film.mp4">Watch the full research video</a>.</p>
+        </video>
+        <nav id="video-chapters" class="video-chapters" aria-label="Video chapters" hidden>
+          <button type="button" data-film-time="0" class="is-active" aria-current="true" aria-label="Play Overview from 0:00"><small>0:00</small><span>Overview</span></button>
+          <button type="button" data-film-time="18" aria-label="Play Method from 0:18"><small>0:18</small><span>Method</span></button>
+          <button type="button" data-film-time="53" aria-label="Play Calibration from 0:53"><small>0:53</small><span>Calibration</span></button>
+          <button type="button" data-film-time="65" aria-label="Play Dynamics from 1:05"><small>1:05</small><span>Dynamics</span></button>
+          <button type="button" data-film-time="104" aria-label="Play Open-loop from 1:44"><small>1:44</small><span>Open-loop</span></button>
+          <button type="button" data-film-time="119" aria-label="Play Closed-loop from 1:59"><small>1:59</small><span>Closed-loop</span></button>
+          <button type="button" data-film-time="153" aria-label="Play Box sealing from 2:33"><small>2:33</small><span>Box sealing</span></button>
+        </nav>
+        <figcaption class="hero-caption"><span>Full research video · 2:59 · English narration</span><a href="assets/media/film.mp4" download="TapeSim.mp4">Download video ↓</a></figcaption>
+      </figure>
+    </section>
+
+    <section id="abstract" class="abstract section-shell" aria-labelledby="abstract-title">
+      <div class="abstract-content">
+        <h2 id="abstract-title">Overview</h2>
+        <p>Applying adhesive tape to secure wire harnesses or seal packages requires robots to coordinate a flexible strip, a moving roll, and surfaces that attach and detach. Resolving every wound layer is computationally expensive and can suppress roll motion at practical solver tolerances. TapeSim represents most still-wound material as a rigid cluster, while an advancing deformable collar enables progressive dispensing. The released strip remains flexible and can adhere to new surfaces. Releasable bonds simplify the internal adhesive interfaces.</p>
+        <p>Controlled swing tests evaluate roll motion and computational cost. At 32 turns, clustering gives 3.2–3.4× mean physics-step speedups at a fixed Newton tolerance and 4.5–8.4× for comparable roll motion. Across five real-motion Stick replays, the clustered variants reduce mean image-plane roll-landmark error by 23–29% relative to the fully deformable cohesive baseline. Paired real/simulation policy evaluations cover Peel, Stick, and Wrap, and a teleoperated box-sealing demonstration combines attachment, dispensing, cutting, and sealing.</p>
+      </div>
+    </section>
+
+    <section id="method" class="section-shell chapter" aria-labelledby="method-title">
+      <div class="section-heading"><h2 id="method-title">Method</h2><p>TapeSim concentrates deformation near the release front and along the free strip. The still-wound interior moves as a rigid cluster, while a short deformable collar advances as tape is dispensed.</p></div>
+      <div class="representation-grid">
+        <div class="roll-lab">
+          <div class="panel-meta"><span><i class="tiny-dot amber"></i> Tape representation</span><span>Drag to dispense <span aria-hidden="true">↔</span></span></div>
+          <svg id="roll-svg" viewBox="0 0 760 410" role="img" aria-labelledby="roll-title roll-desc"><title id="roll-title">A continuous strip with a rigid cluster, deformable collar, and free strip</title><desc id="roll-desc">The purple collar sits on the outer wound layer and remains continuously connected to both the rigid roll and the blue released strip. Move the slider to illustrate dispensing.</desc><defs><pattern id="paper-grid" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#d9d6c9"/></pattern></defs><rect width="760" height="410" fill="url(#paper-grid)"/><g id="roll-drawing"></g><g class="diagram-labels"><path d="M485 272l48 45h92"/><text x="541" y="340">CLUSTER</text><path d="M454 118l43-57h106"/><text x="502" y="51">COLLAR</text><path d="M203 127v90h-57"/><text x="57" y="238">FREE STRIP</text></g></svg>
+          <div class="scrub-row"><button class="round-button" id="roll-play" aria-label="Animate dispensing">▶</button><label class="sr-only" for="roll-range">Dispensing progress</label><input id="roll-range" type="range" min="0" max="100" value="20"><output id="roll-progress" for="roll-range">20%</output></div>
+          <p class="small-note">Drag the slider to follow the release front. Schematic, not a physical simulation.</p>
+        </div>
+        <div class="region-list" role="group" aria-label="Explore tape regions">
+          <button class="region is-active" data-region="cluster" aria-pressed="true"><span class="region-index">01</span><span><strong>The rigid cluster</strong><span>The still-wound interior moves as one body. Its internal contacts no longer need individual solves.</span></span><i class="region-swatch amber"></i></button>
+          <button class="region" data-region="collar" aria-pressed="false"><span class="region-index">02</span><span><strong>The advancing collar</strong><span>A short, still-wound region stays deformable. It follows the release front as tape peels away.</span></span><i class="region-swatch mauve"></i></button>
+          <button class="region" data-region="free" aria-pressed="false"><span class="region-index">03</span><span><strong>The free strip</strong><span>Everything already released stays flexible and can adhere to a new surface.</span></span><i class="region-swatch blue"></i></button>
+          <button class="link-arrow media-open" data-media="payout" data-title="Watch the collar advance" data-description="Original Bond-R simulation. Payout from 0 to 8.5 simulation seconds; the right-hand view is 3× spatial magnification.">See the actual simulation <span aria-hidden="true">↗</span></button>
+        </div>
+      </div>
+      <div class="bond-section">
+        <div class="bond-copy"><h3>Releasable interface bonds</h3><p>Cohesive contact couples a non-penetration barrier with friction and adhesion. For a selected adhesive interface, a virtual tetrahedron replaces these terms with one shape-preserving bond energy, improving conditioning without adding material or degrees of freedom.</p><p class="bond-rule">Bonds form between nearby eligible surfaces and release when the opening force exceeds a threshold. <strong>Compression alone does not trigger release.</strong></p><a class="text-button" href="#variants">How the four models fit together <span aria-hidden="true">↓</span></a></div>
+        <div class="bond-lab"><div class="panel-meta"><span>Bond formation and release</span><span id="bond-state" class="state-pill">Bonded</span></div><svg id="bond-svg" viewBox="0 0 550 285" role="img" aria-labelledby="bond-title"><title id="bond-title">A virtual tetrahedron joins an adhesive point to a triangle. Compression keeps the bond; opening beyond its force threshold releases it.</title><path class="bond-surface" d="M122 210L418 210L330 254Z"/><g id="bond-links"></g><circle id="bond-point" cx="275" cy="103" r="10"/><path class="force-arrow" id="force-arrow" d="M275 86V47m-7 8 7-8 7 8"/><text x="275" y="26" text-anchor="middle" id="bond-hint">Pull upward to test the bond</text><circle cx="122" cy="210" r="6"/><circle cx="418" cy="210" r="6"/><circle cx="330" cy="254" r="6"/></svg><div class="bond-slider-labels"><span>Compress</span><span>Rest</span><span>Pull apart</span></div><label class="sr-only" for="bond-range">Schematic loading: compress, rest or pull apart</label><input id="bond-range" type="range" min="-60" max="100" value="0"><p id="bond-message" class="small-note" aria-live="polite">Nearby eligible surfaces form a bond.</p><button id="bond-reset" class="text-button">Reset interface <span aria-hidden="true">↺</span></button><p class="micro-note">Schematic loading, not measured force. The illustrated force-based release requires opening; compression alone does not trigger it.</p></div>
+      </div>
+      <div id="variants" class="variant-strip"><div><h3>Model configurations</h3><p class="small-note">Two interface models, each with a fully deformable or clustered representation.</p></div><div class="variant-grid" role="group" aria-label="Inspect the four model configurations"><span></span><span>Every layer flexible</span><span>Cluster + collar</span><span>Cohesion</span><button data-model="Coh-F" class="variant-button" aria-pressed="false">Coh-F</button><button data-model="Coh-R" class="variant-button" aria-pressed="false">Coh-R</button><span>Bonds</span><button data-model="Bond-F" class="variant-button" aria-pressed="false">Bond-F</button><button data-model="Bond-R" class="variant-button is-active" aria-pressed="true">Bond-R <span>↗</span></button><p id="variant-description" aria-live="polite">Bond-R combines releasable internal bonds with the rigid cluster and advancing collar.</p></div></div>
+    </section>
+
+    <section id="dynamics" class="results-section chapter" aria-labelledby="dynamics-title"><div class="section-shell">
+      <div class="section-heading"><h2 id="dynamics-title">Roll motion and computational cost</h2><p>Resolving every wound layer can make the roll appear nearly frozen at practical solver tolerances. Clustering preserves more of its rotation while reducing the cost of the solve. The video and angle traces below show the same saved simulation states.</p></div>
+      <div class="motion-lab" id="motion-lab"><div class="motion-head"><span><i class="tiny-dot blue"></i> COH-F vs. COH-R</span><span>Same tolerance · 10<sup>−3</sup> m/s</span></div><div class="motion-labels"><span><strong>Coh-F</strong> Fully deformable</span><span><strong>Coh-R</strong> Cluster + collar</span></div><video id="motion-video" controls muted playsinline preload="none" poster="assets/media/motion.webp" src="assets/media/motion.mp4" aria-label="Coh-F and Coh-R roll motion, with whole-strip and 3× magnified views"></video><div class="motion-chart-head"><span>Roll orientation <span class="soft">θ (degrees)</span></span><span id="motion-readout">Source t = 5.50 s</span></div><svg id="motion-chart" viewBox="0 0 1040 190" role="img" aria-label="Progressively drawn orientation traces from the same saved states as the video"></svg><div class="scrub-row"><button class="round-button light" id="motion-play" aria-label="Play roll motion">▶</button><label class="sr-only" for="motion-range">Motion video progress</label><input id="motion-range" type="range" min="0" max="8.5" step=".033333" value="0"><button class="rate-button" id="motion-rate" aria-label="Change motion playback rate">0.5×</button></div><p class="motion-caption"><span><i class="line-key"></i> Coh-F <i class="line-key dashed"></i> Coh-R</span><span>Saved simulation states · detail views: 3× magnification</span></p></div>
+      <div class="tolerance-note"><span class="eyebrow">SEPARATE TOLERANCE TEST</span><p><strong>9.7° <span>→</span> 38.1°</strong><span>Tighter solves restore Coh-F’s rotation without changing the physics.</span></p><span class="micro-note">32 turns · 10<sup>−2</sup> → 10<sup>−3</sup> m/s<br>Independent test, not the trajectories above.</span></div>
+      <div class="cost-grid"><div class="cost-copy"><h3>Physics-step cost at comparable roll motion</h3><p>Compare mean physics-step time across four representations and four roll sizes. Select a layer count and interface family below.</p><div class="turn-picker" role="group" aria-label="Number of wound tape turns"><button data-turns="2" aria-pressed="false">2</button><button data-turns="8" aria-pressed="false">8</button><button data-turns="16" aria-pressed="false">16</button><button data-turns="32" class="is-active" aria-pressed="true">32</button><span>turns</span></div><div class="cost-highlight"><strong id="speedup">8.4<span>×</span></strong><span id="speedup-description">faster physics steps<br>Coh-F → Coh-R · 32 turns</span></div><p class="micro-note">At fixed tolerance, the separate 32-turn paper benchmark is 3.4× faster for Coh-F → Coh-R.</p></div><div class="cost-chart-panel"><div class="panel-meta"><span>MEAN PHYSICS TIME</span><span>ms / step · lower is better</span></div><div id="cost-chart" role="img" aria-label="Mean physics-step costs for the four models"><div class="cost-row highlight" data-cost-model="Coh-F" aria-label="Coh-F: 307.77 milliseconds per physics step"><span class="cost-row-label">Coh-F</span><div class="cost-bar-track"><div class="cost-bar" style="--bar-color: #7b837b; width: 93.26363636363637%"></div></div><span class="cost-value">307.77</span></div><div class="cost-row highlight" data-cost-model="Coh-R" aria-label="Coh-R: 36.73 milliseconds per physics step"><span class="cost-row-label">Coh-R</span><div class="cost-bar-track"><div class="cost-bar" style="--bar-color: #32718c; width: 11.130303030303029%"></div></div><span class="cost-value">36.73</span></div><div class="cost-row" data-cost-model="Bond-F" aria-label="Bond-F: 130.43 milliseconds per physics step"><span class="cost-row-label">Bond-F</span><div class="cost-bar-track"><div class="cost-bar" style="--bar-color: #cfaa61; width: 39.52424242424243%"></div></div><span class="cost-value">130.43</span></div><div class="cost-row" data-cost-model="Bond-R" aria-label="Bond-R: 29.14 milliseconds per physics step"><span class="cost-row-label">Bond-R</span><div class="cost-bar-track"><div class="cost-bar" style="--bar-color: #aa708e; width: 8.83030303030303%"></div></div><span class="cost-value">29.14</span></div></div><div class="cost-ticks" aria-hidden="true"><span>0</span><span>100</span><span>200</span><span>300 ms</span></div><div class="cost-family" role="group" aria-label="Highlight an interface family"><button class="is-active" data-family="Coh" aria-pressed="true">Cohesion</button><button data-family="Bond" aria-pressed="false">Bonds</button></div><p id="cost-note" class="small-note">32 turns · comparable rotation range · RTX PRO 6000.</p><details class="data-details"><summary>Data & comparison protocol <span>+</span></summary><p>Mean physics-step times from the comparable-motion experiment. Tolerances are selected by model and roll size to recover the Bond-R target rotation range. Timing excludes front updates, control, telemetry and rendering. This sweep is separate from the motion video and the fixed-tolerance benchmark.</p></details></div></div>
+    </div></section>
+
+    <section id="reality" class="section-shell chapter" aria-labelledby="reality-title"><div class="section-heading"><h2 id="reality-title">Open-loop replay</h2><p>Recorded robot commands are replayed in simulation to evaluate agreement with real tape motion. The synchronized comparison below shows a Stick episode; roll-landmark errors summarize five episodes.</p></div>
+      <div class="replay-lab"><div class="replay-toolbar"><div class="model-picker" role="group" aria-label="Replay simulation model"><button data-replay="Coh-F" aria-pressed="false">Coh-F</button><button data-replay="Coh-R" aria-pressed="false">Coh-R</button><button data-replay="Bond-F" aria-pressed="false">Bond-F</button><button data-replay="Bond-R" class="is-active" aria-pressed="true">Bond-R</button></div><button id="replay-layout" class="text-button" aria-pressed="true">Wipe view <span aria-hidden="true">↔</span></button></div><div id="replay-stage" class="replay-stage split"><div class="replay-layer sim-layer"><video id="replay-sim" controls muted playsinline preload="none" poster="assets/media/replay-bond-r.webp" src="assets/media/replay-bond-r.mp4" aria-label="Simulated Stick replay"></video><span class="video-tag sim-tag">SIMULATION / <span id="replay-model-label">Bond-R</span></span></div><div class="replay-layer real-layer"><video id="replay-real" controls muted playsinline preload="none" poster="assets/media/replay-real.webp" src="assets/media/replay-real.mp4" aria-label="Real Stick replay"></video><span class="video-tag real-tag">REAL</span></div><div class="wipe-line" aria-hidden="true"><span>↔</span></div><label class="sr-only" for="wipe-range">Real and simulation comparison divider</label><input id="wipe-range" class="wipe-range" type="range" min="0" max="100" value="50"><span class="replay-case">STICK / EPISODE 19</span></div><div class="scrub-row"><button class="round-button" id="replay-play" aria-label="Play synchronized replay">▶</button><label class="sr-only" for="replay-range">Synchronized replay time</label><input id="replay-range" type="range" min="0" max="7" step=".033333" value="0"><output id="replay-time">3.00 s</output><span class="rate-static">1×</span></div><p class="small-note replay-foot"><span>Identical recorded commands · common source clock · no marker overlays</span><span>Switch to wipe view to compare aligned images.</span></p></div>
+      <div class="replay-results"><div><p class="eyebrow">Five-episode evaluation</p><div class="big-stat">23–29<span>%</span></div><h3>Lower roll-landmark error with clustering</h3><p class="small-note">Compared with Coh-F, across five real Stick episodes.<br>Two repeats per model; active interval t ≥ 3 s.</p></div><div class="replay-chart-panel"><div class="panel-meta"><span>IMAGE-PLANE ERROR</span><span>px · lower is better</span></div><svg id="replay-chart" viewBox="0 0 570 285" role="img" aria-label="Five episode means and overall mean image-plane roll-landmark error for each configuration"></svg><p class="small-note">Each dot is one episode mean; the horizontal mark is the mean across episodes. Hover or focus a point to inspect it.</p><output id="point-detail" aria-live="polite">Select a point to see its episode and error.</output></div></div>
+      <div class="calibration-note"><span class="mini-label">Peel-force calibration</span><strong>2.5 N</strong><p>Tabletop adhesion is calibrated against a measured peel force.</p><button class="text-button media-open" data-media="gauge" data-title="Physical peel-force measurement" data-description="The real measurement excerpt already shown in the film (original source 56–61 s). The observed gauge reference is 2.5 N.">See the measurement <span aria-hidden="true">↗</span></button><button class="text-button media-open" data-media="capabilities" data-title="Contact-pressure-triggered cutting" data-description="Original standalone simulation from the current film. Cutting triggers at 1 kPa for two consecutive physics steps. Color indicates membrane tension, not contact pressure.">See the cutting test <span aria-hidden="true">↗</span></button></div>
+    </section>
+
+    <section id="policies" class="policy-section chapter" aria-labelledby="policy-title"><div class="section-shell"><div class="section-heading"><h2 id="policy-title">Closed-loop policy evaluation</h2><p>Frozen policies are evaluated in paired real and simulated scenes. Peel tests detachment from the table, Stick tests roll response to free-end motion, and Wrap combines attachment to a new target with progressive dispensing.</p></div><div class="task-tabs" role="tablist" aria-label="Closed-loop task"><button role="tab" id="tab-peel" data-task="peel" aria-selected="false" aria-controls="task-panel" tabindex="-1"><span>01</span> Peel <small>Release from a surface</small></button><button role="tab" id="tab-stick" data-task="stick" aria-selected="false" aria-controls="task-panel" tabindex="-1"><span>02</span> Stick <small>Control the free end</small></button><button role="tab" id="tab-wrap" data-task="wrap" aria-selected="true" aria-controls="task-panel" class="is-active"><span>03</span> Wrap <small>Attach while dispensing</small></button></div><div id="task-panel" role="tabpanel" aria-labelledby="tab-wrap"><div class="policy-meta"><span id="policy-case">WRAP / CASE 49</span><span>Independent policy rollouts · shared playback clock</span></div><div id="policy-videos" class="policy-videos"><div class="policy-video"><div class="model-title">Real<small>REAL ROBOT</small></div><div class="policy-media"><video controls muted playsinline preload="none" poster="assets/media/wrap-real.webp" src="assets/media/wrap-real.mp4" aria-label="Wrap case 49, real"></video></div><div class="outcome visible success">✓ Final: 2 turns</div></div><div class="policy-video"><div class="model-title">Coh-F<small>SIMULATION</small></div><div class="policy-media"><video controls muted playsinline preload="none" poster="assets/media/wrap-coh-f.webp" src="assets/media/wrap-coh-f.mp4" aria-label="Wrap case 49, coh-f"></video></div><div class="outcome visible partial">◐ Final: 1 turn</div></div><div class="policy-video"><div class="model-title">Bond-R<small>SIMULATION</small></div><div class="policy-media"><video controls muted playsinline preload="none" poster="assets/media/wrap-bond-r.webp" src="assets/media/wrap-bond-r.mp4" aria-label="Wrap case 49, bond-r"></video></div><div class="outcome visible success">✓ Final: 2 turns</div></div></div><div class="scrub-row"><button class="round-button" id="policy-play" aria-label="Play closed-loop comparison">▶</button><label for="policy-range" class="sr-only">Closed-loop comparison time</label><input id="policy-range" type="range" min="0" max="4.6" step=".033333" value="0"><output id="policy-time">0.00 s</output><span class="rate-static">1×</span></div><div class="policy-takeaway"><strong id="policy-conclusion">Wrap: attachment and progressive dispensing</strong><p id="policy-explanation">Bond-R matches two real turns in this example. The task combines attachment to a target with release from the roll.</p><span id="policy-count">55 paired cases</span></div><details class="data-details policy-data"><summary>Explore aggregate results <span>+</span></summary><p>These are full-trial outcomes, not scores for the shortened display clips. Balanced accuracy gives equal weight to real successes and failures.</p><p class="table-scroll-hint">Swipe the table to compare all metrics →</p><div id="policy-table" tabindex="0" role="region" aria-label="Aggregate results table; scroll horizontally on small screens"></div><p id="policy-caveat" class="small-note"></p></details></div>
+      <figure id="success-rates" class="success-figure" aria-labelledby="success-rates-title">
+        <h3 id="success-rates-title">Real versus simulated success</h3>
+        <div class="rate-legend" aria-label="Task marker legend">
+          <span><svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="5"/></svg>Peel <small>(100 cases)</small></span>
+          <span><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="4" y="4" width="10" height="10"/></svg>Stick <small>(71 cases)</small></span>
+          <span><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 3L15 14H3Z"/></svg>Wrap ≥1 turn <small>(55 cases)</small></span>
+          <span><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 3L15 14H3Z" fill="white" stroke="currentColor" stroke-width="1.5"/></svg>Wrap ≥2 turns <small>(55 cases)</small></span>
+        </div>
+        <div class="rate-panels">
+          <figure><figcaption>Coh-F</figcaption><img src="assets/figures/closed-loop-coh-f.svg" width="268" height="268" loading="lazy" alt="Coh-F: simulated success on the horizontal axis and real success on the vertical axis, with 95% Wilson intervals for Peel, Stick and both Wrap criteria."></figure>
+          <figure><figcaption>Coh-R</figcaption><img src="assets/figures/closed-loop-coh-r.svg" width="268" height="268" loading="lazy" alt="Coh-R: simulated success on the horizontal axis and real success on the vertical axis, with 95% Wilson intervals for Peel, Stick and both Wrap criteria."></figure>
+          <figure><figcaption>Bond-F</figcaption><img src="assets/figures/closed-loop-bond-f.svg" width="268" height="268" loading="lazy" alt="Bond-F: simulated success on the horizontal axis and real success on the vertical axis, with 95% Wilson intervals for Peel, Stick and both Wrap criteria."></figure>
+          <figure><figcaption>Bond-R</figcaption><img src="assets/figures/closed-loop-bond-r.svg" width="268" height="268" loading="lazy" alt="Bond-R: simulated success on the horizontal axis and real success on the vertical axis, with 95% Wilson intervals for Peel, Stick and both Wrap criteria."></figure>
+        </div>
+        <figcaption class="media-caption">The dashed diagonal indicates equal success rates; error bars show 95% Wilson intervals. Coh: cohesive adhesion; Bond: releasable bonds. F: fully deformable; R: rigid cluster with a deformable collar. These are aggregate task rates, not case-by-case agreement.</figcaption>
+      </figure>
+</div></section>
+
+
+    <section id="bibtex" class="section-shell chapter citation" aria-labelledby="bibtex-title">
+      <div class="citation-heading"><h2 id="bibtex-title">BibTeX</h2><div class="citation-actions"><button id="copy-bibtex" class="button button-outline js-only">Copy citation</button><a href="tapesim.bib" download class="text-button">Download .bib ↓</a></div></div>
+      <p class="citation-note">If you use TapeSim in your research, please cite our <a href="https://arxiv.org/abs/2609.28766">paper</a>.</p>
+      <pre tabindex="0" aria-label="BibTeX citation"><code id="bibtex-code">@misc{luo2026tapesim,
+  title = {{TAPESIM}: Efficient Simulation of Adhesive Tape Dispensing
+           for Robotic Manipulation},
+  author = {Zhaofeng Luo and Xinyu Lu and Jaehoon Choi and Zhehuan Chen
+            and Trinity Chung and Xiaowen Qiu and Hugh Nicholas Perkins
+            and Gianna Calderon and Alexis Duburcq and Sanghyun Son
+            and Tsun-Hsuan Wang and Yi-Ling Qiao and Minchen Li},
+  year = {2026},
+  eprint = {2609.28766},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.RO},
+  url = {https://arxiv.org/abs/2609.28766}
+}</code></pre>
+      <p id="copy-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="section-shell"><a class="brand" href="#">TapeSim</a><span>© 2026 TapeSim authors</span><div class="footer-controls"><button id="motion-setting" class="motion-setting" aria-pressed="false"><span aria-hidden="true">◉</span> Reduce motion</button><a href="#">Back to top ↑</a></div></footer>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="media-dialog" aria-labelledby="dialog-title"><div class="dialog-header"><div><p class="eyebrow" id="dialog-kicker">TAPESIM / FILM</p><h2 id="dialog-title">TapeSim research video</h2></div><button id="dialog-close" class="round-button" aria-label="Close video">×</button></div><video id="dialog-video" controls playsinline preload="none"></video><p id="dialog-description"></p></dialog>
+</body>
+</html>

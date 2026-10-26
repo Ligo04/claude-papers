@@ -1,0 +1,12 @@
+# HDMI type A: a 14 x 4.55 mm opening, narrower at the top for keying, with
+# a 12.6 x 1 mm tongue above center.
+kind: peg
+hole: {type: trapezoid, bottom_width: 0.014, top_width: 0.0128, height: 0.00455}
+islands:
+  - {type: rect, width: 0.0126, height: 0.001, center: [0.0, 0.001]}
+clearance: 8.0e-5
+plate_size: 0.03
+plate_thickness: 0.007
+peg_length: 0.014
+handle_height: 0.02
+handle_margin: 0.002

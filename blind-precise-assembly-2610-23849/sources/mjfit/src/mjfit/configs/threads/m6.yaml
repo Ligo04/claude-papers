@@ -1,0 +1,16 @@
+# An M6 x 1 (ISO coarse) with a round head and a round nut: a small, quick
+# example. 24 segments per turn suit its 60 um clearance.
+kind: thread
+major_diameter: 0.006
+pitch: 0.001
+thread_length: 0.012
+clearance: 6.0e-5
+bolt_shank_length: 0.005
+bolt_head: cylinder
+bolt_head_size: 0.010
+bolt_head_height: 0.004
+nut_shape: cylinder
+nut_size: 0.010
+nut_height: 0.005
+friction: 0.3
+condim: 3

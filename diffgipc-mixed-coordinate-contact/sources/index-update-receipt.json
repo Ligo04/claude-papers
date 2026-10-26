@@ -1,0 +1,11 @@
+{
+  "preexisting_entries": 57,
+  "entries_after": 58,
+  "preexisting_entries_unchanged": true,
+  "previous_index_sha256": "7e9cacf155811d6678a0772cf5ca1a0983655a47b70345346c1c863576797c50",
+  "new_entry": "diffgipc-mixed-coordinate-contact",
+  "tags": [
+    "可微接触仿真",
+    "混合坐标伴随"
+  ]
+}

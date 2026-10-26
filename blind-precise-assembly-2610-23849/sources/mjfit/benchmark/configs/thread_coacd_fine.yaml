@@ -1,0 +1,18 @@
+# Optional extension of thread.yaml, not in the shipped results: CoACD at
+# threshold 0.01 on the same bolt and nut. About 3,800 hulls per clearance and
+# about 2 h to decompose each (the release cache holds both), then an estimated
+# 20-40 ms per simulated step. In the run-down video it jams, like every
+# coarser threshold.
+#   python -m benchmark.reproduce --stage thread-coacd
+
+task: {}            # ThreadTask defaults, as in thread.yaml
+
+clearance_um: [100, 20]
+
+methods:
+  coacd:
+    - {threshold: 0.01}
+
+multiccd: [true, false]
+
+probes: [memory, axial, radial, tilt, screw, spin]

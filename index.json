@@ -1573,6 +1573,190 @@
       "codeLinks": [
         "https://github.com/eliphatfs/cuacd"
       ]
+    },
+    {
+      "id": "sdf-collision-caching-importance-sampling",
+      "title": "Real-Time Collision Handling for Signed Distance Fields via Caching and Importance Sampling",
+      "slug": "sdf-collision-caching-importance-sampling",
+      "authors": [
+        "Chris Giles",
+        "Sheldon Andrews"
+      ],
+      "abstract": "本文研究两个以 Signed Distance Field 表示的刚体之间的离散碰撞检测。方法结合跨帧候选点缓存、曲率引导的重要性采样和接触点排斥，在较少距离场查询下生成稀疏且持久的多点接触流形。论文比较 Nelder–Mead、Ellipsoid 和随机梯度下降，并用解析与体素场、堆叠场景、穿透深度及动能实验评估效率与稳定性。",
+      "year": 2026,
+      "date": "2026-10-19",
+      "tags": [
+        "SDF碰撞检测",
+        "接触流形缓存"
+      ],
+      "githubLinks": [
+        "https://github.com/savant117/sdf-dcd-demo"
+      ],
+      "codeLinks": [
+        "https://github.com/savant117/sdf-dcd-demo"
+      ],
+      "projectLinks": [
+        "https://savant117.github.io/sdf-dcd-demo/"
+      ],
+      "pdfUrl": "https://savant117.github.io/sdf-dcd-demo/paper.pdf",
+      "difficulty": "Advanced",
+      "titleZh": "通过缓存与重要性采样实现 SDF 的实时碰撞处理",
+      "studyDate": "2026-10-19",
+      "sourceCommit": "08539dd3ad5fa9b41fdd160c730747de0b510b4e",
+      "dateNote": "本地收录日期，精确发表日期未核实"
+    },
+    {
+      "id": "diffgipc-mixed-coordinate-contact",
+      "title": "DiffGIPC: Differentiable Mixed-Coordinate Contact Dynamics on GPU",
+      "slug": "diffgipc-mixed-coordinate-contact",
+      "authors": [
+        "Kemeng Huang",
+        "Bowen Ren",
+        "Xinyu Lu",
+        "Minchen Li",
+        "Taku Komura"
+      ],
+      "abstract": "DiffGIPC 面向接触丰富的逆问题，在统一 IPC 框架中使用 FEM 表示软体、用每个物体 12 个运动自由度的 affine 坐标表示近刚体。逐帧耦合伴随保留碰撞、摩擦与关节依赖，显式计算静止形状、初始状态和控制导数；GPU 反向执行、conditional CUDA Graph PCG 与 PyTorch 接口降低重复仿真和求梯度的成本。性能需要区分共享 FEM 基准、改变运动表示后的高分辨率峰值，以及 Graph 开关实验。",
+      "year": 2026,
+      "date": "2026-10-13",
+      "tags": [
+        "可微接触仿真",
+        "混合坐标伴随"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "arxivId": "2610.19091",
+      "url": "https://arxiv.org/abs/2610.19091v1",
+      "pdfUrl": "https://arxiv.org/pdf/2610.19091v1",
+      "language": "zh-CN"
+    },
+    {
+      "id": "physldm-latent-deformable-simulation",
+      "title": "PhysLDM: Latent Diffusion for High-Fidelity Deformable Simulation",
+      "slug": "physldm-latent-deformable-simulation",
+      "authors": [
+        "Yu Zhang",
+        "Xudong Xu",
+        "Xingang Pan"
+      ],
+      "abstract": "PhysLDM 用逐帧空间 VAE、整体时序 ST-VAE 与条件 rectified-flow 模型生成体积软体网格的整段轨迹。它把全局刚体运动与局部形变分开编码，缓解局部时间压缩的阶梯伪影，并比较了多模态运动中的扩散采样和确定性回归。主要结果包含重建精度、未来预测、物理一致性指标、分布外几何、逆问题与真实数据适配。重建误差、预测误差以及微调子集表现需要分别理解。",
+      "year": 2026,
+      "date": "2026-10-06",
+      "tags": [
+        "变形体仿真",
+        "潜空间扩散"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "arxivId": "2610.07609",
+      "version": "v3",
+      "url": "https://arxiv.org/abs/2610.07609v3",
+      "pdfUrl": "https://arxiv.org/pdf/2610.07609v3",
+      "projectUrl": "https://yucrazing.github.io/physldm/",
+      "language": "zh-CN",
+      "updatedDate": "2026-10-18"
+    },
+    {
+      "id": "blind-precise-assembly-2610-23849",
+      "title": "Blind Precise Assembly: Proprioceptive Sim-to-Real Peg-in-Hole for Diverse Parts",
+      "slug": "blind-precise-assembly-2610-23849",
+      "authors": [
+        "Antonia Bronars",
+        "Younghyo Park",
+        "Kushal Kedia",
+        "Pulkit Agrawal"
+      ],
+      "abstract": "论文研究仅用关节位置、速度、由其计算的夹爪状态和动作历史完成接触装配。时序编码器结合训练期接触监督与非对称 PPO，在仿真中学习插销入孔、齿轮啮合和螺母起扣；插销策略无需真机策略微调，在 237 次真机实验中成功 173 次。配套 mjfit 根据装配间隙构造凸碰撞几何。实验从已接触且靠近目标的位置开始。",
+      "year": 2026,
+      "date": "2026-10-16",
+      "tags": [
+        "精密装配",
+        "本体感知策略"
+      ],
+      "githubLinks": [
+        "https://github.com/younghyopark/mjfit"
+      ],
+      "codeLinks": [
+        "https://github.com/younghyopark/mjfit"
+      ]
+    },
+    {
+      "id": "supermimic-differentiable-world-model",
+      "slug": "supermimic-differentiable-world-model",
+      "title": "SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World Model",
+      "titleZh": "SuperMimic：用一个可微世界模型扩展人形机器人全身控制",
+      "authors": [
+        "Qiayuan Liao",
+        "Yiyang Shao",
+        "Junfeng Long",
+        "Kevin Zakka",
+        "Roberto Horowitz",
+        "Pieter Abbeel",
+        "Koushil Sreenath"
+      ],
+      "abstract": "SuperMimic 用一个从标准刚体仿真日志学习的可微世界模型共享不同动作的机器人动力学。训练交替采样、拟合模型和通过短期想象轨迹反向传播优化策略，并用 critic 补充长期回报。作者报告单张 H100 训练 3 小时超过 SONIC 发布检查点的归一化回报；在 129514 条训练集基准动作上失败 25 条，双卡 9.8 小时后为零。论文展示 G1 真机迁移，并分析动力学共享、模型吞吐和解析策略梯度的贡献。硬件、训练数据和评估口径的差异需要单独理解。",
+      "year": 2026,
+      "date": "2026-10-20",
+      "studyDate": "2026-10-22",
+      "tags": [
+        "人形全身控制",
+        "可微世界模型"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "projectLinks": [
+        "https://supermimic.github.io/"
+      ],
+      "arxivId": "2610.28480",
+      "version": "v1",
+      "url": "https://arxiv.org/abs/2610.28480v1",
+      "pdfUrl": "https://arxiv.org/pdf/2610.28480v1",
+      "language": "zh-CN",
+      "difficulty": "Advanced"
+    },
+    {
+      "id": "tapesim-adhesive-tape-dispensing",
+      "slug": "tapesim-adhesive-tape-dispensing",
+      "title": "TAPESIM: Efficient Simulation of Adhesive Tape Dispensing for Robotic Manipulation",
+      "titleZh": "TapeSim：用于机器人操作的高效胶带放带仿真",
+      "authors": [
+        "Zhaofeng Luo",
+        "Xinyu Lu",
+        "Jaehoon Choi",
+        "Zhehuan Chen",
+        "Trinity Chung",
+        "Xiaowen Qiu",
+        "Hugh Nicholas Perkins",
+        "Gianna Calderon",
+        "Alexis Duburcq",
+        "Sanghyun Son",
+        "Tsun-Hsuan Wang",
+        "Yi-Ling Qiao",
+        "Minchen Li"
+      ],
+      "abstract": "TapeSim 针对机器人胶带操作，把卷内多数材料表示为刚体 cluster，以随释放前沿推进的可变形 collar 支持连续放带，已放出的胶带保持柔性并能重新黏附。可选 releasable bond 简化部分内部界面。论文通过卷筒摆动、真实动作回放、冻结策略的真实/仿真配对成败和遥操作封箱评估，显示空间降阶降低求解成本，同时部分改善运动与预测结果；界面排名随任务改变。",
+      "year": 2026,
+      "date": "2026-09-23",
+      "updatedDate": "2026-09-28",
+      "studyDate": "2026-10-26",
+      "arxivId": "2609.28766",
+      "version": "v2",
+      "url": "https://arxiv.org/abs/2609.28766v2",
+      "pdfUrl": "https://arxiv.org/pdf/2609.28766v2",
+      "projectLinks": [
+        "https://genesis-embodied-ai.github.io/tapesim-website/"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "codeAvailability": "2026-10-26 查阅：官方项目页标注 Code Coming soon；未提供求解器仓库入口。",
+      "language": "zh-CN",
+      "difficulty": "Advanced",
+      "tags": [
+        "胶带操作仿真",
+        "释放前沿降阶"
+      ],
+      "pageCount": 9,
+      "pdfSha256": "fc3600439f1a75f3a6ad948e41f33c85443e250450effc8abb2f362ec67553f3"
     }
   ]
 }

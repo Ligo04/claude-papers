@@ -1,0 +1,260 @@
+{
+  "source": "arXiv:2610.28480v1",
+  "language": "zh-CN",
+  "benchmark": {
+    "motions": 129514,
+    "datasetHours": 264.56,
+    "evaluation": "训练集覆盖率；确定性仿真、无域随机化/观测噪声，摩擦1.0，每条从首帧运行一次。失败使用 SuperMimic 训练终止规则。",
+    "source": "附录 F.1，第17页"
+  },
+  "runs": [
+    {
+      "id": "sonic",
+      "name": "SONIC 发布检查点",
+      "gpus": 128,
+      "gpuModel": "L40",
+      "hours": 168,
+      "gpuHours": 21504,
+      "reportedApproxGpuHours": 21000,
+      "motionHours": 611,
+      "normalizedReturn": 0.9,
+      "failures": 179
+    },
+    {
+      "id": "one",
+      "name": "SuperMimic 单卡 3h",
+      "gpus": 1,
+      "gpuModel": "H100 80GB SXM5",
+      "hours": 3,
+      "gpuHours": 3,
+      "motionHours": 264.56,
+      "normalizedReturn": null,
+      "returnRelation": ">0.90",
+      "failures": 25
+    },
+    {
+      "id": "two",
+      "name": "SuperMimic 双卡 9.8h",
+      "gpus": 2,
+      "gpuModel": "H100 80GB SXM5",
+      "hours": 9.8,
+      "gpuHours": 19.6,
+      "motionHours": 264.56,
+      "normalizedReturn": null,
+      "returnRelation": "论文未给此检查点的精确回报表值",
+      "failures": 0
+    }
+  ],
+  "compute": {
+    "wallClockRatio": 56,
+    "nominalGpuHoursRatio": 7168,
+    "paperApproxRatio": 7200,
+    "note": "7168=128*168/3，只是按卡时算术，不是同型号硬件或 FLOPs 的效率比较。训练3h包含完整循环、不含训练后的检查点评估。",
+    "source": "第6页，4.1节"
+  },
+  "failureGroups": [
+    {
+      "id": "roll",
+      "name": "侧滚",
+      "motions": 22,
+      "sonic": 22,
+      "one": 2,
+      "two": 0
+    },
+    {
+      "id": "flip",
+      "name": "360°/180°/90° 翻转",
+      "motions": 44,
+      "sonic": 44,
+      "one": 1,
+      "two": 0
+    },
+    {
+      "id": "turn",
+      "name": "fire-in-the-hole turns",
+      "motions": 20,
+      "sonic": 3,
+      "one": 3,
+      "two": 0
+    },
+    {
+      "id": "cross",
+      "name": "交叉腿",
+      "motions": 10,
+      "sonic": 9,
+      "one": 0,
+      "two": 0
+    },
+    {
+      "id": "lying",
+      "name": "躺卧、休息和站起",
+      "motions": 99,
+      "sonic": 28,
+      "one": 8,
+      "two": 0
+    },
+    {
+      "id": "jump",
+      "name": "立定跳远",
+      "motions": 24,
+      "sonic": 15,
+      "one": 0,
+      "two": 0
+    },
+    {
+      "id": "dance",
+      "name": "舞蹈组",
+      "motions": 8,
+      "sonic": 8,
+      "one": 0,
+      "two": 0
+    },
+    {
+      "id": "other",
+      "name": "其余动作",
+      "motions": 129287,
+      "sonic": 50,
+      "one": 11,
+      "two": 0
+    }
+  ],
+  "failureGroupSource": "表 A.8，第18页；官网把20条 fire-in-the-hole turns 并入其余动作，官网其余动作129307条、失败53/14/0；总数一致。",
+  "controlledLafan1": {
+    "clips": 40,
+    "motionHours": 2.45,
+    "evaluationTarget": 0.82,
+    "supermimicHoursToTarget": 1.2,
+    "ppoBudgetHours": 18,
+    "ppoFinalReturns": [
+      {
+        "gpus": 1,
+        "return": 0.6
+      },
+      {
+        "gpus": 4,
+        "return": 0.7
+      },
+      {
+        "gpus": 8,
+        "return": 0.72
+      }
+    ],
+    "source": "第6至7页，图4a；检查点评估回报"
+  },
+  "model": {
+    "fitWindow": 8,
+    "imaginationHorizon": 32,
+    "gamma": 0.99,
+    "gaeLambda": 0.95,
+    "controlPeriodSeconds": 0.02,
+    "simSubstepSeconds": 0.005,
+    "simSubstepsPerControl": 4,
+    "datasetHoursSweep": [
+      1,
+      7,
+      40,
+      264
+    ],
+    "normalized8StepPredictionErrorRange": [
+      0.007,
+      0.011
+    ],
+    "practicalSpeedupLowerBound": 10,
+    "practicalBatchRange": [
+      2048,
+      16384
+    ],
+    "speedupAt64k": 62,
+    "analyticGradientImaginedStepRatioApprox": 64,
+    "source": "第7至8页，图3c/5；64倍只比较 LAFAN1 walk/run/sprint 子集 PPO-WM 最佳训练回报所需想象步数"
+  },
+  "horizons": [
+    {
+      "steps": 8,
+      "criticReaches082": false,
+      "noCriticReaches082": false
+    },
+    {
+      "steps": 16,
+      "criticReaches082": true,
+      "noCriticReaches082": false
+    },
+    {
+      "steps": 32,
+      "criticReaches082": true,
+      "noCriticReaches082": true
+    },
+    {
+      "steps": 64,
+      "criticReaches082": true,
+      "noCriticReaches082": true
+    },
+    {
+      "steps": 128,
+      "criticReaches082": true,
+      "noCriticReaches082": true
+    }
+  ],
+  "horizonSource": "图4b/c，第7页；H32有critic到目标最快。只有是否达到目标，未伪造各柱精确时长。",
+  "velocity": {
+    "commands": 672,
+    "trialsPerCommand": 4,
+    "durationSeconds": 5,
+    "steadyStateWindowSeconds": 2,
+    "rlBetterCommands": 650,
+    "distillBetterCommands": 15,
+    "distillFallsAllTrialsCommands": 7,
+    "rlMedianRelativeError": 0.16,
+    "distillMedianRelativeError": 0.49,
+    "trainingSeedsPerMethod": 1,
+    "source": "第19页，附录 G.2；七个全跌倒命令独立计数，不推定与650/15关系"
+  },
+  "filtering": [
+    {
+      "stage": "原始G1重定向",
+      "clips": 142220
+    },
+    {
+      "stage": "名称过滤后",
+      "clips": 129667
+    },
+    {
+      "stage": "可行性过滤后",
+      "clips": 129514
+    }
+  ],
+  "network": {
+    "worldModelHidden": [
+      2048,
+      2048,
+      2048
+    ],
+    "motionEncoderHidden": [
+      2048,
+      1024,
+      512,
+      256
+    ],
+    "sharedDecoderHidden": [
+      2048,
+      1024,
+      512,
+      256
+    ],
+    "criticHidden": [
+      256,
+      128
+    ],
+    "latentDim": 32,
+    "observationDim": 93,
+    "historyFrames": 10,
+    "futureReferenceFrames": 10,
+    "source": "第13页表A.1及第15页表A.4；93是29+29+3+3+29的计算值"
+  },
+  "dataNotes": [
+    "null 表示论文未给出精确值，不代表零。",
+    "论文图上的完整曲线未数字化。",
+    "所有失败分组使用固定版本PDF的表A.8。",
+    "交互页面只对这些已核实数据及明确标注的推导值做展示。"
+  ]
+}

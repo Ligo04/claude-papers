@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-20",
+  "url": "http://127.0.0.1:5815/papers/physldm-latent-deformable-simulation",
+  "checks": [
+    {
+      "check": "预测流程",
+      "text": "条件 DiT / flow 积分\n主表 50 次 Euler 更新"
+    },
+    {
+      "check": "Small 潜空间",
+      "text": "2,052"
+    },
+    {
+      "check": "大网格压缩比",
+      "text": "181.224×"
+    },
+    {
+      "check": "表1重建数据",
+      "text": "模型\t形变重建均值 / mm\t来源\nStandard\t5.32\t表 1，PDF 第 7 页\nDirect world-coord. †\t6.5\t表 1，PDF 第 7 页\nHolistic (ours)\t2.48\t表 1，PDF 第 7 页"
+    },
+    {
+      "check": "表2预测数据",
+      "text": "模型\t世界坐标误差 / mm\t来源\nDiffusion (ours)\t28.2\t表 2，PDF 第 8 页\nRegression\t37.5\t表 2，PDF 第 8 页\nMGN-style AR\t80.6\t表 2，PDF 第 8 页"
+    },
+    {
+      "check": "GSO体积违例",
+      "text": "模型\t体积违例 / %\t来源\nDiffusion (ours)\t2\t表 2，PDF 第 8 页\nRegression\t5.1\t表 2，PDF 第 8 页\nMGN-style AR\t47.1\t表 2，PDF 第 8 页"
+    },
+    {
+      "check": "高分歧单样本和best-of-8",
+      "text": "Regression\n63.2\nDiffusion, single sample\n54\nDiffusion, best of 8\n44.7"
+    },
+    {
+      "check": "隐藏GT选样",
+      "rows": 2
+    },
+    {
+      "check": "低分歧组",
+      "text": "Regression\n25\nDiffusion, single sample\n18"
+    },
+    {
+      "check": "自测反馈",
+      "text": "这个解释符合附录 D.6。它说明候选样本可覆盖较接近参考的结果，但需额外证据判断概率是否校准、部署时能否选中。"
+    },
+    {
+      "check": "bf16默认50步",
+      "fps": "44 fps",
+      "latency": "≈ 1.45455 s"
+    },
+    {
+      "check": "fp32大网格20步",
+      "fps": "23 fps",
+      "latency": "≈ 2.78261 s",
+      "decode": "960 ms"
+    },
+    {
+      "check": "真实数据零样本",
+      "text": "ST-VAE reconstruction\n6\nLDM prediction\n874.9",
+      "scope": "表 16：22 个场景，未做适配，报告场景中位数。重建看到了完整真实轨迹，预测只使用初始条件。"
+    },
+    {
+      "check": "真实数据微调子集",
+      "text": "微调前\n921.3\n微调后\n6.2",
+      "scope": "表 17：16 个微调子集场景，统计同一子集的前后表现。与表 16 的集合不同。"
+    },
+    {
+      "check": "ARAP微调",
+      "text": "微调前\n34.4\n微调后\n8.8"
+    },
+    {
+      "check": "ARAP零样本",
+      "text": "ST-VAE reconstruction\n4.6\nLDM prediction\n37.5"
+    },
+    {
+      "check": "公式渲染",
+      "displayFormulas": 5,
+      "errors": 0
+    }
+  ],
+  "errorLogs": [],
+  "sandboxedIframe": true
+}

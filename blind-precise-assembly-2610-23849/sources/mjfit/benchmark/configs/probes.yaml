@@ -1,0 +1,52 @@
+# Passive-probe sweep: every representation x every probe x MULTICCD on/off.
+# Plates depend only on the hole, so clearance sweeps reuse one decomposition.
+
+task:                    # meters
+  size: 0.008            # hole radius (circle) / half-width (square): 16 mm hole
+  thickness: 0.015
+  plate_half: 0.024
+  peg_length: 0.040
+
+shapes: [circle, square]
+
+methods:
+  ours:                  # mjfit prisms; chord error applies to curved outlines only
+    circle:              # circumscribed n-gon, n = 7 ... 281 sides at R = 8 mm
+      - {chord_error_um: 1000}
+      - {chord_error_um: 500}
+      - {chord_error_um: 200}
+      - {chord_error_um: 100}
+      - {chord_error_um: 40}
+      - {chord_error_um: 20}
+      - {chord_error_um: 10}
+      - {chord_error_um: 5}
+      - {chord_error_um: 2.5}
+      - {chord_error_um: 1}
+      - {chord_error_um: 0.5}
+    square: [{}]
+  coacd:                 # concavity threshold, relative to the mesh's scale
+    - {threshold: 0.2}
+    - {threshold: 0.1}
+    - {threshold: 0.05}  # CoACD default
+    - {threshold: 0.02}
+    - {threshold: 0.01}
+  vhacd:
+    - {max_hulls: 16}
+    - {max_hulls: 64}    # V-HACD default
+    - {max_hulls: 256, resolution: 4000000}
+  sdf:                   # octree depth; initpoints/iterations = sdf_initpoints/sdf_iterations
+    - {depth: 5}
+    - {depth: 6}         # MuJoCo default
+    - {depth: 7}
+    - {depth: 8}
+    - {depth: 8, initpoints: 100, iterations: 30}
+
+multiccd: [true, false]  # MuJoCo 3.14 default is on; SDF ignores it, so SDF runs once
+
+probes:
+  static:  {clearance_um: 1000, n_dir: 24}
+  drop:    {clearance_um: [1000, 500, 200, 100, 50, 20, 10, 5, -5, -10, -20, -50, -100, -200, -500],
+            friction: [true, false]}
+  lateral: {clearance_um: [200, 100, 50, 20], force_N: 0.1, n_dir: 24}
+  tilt:    {clearance_um: [200, 100, 50, 20], phi_deg: {circle: [0], square: [0, 22.5, 45]}}
+  yaw:     {clearance_um: [200, 100, 50, 20]}

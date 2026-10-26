@@ -1,0 +1,6 @@
+# A fine-pitch 32:48 pair, module 1.6 mm.
+kind: gear
+teeth: [32, 48]
+module: 0.0016
+face_width: 0.005
+friction: 0.7

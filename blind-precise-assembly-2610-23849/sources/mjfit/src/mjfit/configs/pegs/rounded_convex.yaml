@@ -1,0 +1,25 @@
+# A convex peg with Bezier-rounded corners, the kind of part the paper's
+# policies train on: a wider grip handle above it, a convex plate keeping a
+# 5 mm rim, a 2 mm bottom closing the hole, and a total moving mass of 0.55 kg.
+# All three outlines share one frame (center: false keeps it).
+kind: peg
+peg:
+  type: bezier
+  vertices: [[-0.022, -0.013], [0.024, -0.010], [0.019, 0.017], [-0.017, 0.022]]
+  rounding: [0.5, 0.0, 0.25, 0.5]
+handle:
+  type: bezier
+  vertices: [[-0.0396, -0.0234], [0.0432, -0.0180], [0.0342, 0.0306], [-0.0306, 0.0396]]
+  rounding: 0.5
+plate:
+  type: bezier
+  vertices: [[-0.066, -0.039], [0.072, -0.030], [0.057, 0.051], [-0.051, 0.066]]
+  rounding: [0.5, 0.3, 0.0, 0.4]
+clearance: 0.001
+peg_length: 0.045
+handle_height: 0.025
+plate_thickness: 0.02
+min_rim: 0.005
+bottom_thickness: 0.002
+peg_mass: 0.55
+center: false

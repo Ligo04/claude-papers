@@ -1,0 +1,6 @@
+# An 18:24 pair of steel spur gears, module 3 mm, 20 degree pressure angle.
+# The motor drives the smaller gear.
+kind: gear
+teeth: [18, 24]
+module: 0.003
+face_width: 0.008

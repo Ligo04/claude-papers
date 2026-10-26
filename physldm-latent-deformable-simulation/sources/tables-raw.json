@@ -1,0 +1,1372 @@
+[
+  {
+    "id": "S4.T1",
+    "caption": "Table 1: ST-VAE reconstruction comparison across the three evaluation sets, on $300$ scenes per set within the training range and $300$ scenes per set beyond the $5{,}000$ -vertex training cap. DCC: deformation-change correlation; Recon: deformation reconstruction error (mm); rot / trans: rigid rotation (deg) and translation (mm) errors; full definitions in Appendix B . best and second-best per column within each block. The full comparison with all baselines is reported in Table 7 . † No factoring of Eq. ( 1 ); errors computed after removing the rigid motion from its output (Appendix B ).",
+    "rows": [
+      [
+        "",
+        "",
+        "$500\\leq N\\leq 5{,}000$",
+        "$5{,}000<N\\leq 10{,}000$"
+      ],
+      [
+        "",
+        "",
+        "DCC $\\uparrow$",
+        "Recon $\\downarrow$",
+        "Rigid $\\downarrow$",
+        "Recon $\\downarrow$",
+        "Rigid $\\downarrow$"
+      ],
+      [
+        "",
+        "ST-VAE",
+        "mean",
+        "mean",
+        "med",
+        "P90",
+        "rot",
+        "trans",
+        "mean",
+        "rot",
+        "trans"
+      ],
+      [
+        "Objaverse Held-out",
+        "Standard",
+        "0.665",
+        "5.32",
+        "3.47",
+        "12.01",
+        "0.270",
+        "0.57",
+        "6.14",
+        "0.185",
+        "0.50"
+      ],
+      [
+        "Direct world-coord. †",
+        "0.880",
+        "6.50",
+        "4.21",
+        "15.60",
+        "0.951",
+        "3.89",
+        "7.99",
+        "0.846",
+        "4.14"
+      ],
+      [
+        "Holistic (ours)",
+        "0.949",
+        "2.48",
+        "1.62",
+        "8.08",
+        "0.276",
+        "0.53",
+        "4.71",
+        "0.169",
+        "0.47"
+      ],
+      [
+        "GSO",
+        "Standard",
+        "0.641",
+        "3.46",
+        "1.64",
+        "8.83",
+        "0.161",
+        "0.48",
+        "4.30",
+        "0.149",
+        "0.42"
+      ],
+      [
+        "Direct world-coord. †",
+        "0.836",
+        "5.56",
+        "2.98",
+        "13.35",
+        "0.640",
+        "3.65",
+        "5.17",
+        "0.678",
+        "3.12"
+      ],
+      [
+        "Holistic (ours)",
+        "0.941",
+        "1.91",
+        "1.02",
+        "5.88",
+        "0.158",
+        "0.45",
+        "3.39",
+        "0.147",
+        "0.37"
+      ],
+      [
+        "Toys4K",
+        "Standard",
+        "0.663",
+        "5.49",
+        "3.83",
+        "11.11",
+        "0.310",
+        "0.62",
+        "6.86",
+        "0.189",
+        "0.51"
+      ],
+      [
+        "Direct world-coord. †",
+        "0.858",
+        "6.96",
+        "3.82",
+        "17.05",
+        "1.191",
+        "4.47",
+        "8.16",
+        "0.901",
+        "4.55"
+      ],
+      [
+        "Holistic (ours)",
+        "0.930",
+        "3.12",
+        "2.05",
+        "8.29",
+        "0.301",
+        "0.61",
+        "5.44",
+        "0.174",
+        "0.49"
+      ]
+    ]
+  },
+  {
+    "id": "S4.T2",
+    "caption": "Table 2: Prediction comparison across the three evaluation sets, on the same $300$ scenes per set within the training vertex range ( $500\\leq N\\leq 5{,}000$ ) as Table 1 . Vol.: tetrahedral volume violation %; SI: self-intersecting surface triangles %; KE: deformation-to-rigid kinetic-energy ratio $KE_{\\mathrm{def}}/KE_{\\mathrm{rig}}$ relative to ground truth (closer to $1$ is better); Err: median per-vertex error in world coordinates (mm); full definitions in Appendix B . The full set of physics checks is reported in Table 8 . best and second-best per column.",
+    "rows": [
+      [
+        "",
+        "Objaverse Held-out",
+        "GSO",
+        "Toys4K"
+      ],
+      [
+        "Prediction Model",
+        "Vol. $\\downarrow$",
+        "SI $\\downarrow$",
+        "KE $\\rightarrow$ 1",
+        "Err $\\downarrow$",
+        "Vol. $\\downarrow$",
+        "SI $\\downarrow$",
+        "KE $\\rightarrow$ 1",
+        "Err $\\downarrow$",
+        "Vol. $\\downarrow$",
+        "SI $\\downarrow$",
+        "KE $\\rightarrow$ 1",
+        "Err $\\downarrow$"
+      ],
+      [
+        "Diffusion (ours)",
+        "7.9",
+        "0.24",
+        "0.80",
+        "28.2",
+        "2.0",
+        "0.00",
+        "0.86",
+        "14.0",
+        "10.3",
+        "0.32",
+        "0.80",
+        "35.6"
+      ],
+      [
+        "Regression",
+        "22.7",
+        "0.79",
+        "0.72",
+        "37.5",
+        "5.1",
+        "0.01",
+        "0.72",
+        "19.9",
+        "24.3",
+        "1.07",
+        "0.69",
+        "42.6"
+      ],
+      [
+        "MGN-style AR",
+        "55.1",
+        "3.53",
+        "0.77",
+        "80.6",
+        "47.1",
+        "0.68",
+        "0.76",
+        "78.4",
+        "57.5",
+        "4.73",
+        "0.77",
+        "79.1"
+      ]
+    ]
+  },
+  {
+    "id": "A1.T3",
+    "caption": "Table 3: The two ST-VAE configurations used in this paper. ST-VAE Small is used for the reconstruction comparisons of Table 1 . ST-VAE Base is the ST-VAE behind PhysLDM, i.e. the LDM experiments and the applications.",
+    "rows": [
+      [
+        "",
+        "ST-VAE Small",
+        "ST-VAE Base"
+      ],
+      [
+        "Query tokens $K$",
+        "512",
+        "512"
+      ],
+      [
+        "Window $T$",
+        "32",
+        "64"
+      ],
+      [
+        "Temporal tokens $M$",
+        "4",
+        "8"
+      ],
+      [
+        "Temporal compression",
+        "$8\\times$",
+        "$8\\times$"
+      ],
+      [
+        "Hidden width",
+        "512",
+        "512"
+      ],
+      [
+        "Joint latent $M\\times(K{+}1)\\times D$",
+        "$4\\times 513\\times 48$",
+        "$8\\times 513\\times 48$"
+      ],
+      [
+        "Parameters (temporal stage)",
+        "$51$ M",
+        "$80$ M"
+      ],
+      [
+        "Parameters (total, incl. spatial VAE)",
+        "$95$ M",
+        "$124$ M"
+      ],
+      [
+        "Spatial VAE",
+        "frozen",
+        "jointly tuned"
+      ],
+      [
+        "Role",
+        "controlled comparisons",
+        "all downstream stages"
+      ]
+    ]
+  },
+  {
+    "id": "A3.T4",
+    "caption": "Table 4: DCC (deformation-change correlation with ground truth, computed as in Table 1 ) on the five GSO scenes of Fig. 5 . Scenes 1 to 5 are the five columns of Fig. 5 in the same order, and scene 4 is the one shown in Fig. 6 . Best per row in bold.",
+    "rows": [
+      [
+        "Scene",
+        "$N$",
+        "Holistic (ours)",
+        "Standard",
+        "+ vel. loss",
+        "+ spec. loss",
+        "Adapt. compr.",
+        "Direct world-coord."
+      ],
+      [
+        "1",
+        "5,181",
+        "0.972",
+        "0.728",
+        "0.850",
+        "0.781",
+        "0.418",
+        "0.972"
+      ],
+      [
+        "2",
+        "5,913",
+        "0.969",
+        "0.589",
+        "0.717",
+        "0.587",
+        "0.583",
+        "0.928"
+      ],
+      [
+        "3",
+        "6,005",
+        "0.986",
+        "0.478",
+        "0.668",
+        "0.479",
+        "0.488",
+        "0.943"
+      ],
+      [
+        "4",
+        "2,245",
+        "0.974",
+        "0.822",
+        "0.761",
+        "0.769",
+        "0.551",
+        "0.917"
+      ],
+      [
+        "5",
+        "1,526",
+        "0.970",
+        "0.640",
+        "0.616",
+        "0.684",
+        "0.684",
+        "0.824"
+      ]
+    ]
+  },
+  {
+    "id": "A4.T5",
+    "caption": "Table 5: Divergence between two runs of the GPU solver from byte-identical inputs on the $300$ Objaverse held-out scenes of Table 1 . Each entry gives the number and the percentage of scenes whose difference between the two runs exceeds the given fraction of the object size, measured (a) as the mean per-vertex error over the whole trajectory and (b) as the per-vertex error at the last frame.",
+    "rows": [
+      [
+        "Difference between the two runs",
+        "$>1\\%$ of size",
+        "$>5\\%$ of size",
+        "$>10\\%$ of size"
+      ],
+      [
+        "(a) mean error, whole trajectory",
+        "$35$ ( $11.7\\%$ )",
+        "$3$ ( $1.0\\%$ )",
+        "$2$ ( $0.7\\%$ )"
+      ],
+      [
+        "(b) final-frame error",
+        "$71$ ( $23.7\\%$ )",
+        "$23$ ( $7.7\\%$ )",
+        "$4$ ( $1.3\\%$ )"
+      ]
+    ]
+  },
+  {
+    "id": "A4.T6",
+    "caption": "Table 6: Regression versus diffusion on the $229$ non-chaotic and the $71$ chaotic held-out scenes (two solver runs ending less or more than $1\\%$ of the object size apart). Medians over scenes. Vol.: volume violation rate (%), KE: $KE_{\\mathrm{def}}/KE_{\\mathrm{rig}}$ relative to the ground truth, Err: world-coordinate error (mm) (Appendix B.4 ). Best of $8$ picks, per scene, the sample closest to the ground truth.",
+    "rows": [
+      [
+        "",
+        "Non-chaotic ( $229$ scenes)",
+        "Chaotic ( $71$ scenes)"
+      ],
+      [
+        "",
+        "Vol. $\\downarrow$",
+        "KE $\\to$ 1",
+        "Err $\\downarrow$",
+        "Vol. $\\downarrow$",
+        "KE $\\to$ 1",
+        "Err $\\downarrow$"
+      ],
+      [
+        "Regression",
+        "$12.6$",
+        "$0.72$",
+        "$25.0$",
+        "$38.4$",
+        "$0.69$",
+        "$63.2$"
+      ],
+      [
+        "Diffusion, single sample",
+        "$3.8$",
+        "$0.82$",
+        "$18.0$",
+        "$25.4$",
+        "$0.75$",
+        "$54.0$"
+      ],
+      [
+        "Diffusion, best of $8$",
+        "$4.4$",
+        "$0.83$",
+        "$14.6$",
+        "$22.8$",
+        "$0.79$",
+        "$44.7$"
+      ]
+    ]
+  },
+  {
+    "id": "A5.T7",
+    "caption": "Table 7: Full version of Table 1 with all six ST-VAEs, including the two variants of the standard baseline and the adaptive-compression baseline. ST-VAE reconstruction comparison across the three evaluation sets (row blocks: held-out in-distribution / GSO zero-shot / Toys4K zero-shot). Left six columns: scenes within the training vertex range ( $500\\leq N\\leq 5{,}000$ ; $300$ scenes per set). Right three columns: large-mesh subsets beyond the $5{,}000$ -vertex training cap ( $N>5{,}000$ ; $300$ scenes per set), reported on mean deformation and rigid errors only. DCC is the deformation-change correlation with ground truth and directly reflects the staircase artifact (higher is better); Recon is the reconstruction error of the deformation field, i.e. of the geometry with the rigid motion removed (mm); rot and trans are the reconstruction errors of the rigid rotation (deg) and translation (mm). Full definitions in Appendix B . best and second-best per column within each block. † Direct world-coordinate baseline (no factoring). Its errors are computed after removing the rigid motion from its output.",
+    "rows": [
+      [
+        "",
+        "",
+        "$500\\leq N\\leq 5{,}000$",
+        "$5{,}000<N\\leq 10{,}000$"
+      ],
+      [
+        "",
+        "",
+        "DCC $\\uparrow$",
+        "Recon $\\downarrow$",
+        "Rigid $\\downarrow$",
+        "Recon $\\downarrow$",
+        "Rigid $\\downarrow$"
+      ],
+      [
+        "",
+        "ST-VAE",
+        "mean",
+        "mean",
+        "med",
+        "P90",
+        "rot",
+        "trans",
+        "mean",
+        "rot",
+        "trans"
+      ],
+      [
+        "Objaverse Held-out",
+        "Standard",
+        "0.665",
+        "5.32",
+        "3.47",
+        "12.01",
+        "0.270",
+        "0.57",
+        "6.14",
+        "0.185",
+        "0.50"
+      ],
+      [
+        "+ velocity loss",
+        "0.842",
+        "5.34",
+        "3.15",
+        "11.60",
+        "0.831",
+        "3.33",
+        "6.25",
+        "0.638",
+        "3.88"
+      ],
+      [
+        "+ spectral loss",
+        "0.697",
+        "5.17",
+        "3.42",
+        "11.40",
+        "0.290",
+        "0.73",
+        "5.96",
+        "0.210",
+        "0.66"
+      ],
+      [
+        "Adaptive compression",
+        "0.511",
+        "5.86",
+        "3.65",
+        "13.72",
+        "0.440",
+        "5.09",
+        "6.59",
+        "0.314",
+        "4.30"
+      ],
+      [
+        "Direct world-coord. †",
+        "0.880",
+        "6.50",
+        "4.21",
+        "15.60",
+        "0.951",
+        "3.89",
+        "7.99",
+        "0.846",
+        "4.14"
+      ],
+      [
+        "Holistic (ours)",
+        "0.949",
+        "2.48",
+        "1.62",
+        "8.08",
+        "0.276",
+        "0.53",
+        "4.71",
+        "0.169",
+        "0.47"
+      ],
+      [
+        "GSO",
+        "Standard",
+        "0.641",
+        "3.46",
+        "1.64",
+        "8.83",
+        "0.161",
+        "0.48",
+        "4.30",
+        "0.149",
+        "0.42"
+      ],
+      [
+        "+ velocity loss",
+        "0.834",
+        "3.51",
+        "1.77",
+        "8.25",
+        "0.572",
+        "3.49",
+        "4.51",
+        "0.536",
+        "3.07"
+      ],
+      [
+        "+ spectral loss",
+        "0.672",
+        "3.39",
+        "1.63",
+        "8.52",
+        "0.181",
+        "0.62",
+        "4.13",
+        "0.176",
+        "0.57"
+      ],
+      [
+        "Adaptive compression",
+        "0.482",
+        "4.01",
+        "1.83",
+        "10.63",
+        "0.262",
+        "5.37",
+        "4.73",
+        "0.252",
+        "5.08"
+      ],
+      [
+        "Direct world-coord. †",
+        "0.836",
+        "5.56",
+        "2.98",
+        "13.35",
+        "0.640",
+        "3.65",
+        "5.17",
+        "0.678",
+        "3.12"
+      ],
+      [
+        "Holistic (ours)",
+        "0.941",
+        "1.91",
+        "1.02",
+        "5.88",
+        "0.158",
+        "0.45",
+        "3.39",
+        "0.147",
+        "0.37"
+      ],
+      [
+        "Toys4K",
+        "Standard",
+        "0.663",
+        "5.49",
+        "3.83",
+        "11.11",
+        "0.310",
+        "0.62",
+        "6.86",
+        "0.189",
+        "0.51"
+      ],
+      [
+        "+ velocity loss",
+        "0.836",
+        "5.81",
+        "3.95",
+        "11.34",
+        "0.927",
+        "4.65",
+        "7.18",
+        "0.686",
+        "3.78"
+      ],
+      [
+        "+ spectral loss",
+        "0.691",
+        "5.47",
+        "3.82",
+        "11.03",
+        "0.328",
+        "0.80",
+        "6.70",
+        "0.213",
+        "0.68"
+      ],
+      [
+        "Adaptive compression",
+        "0.504",
+        "6.03",
+        "4.27",
+        "12.53",
+        "0.501",
+        "5.14",
+        "7.48",
+        "0.328",
+        "5.92"
+      ],
+      [
+        "Direct world-coord. †",
+        "0.858",
+        "6.96",
+        "3.82",
+        "17.05",
+        "1.191",
+        "4.47",
+        "8.16",
+        "0.901",
+        "4.55"
+      ],
+      [
+        "Holistic (ours)",
+        "0.930",
+        "3.12",
+        "2.05",
+        "8.29",
+        "0.301",
+        "0.61",
+        "5.44",
+        "0.174",
+        "0.49"
+      ]
+    ]
+  },
+  {
+    "id": "A5.T8",
+    "caption": "Table 8: Full version of Table 2 with all six physics checks and the ST-VAE reconstruction reference row. Prediction comparison across the three evaluation sets, on the same $300$ scenes per set within the training vertex range ( $500\\leq N\\leq 5{,}000$ ) as Table 1 . Viol. %: percentage of vertices or tetrahedra, over all frames, whose predicted volume, speed, or acceleration deviates from the ground truth beyond a threshold; Self-int. is the fraction of surface triangles in a self-intersection; $KE_{\\mathrm{def}}/KE_{\\mathrm{rig}}$ is the deformation-to-rigid kinetic-energy ratio relative to ground truth (closer to $1$ is better); World err is the per-vertex error in world coordinates (mm); full definitions in Appendix B . ST-VAE reconstruction is the ground truth encoded and decoded by the ST-VAE behind the LDM, shown as a reference. best and second-best among the three models per column within each block. MGN-style AR is a MeshGraphNets-style (MGN) autoregressive graph network retrained on our scenes.",
+    "rows": [
+      [
+        "",
+        "",
+        "Volume",
+        "Self-int.",
+        "Vel.",
+        "Acc.",
+        "$\\frac{KE_{\\mathrm{def}}}{KE_{\\mathrm{rig}}}$",
+        "World err"
+      ],
+      [
+        "",
+        "Prediction Model",
+        "viol. % $\\downarrow$",
+        "tris % $\\downarrow$",
+        "viol. % $\\downarrow$",
+        "viol. % $\\downarrow$",
+        "$\\times$ GT $\\rightarrow$ 1",
+        "median (mm) $\\downarrow$"
+      ],
+      [
+        "Objaverse Held-out",
+        "ST-VAE reconstruction",
+        "8.5",
+        "0.12",
+        "0.8",
+        "16.9",
+        "0.91",
+        "1.97"
+      ],
+      [
+        "Diffusion (ours)",
+        "7.9",
+        "0.24",
+        "7.0",
+        "25.8",
+        "0.80",
+        "28.2"
+      ],
+      [
+        "Regression",
+        "22.7",
+        "0.79",
+        "8.6",
+        "29.2",
+        "0.72",
+        "37.5"
+      ],
+      [
+        "MGN-style AR",
+        "55.1",
+        "3.53",
+        "21.4",
+        "69.0",
+        "0.77",
+        "80.6"
+      ],
+      [
+        "GSO",
+        "ST-VAE reconstruction",
+        "2.1",
+        "0.00",
+        "0.5",
+        "11.8",
+        "0.92",
+        "1.21"
+      ],
+      [
+        "Diffusion (ours)",
+        "2.0",
+        "0.00",
+        "3.8",
+        "17.4",
+        "0.86",
+        "14.0"
+      ],
+      [
+        "Regression",
+        "5.1",
+        "0.01",
+        "6.4",
+        "22.7",
+        "0.72",
+        "19.9"
+      ],
+      [
+        "MGN-style AR",
+        "47.1",
+        "0.68",
+        "20.9",
+        "66.6",
+        "0.76",
+        "78.4"
+      ],
+      [
+        "Toys4K",
+        "ST-VAE reconstruction",
+        "10.6",
+        "0.19",
+        "1.1",
+        "17.6",
+        "0.91",
+        "2.15"
+      ],
+      [
+        "Diffusion (ours)",
+        "10.3",
+        "0.32",
+        "8.6",
+        "28.5",
+        "0.80",
+        "35.6"
+      ],
+      [
+        "Regression",
+        "24.3",
+        "1.07",
+        "9.0",
+        "29.6",
+        "0.69",
+        "42.6"
+      ],
+      [
+        "MGN-style AR",
+        "57.5",
+        "4.73",
+        "20.2",
+        "72.2",
+        "0.77",
+        "79.1"
+      ]
+    ]
+  },
+  {
+    "id": "A6.T9",
+    "caption": "Table 9: Training memory versus vertex count $N$ on a $140$ GiB H200 ( $T{=}64$ , bf16 , batch $1$ ). No ST-VAE: our LDM architecture applied directly to the $T{\\times}N$ raw vertex tokens, peak memory (GiB) of one training step. With ST-VAE: peak memory (GiB) of one ST-VAE Base training step. The LDM stage with the ST-VAE costs about $4.4$ GiB per trajectory at any $N$ and is not listed. OOM: out of memory.",
+    "rows": [
+      [
+        "",
+        "no ST-VAE",
+        "with ST-VAE"
+      ],
+      [
+        "$N$",
+        "LDM on raw tokens (GiB)",
+        "ST-VAE Base step (GiB)"
+      ],
+      [
+        "500",
+        "28.9",
+        "33.5"
+      ],
+      [
+        "1,000",
+        "55.4",
+        "37.4"
+      ],
+      [
+        "2,000",
+        "108.3",
+        "45.8"
+      ],
+      [
+        "2,500",
+        "134.5",
+        "50.7"
+      ],
+      [
+        "2,600",
+        "OOM",
+        "50.7"
+      ],
+      [
+        "3,500",
+        "OOM",
+        "56.0"
+      ],
+      [
+        "5,000",
+        "OOM",
+        "70.4"
+      ],
+      [
+        "7,500",
+        "OOM",
+        "92.9"
+      ],
+      [
+        "10,000",
+        "OOM",
+        "116.0"
+      ],
+      [
+        "14,000",
+        "OOM",
+        "135.3"
+      ],
+      [
+        "14,500",
+        "OOM",
+        "OOM"
+      ]
+    ]
+  },
+  {
+    "id": "A7.T10",
+    "caption": "Table 10: Batch-1 inference of PhysLDM on one H200 for $64$ -frame trajectories at different vertex counts $N$ (held-out scenes; the last three rows exceed the $5{,}000$ -vertex training cap). Decode: time of the ST-VAE decoder. fps $=64/(\\text{condition build}+\\text{latent model}+\\text{decode})$ . Peak: maximum GPU memory allocated over the whole pass.",
+    "rows": [
+      [
+        "",
+        "Decode (ms)",
+        "bf16 fps",
+        "fp32 fps",
+        "Peak"
+      ],
+      [
+        "$N$",
+        "bf16",
+        "fp32",
+        "Regression",
+        "LDM-20",
+        "LDM-50",
+        "Regression",
+        "LDM-20",
+        "LDM-50",
+        "(GiB)"
+      ],
+      [
+        "980",
+        "318",
+        "288",
+        "195",
+        "82",
+        "44",
+        "192",
+        "30",
+        "13",
+        "4.8"
+      ],
+      [
+        "2,493",
+        "327",
+        "425",
+        "189",
+        "79",
+        "42",
+        "136",
+        "28",
+        "13",
+        "4.8"
+      ],
+      [
+        "5,007",
+        "328",
+        "597",
+        "188",
+        "81",
+        "43",
+        "100",
+        "26",
+        "12",
+        "4.8"
+      ],
+      [
+        "7,534",
+        "332",
+        "778",
+        "186",
+        "81",
+        "43",
+        "78",
+        "25",
+        "12",
+        "5.2"
+      ],
+      [
+        "9,851",
+        "384",
+        "960",
+        "162",
+        "76",
+        "42",
+        "64",
+        "23",
+        "12",
+        "5.4"
+      ]
+    ]
+  },
+  {
+    "id": "A8.T11",
+    "caption": "Table 11: Scenes of Figs. 3 , 9 , and 10 : source dataset, tetrahedral node count $N$ , Young’s modulus $E$ , and initial velocity $v_{0}$ (m/s, $y$ up). The Young’s moduli were chosen to show both soft bodies with large deformation and stiff, nearly rigid ones, so some values do not match the real material of the object.",
+    "rows": [
+      [
+        "Figure",
+        "Object",
+        "Dataset",
+        "$N$",
+        "$E$ (Pa)",
+        "$v_{0}$ (m/s)"
+      ],
+      [
+        "Fig. 3",
+        "phone",
+        "Objaverse (held-out)",
+        "6,106",
+        "$2.76\\times 10^{6}$",
+        "$(+0.59,\\,+0.00,\\,+0.94)$ , $|v_{0}|=1.11$"
+      ],
+      [
+        "Fig. 3",
+        "boot",
+        "GSO",
+        "6,569",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 3",
+        "chess piece",
+        "Toys4K",
+        "6,322",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 3",
+        "toy",
+        "GSO",
+        "9,403",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 9",
+        "cake",
+        "Toys4K",
+        "6,640",
+        "$1.45\\times 10^{6}$",
+        "$(-0.21,\\,+0.00,\\,+0.58)$ , $|v_{0}|=0.62$"
+      ],
+      [
+        "Fig. 9",
+        "shape-sorter toy",
+        "GSO",
+        "6,426",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 10",
+        "object",
+        "Objaverse (held-out)",
+        "9,772",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 10",
+        "turboprop",
+        "GSO",
+        "6,891",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ]
+    ]
+  },
+  {
+    "id": "A8.T12",
+    "caption": "Table 12: Scenes of Figs. 4 and 11 : source dataset, tetrahedral node count $N$ , Young’s modulus $E$ , and initial velocity $v_{0}$ (m/s, $y$ up). The Young’s moduli were chosen to show both soft bodies with large deformation and stiff, nearly rigid ones, so some values do not match the real material of the object.",
+    "rows": [
+      [
+        "Figure",
+        "Object",
+        "Dataset",
+        "$N$",
+        "$E$ (Pa)",
+        "$v_{0}$ (m/s)"
+      ],
+      [
+        "Fig. 4",
+        "punch-drop toy",
+        "GSO",
+        "7,767",
+        "$2\\times 10^{6}$",
+        "$(-0.48,\\,+0.00,\\,-1.78)$ , $|v_{0}|=1.85$"
+      ],
+      [
+        "Fig. 4",
+        "cap",
+        "Objaverse (held-out)",
+        "2,435",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 4",
+        "bowl",
+        "Objaverse (held-out)",
+        "5,877",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 4",
+        "grapes",
+        "Toys4K",
+        "8,767",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 11",
+        "bucket",
+        "Objaverse (held-out)",
+        "9,853",
+        "$2.6\\times 10^{6}$",
+        "$(-0.94,\\,+0.00,\\,+1.33)$ , $|v_{0}|=1.63$"
+      ],
+      [
+        "Fig. 11",
+        "sofa",
+        "Objaverse (held-out)",
+        "4,228",
+        "$1.05\\times 10^{6}$",
+        "$(-1.34,\\,+0.00,\\,-0.20)$ , $|v_{0}|=1.36$"
+      ],
+      [
+        "Fig. 11",
+        "flower pot",
+        "GSO",
+        "3,487",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ],
+      [
+        "Fig. 11",
+        "plush dog",
+        "GSO",
+        "8,496",
+        "$5\\times 10^{4}$",
+        "$0$ (released from rest)"
+      ]
+    ]
+  },
+  {
+    "id": "A11.T13",
+    "caption": "Table 13: Comparison of our model with two differentiable simulators on downstream applications. Our approach supports higher-order derivatives, enabling complex optimization tasks that are either computationally infeasible or numerically unstable for existing solvers.",
+    "rows": [
+      [
+        "Simulator",
+        "Differentiation Support",
+        "1st-Order Task (Material Estimation)",
+        "2nd-Order Task (Throw Design)"
+      ],
+      [
+        "Ours",
+        "Autograd (higher order)",
+        "Success (40 seconds)",
+        "Success (7 minutes) Efficient 2nd-order grads."
+      ],
+      [
+        "DiffIPC",
+        "Analytic adjoint (1st order only)",
+        "26 minutes Unstable under defaults. Needs manual tuning.",
+        "Infeasible (Multi-day) ${\\sim}635\\times$ slower via finite diff."
+      ],
+      [
+        "Newton/Warp",
+        "Recorded tape",
+        "Fails Gradients violently explode.",
+        "Infeasible No usable 1st-order gradients."
+      ]
+    ]
+  },
+  {
+    "id": "A12.T14",
+    "caption": "Table 14: Memory and resolution limits of the concurrent raw-coordinate model on a $140$ GiB H200: peak training memory (GiB) and GPU time per training step (ms) at batch $1$ , i.e., per trajectory, $T{=}64$ , bf16 , flash attention, for vertex counts $N$ from $500$ to $5{,}000$ . OOM: out of memory at batch $1$ . For reference, our LDM trains at ${\\sim}4.4$ GiB (Table 9 ) and ${\\sim}27$ ms per trajectory at any $N$ .",
+    "rows": [
+      [
+        "$N$",
+        "tokens",
+        "Concurrent (DiT-L)",
+        "Concurrent (DiT-B)"
+      ],
+      [
+        "",
+        "( $T{\\times}N$ )",
+        "GiB / ms",
+        "GiB / ms"
+      ],
+      [
+        "500",
+        "32k",
+        "64.4 / 669",
+        "24.0 / 212"
+      ],
+      [
+        "1,000",
+        "64k",
+        "122.1 / 1317",
+        "46.0 / 412"
+      ],
+      [
+        "1,200",
+        "77k",
+        "OOM",
+        "54.7 / 495"
+      ],
+      [
+        "2,000",
+        "128k",
+        "OOM",
+        "89.9 / 879"
+      ],
+      [
+        "2,500",
+        "160k",
+        "OOM",
+        "111.8 / 1147"
+      ],
+      [
+        "2,750",
+        "176k",
+        "OOM",
+        "123 / 1289"
+      ],
+      [
+        "3,000",
+        "192k",
+        "OOM",
+        "OOM"
+      ],
+      [
+        "3,500",
+        "224k",
+        "OOM",
+        "OOM"
+      ],
+      [
+        "5,000",
+        "320k",
+        "OOM",
+        "OOM"
+      ]
+    ]
+  },
+  {
+    "id": "A12.T15",
+    "caption": "Table 15: Training time of the two models on the same scenes ( $\\leq 1{,}000$ vertices) and the same GPUs. Even with three stages, our pipeline takes less time than the concurrent model.",
+    "rows": [
+      [
+        "Model",
+        "Stage",
+        "Training time"
+      ],
+      [
+        "Concurrent (DiT-B)",
+        "(single)",
+        "74.6 h"
+      ],
+      [
+        "Ours",
+        "spatial VAE",
+        "1.4 h"
+      ],
+      [
+        "",
+        "ST-VAE",
+        "40.0 h"
+      ],
+      [
+        "",
+        "LDM",
+        "19.6 h"
+      ],
+      [
+        "",
+        "total",
+        "61.1 h"
+      ]
+    ]
+  },
+  {
+    "id": "A13.T16",
+    "caption": "Table 16: The pretrained PhysLDM on three data sources without adaptation. Medians over scenes. The volume and kinetic energy metrics need tetrahedra and are not defined on the point clouds.",
+    "rows": [
+      [
+        "Data",
+        "Output",
+        "Scenes",
+        "Vol. (%) $\\downarrow$",
+        "$KE_{\\mathrm{def}}/KE_{\\mathrm{rig}}$ $\\to 1$",
+        "Err (mm) $\\downarrow$"
+      ],
+      [
+        "Stable Neo-Hookean",
+        "ST-VAE reconstruction",
+        "$40$",
+        "$6.9$",
+        "$0.92$",
+        "$4.5$"
+      ],
+      [
+        "Stable Neo-Hookean",
+        "LDM prediction",
+        "$40$",
+        "$8.9$",
+        "$0.83$",
+        "$23.9$"
+      ],
+      [
+        "ARAP",
+        "ST-VAE reconstruction",
+        "$40$",
+        "$3.1$",
+        "$0.93$",
+        "$4.6$"
+      ],
+      [
+        "ARAP",
+        "LDM prediction",
+        "$40$",
+        "$4.9$",
+        "$0.79$",
+        "$37.5$"
+      ],
+      [
+        "Real captured",
+        "ST-VAE reconstruction",
+        "$22$",
+        "–",
+        "–",
+        "$6.0$"
+      ],
+      [
+        "Real captured",
+        "LDM prediction",
+        "$22$",
+        "–",
+        "–",
+        "$874.9$"
+      ]
+    ]
+  },
+  {
+    "id": "A13.T17",
+    "caption": "Table 17: Fine-tuning the LDM of PhysLDM on each data source with the unchanged trainer. Medians over the scenes of each fine-tuning subset, before and after fine-tuning.",
+    "rows": [
+      [
+        "",
+        "",
+        "Vol. (%) $\\downarrow$",
+        "$KE_{\\mathrm{def}}/KE_{\\mathrm{rig}}$ $\\to 1$",
+        "Err (mm) $\\downarrow$"
+      ],
+      [
+        "Data",
+        "Scenes",
+        "before",
+        "after",
+        "before",
+        "after",
+        "before",
+        "after"
+      ],
+      [
+        "Stable Neo-Hookean",
+        "$32$",
+        "$8.9$",
+        "$6.2$",
+        "$0.82$",
+        "$0.91$",
+        "$22.9$",
+        "$7.6$"
+      ],
+      [
+        "ARAP",
+        "$32$",
+        "$4.9$",
+        "$3.1$",
+        "$0.80$",
+        "$0.92$",
+        "$34.4$",
+        "$8.8$"
+      ],
+      [
+        "Real captured",
+        "$16$",
+        "–",
+        "–",
+        "–",
+        "–",
+        "$921.3$",
+        "$6.2$"
+      ]
+    ]
+  }
+]

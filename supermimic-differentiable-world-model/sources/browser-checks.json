@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-22",
+  "url": "http://127.0.0.1:5815/papers/supermimic-differentiable-world-model",
+  "environment": "Codex IAB，已有学习库的sandbox srcdoc预览",
+  "checks": [
+    {
+      "check": "学习包已在查看器中加载",
+      "passed": true
+    },
+    {
+      "check": "采样阶段改变图示与说明",
+      "passed": true
+    },
+    {
+      "check": "拟合阶段显示更新模型参数",
+      "passed": true
+    },
+    {
+      "check": "策略阶段显示模型冻结但保留梯度",
+      "passed": true
+    },
+    {
+      "check": "H16与critic更新时长和结论",
+      "passed": true
+    },
+    {
+      "check": "H16关闭critic显示未达到目标",
+      "passed": true
+    },
+    {
+      "check": "H8显示0.16秒与失败结论",
+      "passed": true
+    },
+    {
+      "check": "侧滚分组显示22/2/0并更新分母",
+      "passed": true
+    },
+    {
+      "check": "失败率显示100%与9.091%",
+      "passed": true
+    },
+    {
+      "check": "墙钟口径显示56倍和168h",
+      "passed": true
+    },
+    {
+      "check": "折叠解释展示官网与PDF分组差异",
+      "passed": true
+    },
+    {
+      "check": "公式材料成功渲染",
+      "passed": true,
+      "displayMathCount": 7,
+      "katexErrors": 0
+    },
+    {
+      "check": "页内导航在sandbox srcdoc中滚动到实验证据",
+      "passed": true
+    },
+    {
+      "check": "浏览器未记录脚本错误",
+      "passed": true
+    }
+  ],
+  "allPassed": true,
+  "consoleErrors": [],
+  "notVerified": [
+    "独立新标签预览（浏览器安全策略阻止该按钮）",
+    "移动端viewport"
+  ],
+  "screenshots": [
+    "sources/evidence-browser.png",
+    "sources/explorer-browser.png"
+  ]
+}

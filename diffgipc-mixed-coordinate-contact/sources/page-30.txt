@@ -1,0 +1,44 @@
+30   •  Huang et al.
+
+
+Table 6. Simulation settings for the design, identification, and control tasks in Section 7. The columns report time step ℎ, relative collision activation distance
+𝑑rel, barrier coefficient 𝜅, friction-smoothing velocity threshold 𝑑𝑓,b  motion DoFs, relative Newton tolerance 𝜖𝑁, friction coefficient, Young’s modulus 𝐸for
+volumetric FEM or cloth stretching, and affine stiffness 𝜅A. For Dual-arm grasp, 0.3 is the arm–cloth friction coefficient and 0.2 is the cloth–table coefficient.
+         Example            ℎ       Horizon        𝑑rel        𝜅          𝑑𝑓b      #DOF   Newton 𝜖𝑁    Friction      𝐸        𝜅A
+   Stone placement (Fig. 1)        0.03       1000       10−3        105        10−3        84        10−3          0.3        –          107
+   Bunny collision (Fig. 6)        0.05        40        10−3        1010       –        5598     3 × 10−4       0       4×107       –
+  Tentacle matching (Fig. 7)      0.005       100        10−3        107        10−3       20688       10−2         1       2×104       –
+  Garment Hanger (Fig. 4)      1/120       600        10−3        105        10−3       51357       10−2         0.05      5×104        108
+   Loaded Support (Fig. 8)        0.02        20      3×10−4       106        –        22545       10−3         0          108        –
+    Material fitting (Fig. 9)         0.1         10        10−3        107        –        12567       10−2         0          106        –
+Friction optimization (Fig. 10)     0.02        100        10−3        106        10−3       2799       10−5      0.5→0.1      105        –
+   Cloth rest scale (Fig. 12)       1/24        48        10−3        105        –       102732      10−3         0          105         108
+    Grasp angle (Fig. 13)         0.02        120        10−3        105        10−3        195      5×10−3        0.1       5×105        107
+   Cup catching (Fig. 14)        0.005       240        10−3        105        10−3        192        10−3          1.0        –          107
+  Dual-arm grasp (Fig. 15)        0.01        330        10−3        105        10−3       12504       10−3       0.2/0.3     3 × 104       109
+Table 7. Physical parameter families exposed to task-specific design vari-
+ables through the interface in Section 6.3. Each family contributes local
+derivatives to the shared coupled adjoint.
+ Physical group  Differentiated quantities             Role
+  Tetrahedral                              Stable Neo-Hookean material                   𝜇, 𝜆    material                            response
+   Initial FEM    Selected initial vertex                                                   Initial dynamic state    motion      velocities
+  Deformable                           Volumetric and cloth rest                 Selected rest coordinates   rest shape                         geometry
+                  Stretch, shear, and Cloth material                          Cloth constitutive response               bending coefficients
+             Mesh self and ground    Friction                                 Frictional contact                   friction coefficients
+  Initial affine                    q0,𝑏,                          Initial affine state    motion               ¤q0,𝑏
+   Affine rest    Selected surface-rest     Mass, inertia, shape energy,
+    shape      coordinates                collision, and friction
+                                        Revolute or prismatic actuation Joint controls   Joint targets and forces                                  on selected joints and frames
+Affine position                Target positions          Position control     targets
+
+The shared FEM benchmarks use the same convergence tolerances
+to align numerical accuracy in the timing comparisons. The forward
+PCG relative residual tolerance is 10−4.
+  The parameter families in Table 7 connect task-specific design
+variables to material response, geometry, initial motion, and actua-
+tion through the interface in Section 6.3. Different parameterizations
+and objectives share the same coupled backward computation. Each
+parameter family is differentiated in its associated motion repre-
+sentation. The FEM rest-shape configuration uses free FEM vertex
+positions. Affine rest-shape derivatives include the effects of coupled
+contact and active friction.

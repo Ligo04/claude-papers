@@ -1,0 +1,1521 @@
+                                         Preprint
+
+
+
+
+                                         B LIND P RECISE A SSEMBLY: P ROPRIOCEPTIVE
+                                         S IM - TO -R EAL P EG - IN -H OLE FOR D IVERSE PARTS
+                                          Antonia Bronars∗ Younghyo Park∗ Kushal Kedia                      Pulkit Agrawal
+                                          Massachusetts Institute of Technology
+
+
+
+                                                                                          A BSTRACT
+
+                                                      Every robot already carries high-resolution contact sensors: its own joints. Legged
+arXiv:2610.23849v1 [cs.RO] 16 Oct 2026
+
+
+
+
+                                                      robots and humanoids exploit them to walk, run, and track whole-body motions
+                                                      without vision, but there the contacts are large and forceful. Is joint sensing also
+                                                      enough for precise, contact-rich assembly, where the robot must find a millimeter-
+                                                      scale opening, mesh gear teeth, or catch a thread through light contact? We study
+                                                      this question by training blind assembly policies that observe only a short history
+                                                      of joint positions, velocities, and their own actions, without visual, force, torque, or
+                                                      tactile sensing. The poses of both the fixture and the part are unknown to the policy,
+                                                      and the grasp is randomized substantially. The policy must therefore assemble the
+                                                      parts through contact, sensed exclusively through its own proprioception. Trained
+                                                      with reinforcement learning entirely in simulation over randomized parts, grasps,
+                                                      and contacts, such policies learn peg insertion, gear meshing, and nut threading.
+                                                      The peg insertion policy transfers zero-shot to the real world and inserts pegs of
+                                                      different shapes and sizes in 73% of trials. Controlled comparisons with matched
+                                                      visual policies in simulation show that blind policies generalize far better to unseen
+                                                      part shapes and sizes, though they can be slower. Training such policies needs
+                                                      thousands of different assemblies, each simulated with its clearance intact, so we
+                                                      also release an open-source generator that builds them procedurally from exact con-
+                                                      vex pieces for MuJoCo; it is more accurate and faster than convex decomposition
+                                                      or MuJoCo’s signed-distance collision. Videos and interactive simulations are at
+                                                      younghyopark.me/blind-proprioceptive-assembly/.
+
+
+                                         1       I NTRODUCTION
+
+                                         A force applied anywhere on a robot’s body travels through its links to the joints, which then move
+                                         differently from what their commands alone would produce. The encoders record that difference, so
+                                         the joints of every arm and leg double as contact sensors. Legged robots exploit this proprioceptive
+                                         signal to walk, run, and climb stairs blind (Lee et al., 2020; Siekmann et al., 2021a;b; Kumar et al.,
+                                         2021), and humanoids to walk and track whole-body motions (Radosavovic et al., 2024; Cheng et al.,
+                                         2024; He et al., 2024). In these settings, however, contacts are large and forceful, and joints often
+                                         comply meaningfully while recording measurable deviations. Can robots exploit the same signal for
+                                         precise, contact-rich assembly?
+                                         Precise assembly with a robotic arm occupies the opposite regime: the robot must find an opening
+                                         with a millimeter or less of clearance, bring gear teeth into mesh, or catch a thread, through light
+                                         contact whose effect on the joints is easy to miss. We study this question by training blind assembly
+                                         policies that have no information outside of their own joint sensing, and verify that proprioception
+                                         contains enough information for three such tasks: peg insertion, gear meshing, and nut threading
+                                         (figure 2). In the real world, our peg insertion policy inserts eight pegs of different cross-sections,
+                                         three of them outside its training distribution, with 0.5–1.5 mm of clearance per side, in 73% of
+                                         237 trials, without being given the hole’s location, the peg’s pose in its grasp, the part’s size, or its
+                                         clearance (section 3.4). To our knowledge, this is the first such demonstration.
+                                         We train our policies entirely in simulation with reinforcement learning and deploy the peg insertion
+                                         policy in the real world without fine-tuning (figure 1). Training randomizes part geometry, contact
+                                             ∗
+                                                 Equal contribution.
+
+
+                                                                                                 1
+Preprint
+
+
+
+
+                     joint                 contact                  search             capture      seated
+                   encoders              0.0 s       0.4 s       0.8 s       1.3 s   1.6 s       2.7 s
+
+
+
+
+                               rounded
+                   only
+
+
+                                         0.2 s       0.6 s       0.9 s       1.3 s   1.8 s       2.6 s
+
+
+
+
+                               polygon
+                                         0.0 s       0.2 s       1.1 s       1.8 s   2.6 s       2.7 s
+
+
+
+
+                               large
+                                         0.0 s       0.2 s       0.8 s       1.3 s   1.6 s       2.0 s
+
+
+
+
+                              handle
+                               tall
+
+
+Figure 1: Blind insertion. A policy trained only in simulation inserts pegs of different shapes and
+sizes in the real world using only its joint encoders and previous actions.
+
+
+properties, fixture poses, and grasps, which can hold the part off-center on the finger pads and tilted
+in the grasp. The policy observes a 0.6 s history of joint positions and velocities, the gripper pose and
+twist computed from them, and its own previous actions. It receives no image and no force signal, so
+it can perceive contact and find the hole, shaft, or bolt only through its own motion (section 2).
+On all three tasks, probing the blind policies’ learned representations and comparing them with
+matched visual policies revealed two interesting properties of visually blind behaviors:
+ • Visually blind yet intelligent. The learned behavior is not an open-loop pattern: its learned repre-
+   sentation encoding its own proprioceptive inputs contains meaningful task-relevant information
+   that the policy itself heavily relies on to adjust its behavior (section 3.2).
+ • Proprioception generalizes better. Because a blind policy depends on the part only through its
+   contacts, it degrades far less than vision on part shapes and sizes it has not seen during training
+   (section 3.3).
+Training for this robustness requires diverse parts: thousands of different assemblies, generated
+procedurally and simulated in parallel, each with its millimeter clearance intact. In MuJoCo (Todorov
+et al., 2012), building holes from convex primitives by hand does not scale to random shapes, and
+the automatic alternatives, convex decomposition and signed-distance-field (SDF) collision, are less
+accurate and slower at these clearances. We therefore built mjfit, which procedurally generates
+pegs and holes from any planar outline, as well as threads and gears, out of exact convex prisms. To
+summarize, our contributions are:
+1. Blind policies, trained purely in simulation, that learn peg insertion, gear meshing, and nut
+   threading from proprioception alone, given no fixture pose, grasp, or part model (section 3.1),
+   with analyses showing that on all three tasks they search reactively, acting on the contact state their
+   joint histories encode rather than following a fixed pattern (section 3.2), and that they generalize
+   to unseen part shapes and sizes better than matched visual policies (section 3.3);
+2. The first sim-to-real policy for precise insertion from proprioception alone: trained only in
+   simulation, the peg insertion policy transfers zero-shot to a real robot and inserts pegs of different
+   cross-sections, including pegs outside its training distribution (section 3.4);
+3. mjfit, an open-source procedural generator of assemblies for MuJoCo (pegs and holes, threads,
+   and gears) with exact convex collision geometry, which supplies the thousands of different training
+   assemblies, and a benchmark against analytic ground truth in which it is more accurate and faster
+   than convex decomposition and MuJoCo’s SDF collision (section 2.2).
+
+2   L EARNING BLIND ASSEMBLY
+We train blind policies for three assemblies that mjfit generates: peg insertion, gear meshing, and
+nut threading. We describe the tasks (section 2.1); how mjfit, our open-source procedural generator
+for MuJoCo, supplies thousands of different assemblies with exact convex collision geometry that
+
+
+                                                             2
+Preprint
+
+
+
+
+           (a) Peg insertion                (b) Gear meshing                      (c) Nut threading
+
+
+
+
+                            50 mm                            50 mm                                  50 mm
+           (d) Pegs, to scale             (e) Gear sets, to scale           (f) Nuts and bolts, to scale
+
+                                              Start       Success
+
+
+Figure 2: Peg insertion, gear meshing, and nut threading. (a–c) A start of each task, faded, and the
+same grasp at success: the peg seated in its hole, the gear seated on its shaft in mesh with both anchor
+gears, and the nut turned until its thread has caught. (d–f) Stadium pegs, gear sets, and nuts and bolts
+generated by mjfit and used for training, to scale.
+
+
+
+preserves their clearances (section 2.2); and the policy, whose auxiliary contact supervision makes
+learning faster without giving the actor any privileged information (section 2.3; figure 14).
+
+
+
+2.1   TASKS
+
+In all three tasks (figure 2), a 7-DOF robot arm equipped with a
+parallel jaw gripper holds a part and must assemble it with a fixture
+that can sit almost anywhere in its workspace, and tilted (figure 3a).
+The part’s geometry, its pose in the grasp (figure 3b), and the contact
+properties are randomized and not observed by policy (Table 1).
+Episodes start with the part touching the fixture but misaligned,
+and succeed once it is fully assembled. This requires the policy to
+both search for alignment through contact, and then perform the
+assembly, based on its joint position feedback alone.
+ • Peg insertion: the pegs are prisms with varying cross-section,
+   size, aspect ratio, mass, and length, with 1.0–1.5 mm of clear-
+   ance per side (Appendix A). Pegs start typically around 2 cm
+   from the hole, tilted far more than the clearance admits, and
+   succeed when the peg is seated in the hole.                                      (a) Fixture poses
+
+ • Gear meshing: spur gears of varying size and tooth count must
+   slide down a shaft into mesh with one or two anchor gears that
+   turn on their own axles, with 0.2–0.6 mm of backlash. Episodes
+   start with the gear in contact with the shaft tip, but misaligned
+                                                                            Peg        Gear             Nut
+   and with its teeth out of phase with the anchors’, and succeed                      (b) Grasps
+   when the gear is seated on the shaft with teeth meshed.
+ • Nut threading: metric nuts from M24 to M42 must thread onto            Figure 3: Training fixture
+   a bolt with 0.05–0.2 mm of thread clearance. Episodes start            poses and grasps. Gear and
+   with the nut resting on the bolt’s tip, off its axis and tilted, and   bolt fixtures span the peg’s
+   succeed a quarter turn after the thread catches.                       ranges.
+
+                                                      3
+Preprint
+
+
+
+
+      Star              Circle          Stadium         Convex quad            Bézier, handle          L-slot             Cross            C-slot
+  20 pcs · 27 µs    65 pcs · 72 µs    25 pcs · 16 µs      5 pcs · 5 µs          73 pcs · 25 µs     14 pcs · 12 µs     24 pcs · 25 µs    58 pcs · 70 µs
+
+
+
+
+  Random #3         Random #14            USB-C             XLR-3                       D-sub 9     M6 thread         M10, 3-start      Gears 12:36
+ 112 pcs · 126 µs   91 pcs · 114 µs   67 pcs · 160 µs   120 pcs · 162 µs       147 pcs · 140 µs   425 pcs · 528 µs   443 pcs · 676 µs      576 pcs
+
+
+
+Figure 4: Assets generated by mjfit one color per convex piece of the generated collision geometry.
+Labels give the number of convex pieces (pcs) and the CPU time per physics step with the parts in
+contact.
+
+
+2.2     S IMULATING TIGHT INSERTION AT SCALE
+
+Training on this distribution means simulating thousands of parallel worlds that each hold a different,
+randomly generated assembly, with per-side clearances down to 0.5 mm. MuJoCo collides meshes
+through their convex hulls, so a concave hole must be given an SDF or built from convex pieces,
+which simulation benchmarks assemble from boxes by hand (Zhu et al., 2020; Tao et al., 2024; Zakka
+et al., 2025).
+
+Exact convex decomposition. mjfit automates the hand-built hole and generalizes it to arbitrary
+outlines. Given the planar outline of a hole, optionally with islands such as connector pins, it emits a
+ready-to-simulate MJCF model in which every contact surface is a MuJoCo primitive or a convex
+prism (figure 4). The plate around the hole is split into convex polygons and extruded; the peg is the
+hole outline offset inward by the clearance, so every peg edge sits exactly the clearance from its hole
+edge, and islands become pockets in a hollow peg. Curves are tessellated by a circumscribed polygon,
+so the wall never intrudes into the true hole, as it does in rings of boxes that inscribe the circle (Zhu
+et al., 2020); the only error is extra play at the corners, c (1/ cos(π/n) − 1) for a circle of n sides at
+radial clearance c. Because the construction knows which region must stay empty, the user specifies
+the clearance directly rather than tuning a concavity tolerance and checking the result. Companion
+generators apply the same idea to bolt–nut pairs and spur gears, and a sampler draws random outlines,
+islands, and dimensions, so one training run can hold thousands of different assemblies.
+
+Benchmark. We compare against the three au-                    Ours           CoACD        V-HACD
+tomatic ways to give MuJoCo a concave hole:
+                                                                                Ø16 mm hole
+
+
+
+
+CoACD (Wei et al., 2022), V-HACD (Mamou &
+Ghorbel, 2009), and MuJoCo’s native mesh SDF,
+each swept over its granularity setting. The test
+is a 16 mm round or square hole with clearance
+                                                             15 pieces        10 pieces    64 pieces
+down to 20 µm; we measure each method’s error
+against its time per step, on CPU and on GPU with
+                                                                                M10 nut
+
+
+
+
+MuJoCo Warp (Google DeepMind and NVIDIA,
+2025) (figure 6; Appendix B). Approximate de-
+composition tolerates concavity far larger than an          151 pieces       122 pieces    64 pieces
+
+assembly’s clearance, so it leaves wall material
+inside the hole (figure 5); refining it narrows the Figure 5: Same parts, three decompositions,
+error but never closes it (figure 6a). Mesh SDF one color per convex piece (Ø16 mm plate; M10
+misses contacts and rounds the rim. These errors nut cut open). Ours errs only toward extra play;
+change outcomes: a centered peg stops on the rim CoACD and V-HACD put material inside the
+or jams on every baseline’s default plate, but falls hole and fill the nut’s 0.1 mm thread clearance.
+cleanly through ours (figure 6c). mjfit is also an order of magnitude faster than mesh SDF on CPU
+at equal or better accuracy (Table 4), and has the best speed–accuracy trade-off on GPU (figure 6b).
+
+
+                                                                           4
+Preprint
+
+
+
+
+Worst settled error (µm)
+                                                                                                                                       Ours   CoACD V-HACD     SDF
+                                                     error = clearance                                    error = clearance
+                           100                                            100
+                            50                                             50
+
+                            10                                             10
+                             5                                              5
+
+                             1                                              1
+                            0.5                                            0.5
+
+
+                                  10           100               1000                        2       5        10      20
+                                                                                                                                       falls stops     stops   jams
+                                                                                                                                     through on rim    on rim 1.9 mm
+                                       CPU time per step (µs)                         GPU time per step (µs)
+                                        (a) CPU, c = 100 µm                                  (b) GPU, c = 100 µm                           (c) Drop, c = 20 µm
+
+                                              Ours (exact prisms)         CoACD                  V-HACD               Mesh SDF       fills the clearance
+
+
+Figure 6: Speed against accuracy for a 16 mm round peg with 100 µm clearance, (a) on CPU, one
+environment on one thread, and (b) on GPU, per environment step across 256 MuJoCo Warp worlds,
+with the error also measured on Warp. Each line is one method’s Pareto front over all its settings;
+lower left is better, and hollow markers fill the clearance (dotted line). (c) The peg, centered and
+aligned, dropped from 1 mm above each method’s default plate and shown 0.2 s later.
+
+                                         ct                                           ĉ t
+            Training
+
+
+
+
+                                                               contact
+                                                                                                                     Contact
+                                                               free                                                  Decoder
+                                                               contact
+                                                               inside
+                                              ot − H + 1 : t
+                                  q
+            Deployed
+
+
+
+
+                                  q̇                                                                     zt
+                                  x                                        Temporal
+                                  ẋ                                         Conv.                                                     Joint
+                                                                                                                   Policy      qd
+                            at − 1                                                                                                  Impedance
+                                                                                                                    MLP
+                                                                                                                                     Controller
+                                               H steps                           ot
+
+
+
+Figure 7: Policy Architecture. A temporal convolution compresses the last H = 30 proprioceptive
+observations ot (joint positions q and velocities q̇, gripper pose x and twist ẋ, and the previous action
+at−1 ) into a latent zt , and an MLP maps zt and the current observation ot to joint targets qd for a
+joint impedance controller. During training, we provide contact supervision from privileged simulator
+state. A contact decoder (amber) predicts the contact state (ĉt ) from zt . Its cross-entropy Lcontact
+with the simulator’s labels ct (left, near half of the fixture cut away) trains the encoder, but ĉt never
+reaches the policy.
+
+
+Each assembly is only a few dozen convex pieces, so every one of our 12,288 parallel training worlds
+(Zakka et al., 2026) can hold a different one.
+
+2.3                           P OLICY AND TRAINING
+
+Policy. At each step, the actor (figure 7) observes its joint positions and velocities, the gripper pose
+and twist computed from them by forward kinematics, and its previous action. It never receives the
+hole pose, the part geometry, a wrench estimate, or an image. A temporal convolutional encoder
+compresses the last 0.6 s of observations into a latent, and an MLP maps the latent and the current
+observation to joint-position increments. A joint impedance controller tracks them on an arm model
+whose armature, damping, and friction were identified from real-world measurements. Additional
+training details in Appendix A.
+
+Training. We use PPO (Schulman et al., 2017) with a sparse reward: a bonus on success and one-
+time bonuses for intermediate milestones, such as the peg’s first capture by the opening (Appendix A.1
+gives the gear’s and nut’s). Two training-only signals speed up learning from the sparse reward
+without giving the actor privileged information: an asymmetric critic (Pinto et al., 2018) that also
+sees the part’s pose relative to the fixture and the true contact labels, and the contact supervision
+described next. Randomizing dynamics and geometry (Tobin et al., 2017; Peng et al., 2018) covers
+the ranges of Table 1.
+
+
+                                                                                                 5
+Preprint
+
+
+
+
+              100
+
+
+Success (%)
+               50
+
+
+                                 Peg insertion                     Gear meshing                       Nut threading
+                0
+                    0     100      200       300    0      100       200        300   0         100     200      300
+                                                   Environment steps (millions)
+                                          Proprioception (blind)           Wrist RGB (visual)
+
+Figure 8: Proprioception alone is enough to learn all three tasks. Blind policies, which sense only
+their own joints, reach the same near-perfect training success as visual policies with a wrist camera.
+Lines are the mean of two training seeds.
+
+
+Contact supervision. A blind policy has to infer contact from how the arm moves. To give that
+inference a dense training signal, we supervise the actor’s latent with the contact state it cannot
+observe. At every step, the simulator labels points sampled on the mating features of the part and
+fixture, as free, touching but misaligned, or aligned (figure 7, top; Appendix A details each task’s
+labels). A small contact decoder predicts these labels from the latent zt , and its class-weighted
+cross-entropy is added to the PPO loss (Jaderberg et al., 2017). The gradient of this loss trains the
+encoder, but the prediction never enters the policy, so nothing privileged reaches the actor and the
+decoder is dropped at deployment.
+
+
+Visual policies. To isolate the sensing modality, we train visual policies with the same task, resets,
+randomization, reward, actions, and success check. A camera rigidly mounted on the wrist renders
+a 64×64 RGB image of the held part and the fixture. The visual policy sees only images, over the
+same 0.6 s history, through a compact CNN.
+
+
+3             R ESULTS
+
+We design experiments to answer the following questions:
+              1. (section 3.1) Can a policy that senses only its own joints learn precise assembly tasks including
+                 peg insertion, gear meshing, and nut threading?
+              2. (section 3.2) Do blind policies learn intelligent, contact-reactive search, or is it learning
+                 scripted patterns?
+              3. (section 3.3) Do blind policies generalize better than visual policies to part geometries outside
+                 the training distribution?
+              4. (section 3.4) Can blind policies that rely on contact-rich search be transferred zero shot with
+                 high fidelity to the real world?
+
+
+3.1            P ROPRIOCEPTION IS SUFFICIENT
+
+All three tasks achieve near-perfect success on in-distribution geometries (figure 11, left). The joint
+history alone therefore carries enough information about contact to find an opening, bring teeth into
+mesh, and engage a thread.
+Compared with visual policies, which can typically observe the poses of the grasped and mating parts
+directly, blind policies may be slower. On peg insertion, the blind policy has to search for the opening
+through contact, so it takes a less direct path and seats later (figure 9a, b) than a visual policy. The
+gap is smaller on the other two tasks (Appendix C), plausibly because the grasped part occludes more
+of the mating part from the camera’s view, so the visual policy, too, has to search to some extent.
+
+
+                                                             6
+Preprint
+
+
+
+
+                             Scripted Spiral Search Motion                 Blind Proprioceptive Policy (ours)                            Visual Policy
+
+
+
+
+                           58 × 33 mm
+                      1.2 mm clearance
+                                                                                                               1.42 s                                      0.32 s
+
+                                                                  (a) Top view of the plate: path of the peg centre
+
+
+                                                                                                                         median 20
+                0                                                                                        600
+Descent (mm)
+
+
+
+
+                                                                                                                                  median 37
+
+
+
+
+                                                                                              Episodes
+                                                         sliding on                                                                           median 95
+                                                        the surface                                      400
+               10
+                                                                                                         200
+
+               20                                                                                          0
+                    0.0                  0.2   0.4   0.6   0.8    1.0   1.2    1.4                               10          30          100              300       1000
+                                                Time since reset (s)                                            Lateral distance travelled (mm, log scale)
+                                               (b) Descent into the hole                                          (c) Lateral travel, all 3,964 matched starts
+
+                            Scripted Spiral Search Motion                     Visual Policy                        peg at start        centre within clearance
+                            Blind Proprioceptive Policy (ours)                peg centre at start                  opening
+
+
+Figure 9: Proprioception guides efficient search without vision. Because the blind policy must
+search through contact, it follows a less direct path and seats later than the visual policy (a, b).
+Nonetheless, it travels far less (c) than an optimistic scripted spiral search baseline (Chhatpar &
+Branicky, 2001).
+
+
+3.2                 V ISUALLY BLIND BUT INTELLIGENT
+
+If blind policies search reactively rather than follow a script, their history latent zt , through which
+everything the actor knows about the past passes (figure 7), must encode the state of contact. To test
+this, we roll out each policy in simulation and label every state with one of seven modes of its task,
+computed from the privileged part pose. For the peg, these are lifted, beside the plate, searching
+  far from the opening or near it, partly engaged, and fully inside, either moving or stuck; the
+gear’s and nut’s modes follow similar stages of their tasks (Appendix C). We then fit a linear probe
+that predicts the mode from zt .
+On all three tasks, the probe separates modes that call for different actions, such as lifted, engaged,
+and stuck (figure 10), and does so more accurately from zt than from the current observation alone
+(accuracy 61–73%, against 41–64%; chance 14%). Furthermore, the policy heavily relies on these
+inferred contact states to choose actions. Swapping in the latent of a state in another mode changes
+the action 1.3–3.0× as much as a swap within the same mode (figure 15; Appendix C). Fitted only in
+simulation, the peg probe decodes the same sequence of modes on the real robot (figure 10a).
+Reacting to contacts also makes a blind assembly efficient. A fixed pattern sweeps the same path
+regardless of what the arm feels, whereas a reactive policy can use the information gathered through
+contact, such as the peg catching the rim of the opening, to steer its search. We test this on peg
+insertion, where a scripted blind baseline is standard: spiral search, which moves the peg outward
+along a spiral until it drops into the hole, is a common strategy for insertion under position uncertainty
+in industrial assembly (Chhatpar & Branicky, 2001; Park et al., 2017; Marvel et al., 2018). From the
+same starts, the blind policy travels a median 37 mm before seating, against 95 mm for an optimistic
+spiral that starts flush with the hole opening, and is given the peg’s orientation and the best starting
+direction (figure 9c).
+
+3.3                 G ENERALIZATION TO UNSEEN PARTS
+
+On all three tasks, both blind policies and visual policies are reliable on the parts they were trained on.
+However, the blind policy is more reliable on assemblies sampled from outside the training distribution
+(figure 11). The visual policy is particularly vulnerable to geometry changes that significantly change
+
+
+                                                                                         7
+Preprint
+
+
+
+
+                                                                                  Simulation
+                 Lifted               84 3         7   5    2      0    0
+
+                          Off         5 67 10          5   10      2    1                    True              Partial                                  Partial              Moving
+                                                                                       Decoded            Near                                              Partial          Moving
+True mode
+                          Far         10   5 56 19          9      0    0
+
+                    Near              13   2   26 49 10            0    0
+                                                                                  Real world
+              Partial                 3    3   13 16 55 4               5
+
+            Moving                    0    1       0   0    3 85 11
+
+                 Stuck                0    2       0   0    3      5 90                Decoded                                Partial                          Partial           Moving
+
+                                                                                                      0                               0.5                             1                   1.5
+                                           Decoded mode
+                                                                                                                              Time since the policy started (s)
+                                                                                               (a) Peg insertion
+
+                            70 5 12 11 2           1   0        Simulation                                                    93 1      3   2   0   0   2      Simulation
+                             6 81 2        3   3   1   5                                                                      7 67 21 5         0   0   0
+              True mode
+
+
+
+
+                                                                                                                  True mode
+                             3 15 56 14 11 1           1                                                                      5 31 50 12 1          0   0
+                             4 10 42 21 23 0           0                                                                      2   2 11 72 12 0          0
+                             4   7 13 10 61 4          1                                                                      1   0     0 14 71 11 3
+                             6   1     0   0   3 65 25
+                                                                T           Entering      Meshing
+                                                                                                                              0   0     0   0 14 77 9
+                                                                                                                                                                  T       Entering
+                             3   2     0   0   0 19 75          D                          Meshing                            0   0     0   0   4 17 79           D
+
+                             Decoded mode                           0            0.5           1                              Decoded mode                            0         0.5         1
+                                                                                Time (s)                                                                                        Time (s)
+                   Lifted                          Searching, far              Entering         Meshing                        Lifted           Searching, far            Entering     Threading
+                   Off the shaft                   Searching, near             Descending                                                       Searching, near           Seated       Stuck
+
+                                                   (b) Gear meshing                                                                                 (c) Nut threading
+
+Figure 10: The blind policies’ joint histories encode the task’s mode, in simulation and in the
+real world. A linear probe fitted only in simulation reads the mode from each policy’s history latent.
+Each matrix gives its confusions (%); beside it, one start state is decoded at every step (T: true mode,
+D: decoded). On all three tasks, the probe cleanly separates modes that call for different actions, such
+as lifted, engaged, and stuck. (a) On the robot, it decodes the same sequence of peg insertion modes
+as in simulation.
+
+
+                                                                               Clearance              Aspect / depth                                           Size                        Shape
+                                      100
+                          insertion
+                             Peg
+
+
+
+
+                                          50
+
+                                           0
+                                                            In                   Tighter             Slender          Very                              Mild          Extreme             Random
+                                                           dist.                                                    slender                                                               convex
+Success (%)
+
+
+
+
+                                      100
+                          meshing
+                           Gear
+
+
+
+
+                                          50
+
+                                           0
+                                                            In                   Tighter              Taller            Much                            Mild          Extreme             Random
+                                                           dist.                                      teeth             taller                                                             tooth
+                                      100
+                          threading
+                             Nut
+
+
+
+
+                                          50
+
+                                           0
+                                                            In                   Tighter             Deeper           Much                              Mild          Extreme             Random
+                                                           dist.                                     thread          deeper                                                                 nut
+
+
+                                                                                  Proprioception (blind, ours)                        RGB (visual)
+
+
+Figure 11: Proprioceptive policies remain more robust to geometric variation. Success of the
+blind and visual policies (both with a 30-step history) on each task, in distribution (left of the dashed
+line) and on unseen parts, each widening one object property beyond its training range while the
+others stay within theirs.
+
+
+
+how the parts look; it consistently underperforms the blind policy across tasks when evaluated on
+parts that are of a different shape, or extremely different size, than the training distribution. The
+visual policy learns to align visual features which may not appear in held-out assemblies. The blind
+policy, on the other hand, learns a searching strategy that is much more transferable.
+
+
+                                                                                                          8
+Preprint
+
+
+
+
+                                     In training distribution                    Tighter clearance   Larger    Taller handle
+                                    24/30       22/30       22/30
+                    100    23/30
+                                                                         23/30           19/29         19/29          21/29
+
+
+
+
+      Success (%)
+                     75
+
+                     50
+
+                     25
+
+                      0
+
+
+
+
+                           I1       I2          I3          I4           I5             C              L             H
+Clearance (mm)            1.23     1.11       1.24        1.49          1.47            0.5           1.25          1.29
+
+                                                         Simulation, same peg         Real world
+
+
+Figure 12: Real-world results of the blind policy, with no fine-tuning, beside the same policy
+in simulation on the same peg (2,048 episodes). Error bars are 95% Wilson intervals. Details in
+Appendix C.
+
+
+3.4      Z ERO - SHOT TRANSFER TO THE REAL WORLD
+
+Setup. We deploy the frozen blind policy on a Flexiv Rizon 4S with a Robotiq 2F-85 at 50 Hz, with
+no real-world data or fine-tuning. It receives only encoder-derived joint and gripper state; no camera,
+force/torque sensor, or hole pose enters the policy. The deployed policy is a policy trained on random
+convex, smooth, and mixed cross-sections under a handle (Table 2). We test eight 3D-printed pegs
+(figure 12): five in-distribution objects, and three that are drawn from outside the training distribution,
+a tighter clearance (0.5 mm per side), a larger cross-section, and a taller handle. Each trial starts
+from a start state drawn from the simulated reset distribution, with the peg grasped at a randomized
+position and tilt and touching the fixture near the hole. An operator marks a trial as successful once
+the peg is seated.
+
+Results. One policy, with no parameter changes, succeeds in 173 of 237 trials (73%; figure 12),
+pressing onto the surface, sweeping, and dropping in once the opening is under the peg, as in
+simulation (figure 1). It succeeds in 73–80% of trials on each in-distribution peg, and in 66%, 66%,
+and 72% on the tighter, larger, and taller-handled pegs, respectively.
+
+4     R ELATED WORK
+
+Robotic insertion. Classical peg-in-hole assembly combines compliance with search patterns such
+as spirals, rasters, and tilting (Whitney, 1982; Chhatpar & Branicky, 2001; Marvel et al., 2018), in
+some cases without force feedback (Park et al., 2017); these strategies assume a known grasp and a
+hole within the pattern and are tuned for each part. Learned insertion policies usually add force/torque
+sensing (Inoue et al., 2017; Beltran-Hernandez et al., 2020), wrist vision (Schoettler et al., 2020;
+Bogunowicz et al., 2020; Spector & Di Castro, 2021; Haugaard et al., 2021; Seo et al., 2025), or both
+(Lee et al., 2019; Luo et al., 2021; Watson et al., 2020). Wrist force/torque sensing combined with
+a soft wrist has allowed policies to tolerate 10 mm of hole-position error and an unseen peg shape
+(Fuchioka et al., 2024), while a blind dexterous policy relying on fingertip tactile sensing (Pan et al.)
+was demonstrated for precise insertion. Others (Tang et al., 2023; 2024; Noseworthy et al., 2025;
+Narang et al., 2022) observe joint state and a direct goal pose from perception or calibration with a
+few millimeters of error. Our policy instead uses proprioception alone: it is given no hole pose, part
+model, or force signal, and must locate the hole through contact while the peg’s pose in its grasp is
+unknown.
+
+Proprioceptive policies. Legged robots traverse rough terrain with policies built on histories of
+onboard state (Hwangbo et al., 2019; Lee et al., 2020; Siekmann et al., 2021b; Kumar et al., 2021;
+Radosavovic et al., 2024). In manipulation, proprioceptive policies reorient unseen objects in hand
+(Chen et al., 2021; Qi et al., 2022), and Blind Dexterity treats joint and action histories as a whole-body
+tactile channel (Bhatt et al., 2026). These tasks involve forceful contact or centimeter tolerances;
+
+
+                                                                    9
+Preprint
+
+
+
+
+insertion needs neither. In imitation learning, robot state can hurt (Team et al., 2024) by suppressing
+visual learning (Lu et al., 2026).
+
+Simulating tight contact. Approximate convex decomposition (Mamou & Ghorbel, 2009; Wei
+et al., 2022) tolerates concavity relative to the mesh size, which can exceed an assembly’s clearance.
+Exact polygon partitions are classical (Keil, 1985), and simulation benchmarks build holes from
+primitives by hand (Zhu et al., 2020; Tao et al., 2024; Zakka et al., 2025); mjfit automates this for
+arbitrary outlines and generates assemblies in bulk. SDFs handle concavity directly and underlie
+GPU assembly simulation in Factory and its successors (Narang et al., 2022; Macklin et al., 2020;
+Tang et al., 2023), whose assets obtain their clearance approximately, by displacing mesh vertices or
+eroding voxels (Tang et al., 2024; Wang et al., 2025); SDF accuracy depends on field resolution and
+contact search. Newton combines SDFs with hydroelastic contact (The Newton developers, 2025),
+and barrier methods simulate threads and gear trains without interpenetration (Ferguson et al., 2021;
+Lan et al., 2022). Our benchmark (section 2.2) follows the simulator comparisons of Erez et al. (2015)
+and Le Lidec et al. (2024). CRISP (Lee et al., 2026) recently compared engines on tight insertion
+and threading; we instead keep MuJoCo’s solver fixed and vary only the collision geometry, using
+passive probes with analytic answers and speed–accuracy Pareto fronts.
+
+5   L IMITATIONS AND CONCLUSION
+We trained blind policies that insert pegs, mesh gears, and thread nuts from proprioception alone, with
+no fixture pose, grasp, or part model, on thousands of assemblies that mjfit generates with exact
+collision geometry. The peg insertion policy transfers zero-shot to the real world, and in simulation,
+blind policies generalize to unseen parts far better than matched visual policies. The peg insertion
+policy is, however, a last-mile manipulation skill, and its limits are those of one. First, it assumes
+it starts in contact: every training episode begins with the peg already touching the fixture a few
+centimeters from the hole, so another motion, scripted or visual, must bring it there. Second, its
+behavior is local. It searches the surface around where it starts and corrects the misalignments it met
+in training, but it cannot handle events that call for more than a local correction, such as a peg that
+slides out from the grasp and lands far from the hole.
+
+ACKNOWLEDGMENTS
+This research was financially supported by the Ministry of Trade, Industry, and Energy (MOTIE),
+Korea, under the “Global Industrial Technology Cooperation Center program” supervised by the
+Korea Institute for Advancement of Technology (KIAT). (Grant No. P0028435)
+
+R EFERENCES
+Cristian C Beltran-Hernandez, Damien Petit, Ixchel G Ramirez-Alpizar, and Kensuke Harada.
+  Variable compliance control for robotic peg-in-hole assembly: A deep-reinforcement-learning
+  approach. Applied Sciences, 10(19):6923, 2020.
+Aditya Bhatt, Oleg Kaidanov, Puze Liu, and Jan Peters. Blind dexterity: Whole-body humanoid
+  manipulation via pure proprioception, 2026.
+Damian Bogunowicz, Aleksandr Rybnikov, Komal Vendidandi, and Fedor Chervinskii. Sim2real for
+  peg-hole insertion with eye-in-hand camera, 2020. URL https://arxiv.org/abs/2005.
+  14401.
+Tao Chen, Jie Xu, and Pulkit Agrawal. A system for general in-hand object re-orientation. In
+  Conference on Robot Learning, 2021.
+Xuxin Cheng, Yandong Ji, Junming Chen, Ruihan Yang, Ge Yang, and Xiaolong Wang. Expressive
+ whole-body control for humanoid robots. 2024.
+Siddharth R Chhatpar and Michael S Branicky. Search strategies for peg-in-hole assemblies with
+  position uncertainty. In IEEE/RSJ International Conference on Intelligent Robots and Systems,
+  volume 3, pp. 1465–1470. IEEE, 2001.
+
+
+                                                  10
+Preprint
+
+
+
+
+Tom Erez, Yuval Tassa, and Emanuel Todorov. Simulation tools for model-based robotics: Compari-
+  son of Bullet, Havok, MuJoCo, ODE and PhysX. In IEEE International Conference on Robotics
+  and Automation, pp. 4397–4404, 2015. doi: 10.1109/ICRA.2015.7139807.
+Zachary Ferguson, Minchen Li, Teseo Schneider, Francisca Gil-Ureta, Timothy Langlois, Chenfanfu
+  Jiang, Denis Zorin, Danny M. Kaufman, and Daniele Panozzo. Intersection-free rigid body
+  dynamics. ACM Transactions on Graphics, 40(4), 2021. doi: 10.1145/3450626.3459802.
+Yuni Fuchioka, Cristian C. Beltran-Hernandez, Hai Nguyen, and Masashi Hamaya. Robotic object
+  insertion with a soft wrist through sim-to-real privileged training. In IEEE/RSJ International
+  Conference on Intelligent Robots and Systems, pp. 9159–9166, 2024. doi: 10.1109/IROS58592.
+  2024.10801575.
+Google DeepMind and NVIDIA. MuJoCo Warp: GPU-accelerated MuJoCo. https://github.
+  com/google-deepmind/mujoco_warp, 2025.
+Rasmus Haugaard, Jeppe Langaa, Christoffer Sloth, and Anders Buch. Fast robust peg-in-hole
+  insertion with continuous visual servoing. In Conference on Robot Learning, pp. 1696–1705.
+  PMLR, 2021.
+Tairan He, Zhengyi Luo, Xialin He, Wenli Xiao, Chong Zhang, Weinan Zhang, Kris Kitani, Changliu
+  Liu, and Guanya Shi. Omnih2o: Universal and dexterous human-to-humanoid whole-body
+  teleoperation and learning. 2024.
+Jemin Hwangbo, Joonho Lee, Alexey Dosovitskiy, Dario Bellicoso, Vassilios Tsounis, Vladlen
+  Koltun, and Marco Hutter. Learning agile and dynamic motor skills for legged robots. Science
+  robotics, 4(26):eaau5872, 2019.
+Tadanobu Inoue, Giovanni De Magistris, Asim Munawar, Tsuyoshi Yokoya, and Ryuki Tachibana.
+  Deep reinforcement learning for high precision assembly tasks. In IEEE/RSJ International
+  Conference on Intelligent Robots and Systems, pp. 819–825, 2017. doi: 10.1109/IROS.2017.
+  8202244.
+Max Jaderberg, Volodymyr Mnih, Wojciech Marian Czarnecki, Tom Schaul, Joel Z. Leibo, David
+ Silver, and Koray Kavukcuoglu. Reinforcement learning with unsupervised auxiliary tasks. In
+ International Conference on Learning Representations, 2017.
+J. Mark Keil. Decomposing a polygon into simpler components. SIAM Journal on Computing, 14(4):
+   799–817, 1985. doi: 10.1137/0214056.
+Ashish Kumar, Zipeng Fu, Deepak Pathak, and Jitendra Malik. Rma: Rapid motor adaptation for
+  legged robots. 2021.
+Lei Lan, Danny M. Kaufman, Minchen Li, Chenfanfu Jiang, and Yin Yang. Affine body dynamics:
+  Fast, stable and intersection-free simulation of stiff materials. ACM Transactions on Graphics, 41
+  (4), 2022. doi: 10.1145/3528223.3530064.
+Quentin Le Lidec, Wilson Jallet, Louis Montaut, Ivan Laptev, Cordelia Schmid, and Justin Carpentier.
+  Contact models in robotics: a comparative analysis. IEEE Transactions on Robotics, 40:3716–3733,
+  2024.
+Joonho Lee, Jemin Hwangbo, Lorenz Wellhausen, Vladlen Koltun, and Marco Hutter. Learning
+  quadrupedal locomotion over challenging terrain. Science Robotics, 5(47):eabc5986, 2020. doi:
+  10.1126/scirobotics.abc5986.
+Michelle A Lee, Yuke Zhu, Peter Zachares, Matthew Tan, Krishnan Srinivasan, Silvio Savarese,
+ Li Fei-Fei, Animesh Garg, and Jeannette Bohg. Making sense of vision and touch: Learning
+ multimodal representations for contact-rich tasks. arXiv preprint arXiv:1907.13098, 2019.
+Somang Lee, Sunkyung Park, Jinhee Yun, Seoki An, and Dongjun Lee. CRISP: Contact-rich
+  robotic simulation platform with extensive geometries and contact solvers, 2026. URL https:
+  //arxiv.org/abs/2609.21761.
+
+
+                                                11
+Preprint
+
+
+
+
+Jingxian Lu, Wenke Xia, Yuxuan Wu, Zhiwu Lu, and Di Hu. When would vision-proprioception
+   policies fail in robotic manipulation? 2026.
+
+Jianlan Luo, Oleg Sushkov, Rugile Pevceviciute, Wenzhao Lian, Chang Su, Mel Vecerik, Ning
+   Ye, Stefan Schaal, and Jon Scholz. Robust multi-modal policies for industrial assembly via
+   reinforcement learning and demonstrations: A large-scale study. In Robotics: Science and Systems,
+   2021.
+
+Miles Macklin, Kenny Erleben, Matthias Müller, Nuttapong Chentanez, Stefan Jeschke, and Zach
+ Corse. Local optimization for robust signed distance field collision. In Proceedings of the ACM on
+ Computer Graphics and Interactive Techniques, volume 3, 2020. doi: 10.1145/3384538.
+
+Khaled Mamou and Faouzi Ghorbel. A simple and efficient approach for 3D mesh approximate
+  convex decomposition. In IEEE International Conference on Image Processing, pp. 3501–3504,
+  2009. doi: 10.1109/ICIP.2009.5414068.
+
+Jeremy A Marvel, Roger Bostelman, and Joe Falco. Multi-robot assembly strategies and metrics.
+  ACM Computing Surveys (CSUR), 51(1):1–32, 2018.
+
+Yashraj Narang, Kier Storey, Iretiayo Akinola, Miles Macklin, Philipp Reist, Lukasz Wawrzyniak,
+  Yunrong Guo, Adam Moravanszky, Gavriel State, Michelle Lu, et al. Factory: Fast contact for
+  robotic assembly. 2022.
+
+Michael Noseworthy, Bingjie Tang, Bowen Wen, Ankur Handa, Chad Kessens, Nicholas Roy, Dieter
+ Fox, Fabio Ramos, Yashraj Narang, and Iretiayo Akinola. Forge: Force-guided exploration for
+ robust contact-rich manipulation under uncertainty, 2025.
+
+Jiahe Pan, Stelian Coros, Jitendra Malik, and Toru Lin. Beyond binary: Sim-to-real dexterous
+   manipulation with physics-aware contact representation.
+
+Hyeonjun Park, Jaeheung Park, Dong-Hyuk Lee, Jae-Han Park, Moon-Hong Baeg, and Ji-Hun
+  Bae. Compliance-based robotic peg-in-hole assembly strategy without force feedback. IEEE
+ Transactions on Industrial Electronics, 64(8):6299–6309, 2017. doi: 10.1109/TIE.2017.2682002.
+
+Xue Bin Peng, Marcin Andrychowicz, Wojciech Zaremba, and Pieter Abbeel. Sim-to-real transfer of
+  robotic control with dynamics randomization. In IEEE International Conference on Robotics and
+ Automation, 2018.
+
+Lerrel Pinto, Marcin Andrychowicz, Peter Welinder, Wojciech Zaremba, and Pieter Abbeel. Asym-
+  metric actor critic for image-based robot learning. In Robotics: Science and Systems, 2018.
+
+Haozhi Qi, Ashish Kumar, Roberto Calandra, Yi Ma, and Jitendra Malik. In-hand object rotation via
+  rapid motor adaptation. In Conference on Robot Learning, 2022.
+
+Ilija Radosavovic, Tete Xiao, Bike Zhang, Trevor Darrell, Jitendra Malik, and Koushil Sreenath.
+   Real-world humanoid locomotion with reinforcement learning. Science Robotics, 9(89):eadi9579,
+   2024.
+
+Gerrit Schoettler, Ashvin Nair, Jianlan Luo, Shikhar Bahl, Juan Aparicio Ojea, Eugen Solowjow, and
+  Sergey Levine. Deep reinforcement learning for industrial insertion tasks with visual inputs and
+  natural rewards. In IEEE/RSJ International Conference on Intelligent Robots and Systems, 2020.
+
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. Proximal policy
+  optimization algorithms. arXiv preprint arXiv:1707.06347, 2017.
+
+Joohwan Seo, Arvind Kruthiventy, Soomi Lee, Megan Teng, Seoyeon Choi, Xiang Zhang, Jongeun
+  Choi, and Roberto Horowitz. Equicontact: A hierarchical se (3) vision-to-force equivariant policy
+  for spatially generalizable contact-rich tasks, 2025.
+
+Jonah Siekmann, Yesh Godse, Alan Fern, and Jonathan Hurst. Sim-to-real learning of all common
+  bipedal gaits via periodic reward composition. In 2021 IEEE international conference on robotics
+  and automation (ICRA), pp. 7309–7315. IEEE, 2021a.
+
+
+                                                12
+Preprint
+
+
+
+
+Jonah Siekmann, Kevin Green, John Warila, Alan Fern, and Jonathan Hurst. Blind bipedal stair
+  traversal via sim-to-real reinforcement learning. 2021b.
+Oren Spector and Dotan Di Castro. InsertionNet: A scalable solution for insertion. IEEE Robotics
+  and Automation Letters, 6(3):5509–5516, 2021.
+Bingjie Tang, Michael A Lin, Iretiayo Akinola, Ankur Handa, Gaurav S Sukhatme, Fabio Ramos,
+  Dieter Fox, and Yashraj Narang. Industreal: Transferring contact-rich assembly tasks from
+  simulation to reality. 2023.
+Bingjie Tang, Iretiayo Akinola, Jie Xu, Bowen Wen, Ankur Handa, Karl Van Wyk, Dieter Fox,
+  Gaurav S. Sukhatme, Fabio Ramos, and Yashraj Narang. AutoMate: Specialist and generalist
+  assembly policies over diverse geometries. In Robotics: Science and Systems, 2024.
+Stone Tao, Fanbo Xiang, Arth Shukla, Yuzhe Qin, Xander Hinrichsen, Xiaodi Yuan, Chen Bao,
+  Xinsong Lin, Yulin Liu, Tse-kai Chan, Yuan Gao, Xuanlin Li, Tongzhou Mu, Nan Xiao, Arnav
+  Gurha, Viswesh Nagaswamy Rajesh, Yong Woo Choi, Yen-Ru Chen, Zhiao Huang, Roberto
+  Calandra, Rui Chen, Shan Luo, and Hao Su. ManiSkill3: GPU parallelized robotics simulation
+  and rendering for generalizable embodied AI, 2024. URL https://arxiv.org/abs/2410.
+  00425.
+Octo Model Team, Dibya Ghosh, Homer Walke, Karl Pertsch, Kevin Black, Oier Mees, Sudeep
+  Dasari, Joey Hejna, Tobias Kreiman, Charles Xu, et al. Octo: An open-source generalist robot
+  policy. 2024.
+The Newton developers. Newton: GPU-accelerated physics simulation for robotics. https:
+  //github.com/newton-physics/newton, 2025.
+Josh Tobin, Rachel Fong, Alex Ray, Jonas Schneider, Wojciech Zaremba, and Pieter Abbeel. Domain
+  randomization for transferring deep neural networks from simulation to the real world. In IEEE/RSJ
+  International Conference on Intelligent Robots and Systems, 2017.
+Emanuel Todorov, Tom Erez, and Yuval Tassa. Mujoco: A physics engine for model-based control.
+ In 2012 IEEE/RSJ international conference on intelligent robots and systems, pp. 5026–5033.
+ IEEE, 2012.
+Yian Wang, Bingjie Tang, Chuang Gan, Dieter Fox, Kaichun Mo, Yashraj Narang, and Iretiayo
+  Akinola. MatchMaker: Automated asset generation for robotic assembly. In IEEE International
+  Conference on Robotics and Automation, 2025.
+James Watson, Austin Miller, and Nikolaus Correll. Autonomous industrial assembly using force,
+  torque, and rgb-d sensing. Advanced Robotics, 34(7-8):546–559, 2020.
+Xinyue Wei, Minghua Liu, Zhan Ling, and Hao Su. Approximate convex decomposition for 3D
+  meshes with collision-aware concavity and tree search. ACM Transactions on Graphics, 41(4),
+  2022. doi: 10.1145/3528223.3530103.
+Daniel E Whitney. Quasi-static assembly of compliantly supported rigid parts. 1982.
+Kevin Zakka, Baruch Tabanpour, Qiayuan Liao, Mustafa Haiderbhai, Samuel Holt, Jing Yuan Luo,
+  Arthur Allshire, Erik Frey, Koushil Sreenath, Lueder A Kahrs, et al. Mujoco playground, 2025.
+Kevin Zakka, Qiayuan Liao, Brent Yi, Louis Le Lay, Koushil Sreenath, and Pieter Abbeel. mjlab: A
+  lightweight framework for gpu-accelerated robot learning, 2026.
+Yuke Zhu, Josiah Wong, Ajay Mandlekar, Roberto Martı́n-Martı́n, Abhishek Joshi, Kevin Lin,
+  Abhiram Maddukuri, Soroush Nasiriany, and Yifeng Zhu. robosuite: A modular simulation
+  framework and benchmark for robot learning, 2020. URL https://arxiv.org/abs/2009.
+  12293.
+
+
+
+
+                                                13
+Preprint
+
+
+
+
+A     T RAINING DETAILS
+
+Study and deployed policies. To cover as much real-world variation as possible, the deployed peg
+policy (section 3.4) is trained on the full ranges of part geometry, physics parameters, and object pose
+that we can (limited by physics stability, geometric constraints like the gripper width, etc.). We also
+train similarly diverse gear and nut policies for the latent probe (section 3.2; Appendix A.2). In order
+to test the policies’ capacity for generalizing out of the training distribution, we design study training
+ranges for all three tasks (section 3) that are more narrow (Table 1), so that we can systematically
+widen each property beyond training (section 3.3).
+
+A.1    S TUDY POLICIES
+
+Tasks. Physics runs at 1 kHz under a 50 Hz policy, and each world holds one part and fixture drawn
+from mjfit’s generators. Peg insertion: each episode starts with the peg touching the fixture’s top
+face, a median 1 cm from the hole center. It succeeds when the entire peg bottom face is seated in the
+hole. Bonuses of +1 reward the peg’s first capture by the opening and success. Contact labels mark
+each of 64 points on the peg’s bottom edge as free (more than 1 mm above the fixture’s top face),
+in contact (on the rim or top face, within 1 mm), or inside the opening. An episode lasts at most 5 s.
+Gear meshing: each world holds a spur-gear set from mjfit’s gear generator, and the robot holds
+the gear by a printed boss. Each episode starts with the gear resting on the shaft tip, off the shaft axis,
+with its teeth out of phase with the anchors’. It succeeds when the bore surrounds the shaft and the
+gear sits within 1 mm of the shaft’s collar, which the anchors’ teeth allow only in mesh. Bonuses
+reward the first capture of the shaft, the first mesh with every anchor, and success; contact labels
+mark 64 points on the shaft’s rim (free, on the gear, or inside the bore) and 64 on the gear’s tooth
+tips (free, on an anchor, or in mesh); an episode lasts at most 10 s. Nut threading: each world holds
+an ISO metric nut and bolt pair from mjfit’s thread generator. Each episode starts with the nut
+resting on the bolt tip, tilted and off the bolt axis, short of the turn at which the thread catches it. It
+succeeds a quarter turn after the thread catches, with the nut within 1 mm of the bolt axis; bonuses
+reward seating, capture, each new extent of the turn, and success; contact labels mark 64 points on
+the rim of the nut’s bore (free, on the bolt’s tip, around the bolt, or caught by the thread, within a
+band of 0.29 pitch, 1 mm at M30×3.5); an episode lasts at most 15 s. Every episode also ends when
+the part moves far from the fixture, and a nut episode when the nut leaves the grasp.
+
+Architecture. The actor observes 33 values per step: seven joint positions, seven joint velocities,
+the gripper pose and twist (twelve), and its previous action (seven). The nut policy’s actor encodes
+the gripper orientation by two columns of its rotation matrix rather than by Euler angles (36 values),
+since the wrist turns through half a revolution while threading. A temporal convolutional encoder
+maps the last 30 observations (0.6 s) to a 32-dimensional latent; an MLP (256, 256, 128 units) maps
+the latent and the current observation to seven joint-position increments, scaled by the action scale
+of Table 1 and added to the measured joint positions. The critic sees the part’s pose relative to the
+fixture, the contact labels, and, for the nut, the thread’s geometry (240, 434, and 317 inputs for the
+peg, gear, and nut).
+
+PPO. 12,288 worlds, 32-step rollouts, 5 epochs of 20 minibatches (24 for the gear and nut), fixed
+learning rate 3 × 10−4 , clip 0.2, γ = 0.98, λ = 0.95, entropy coefficient 0.003, value-loss coefficient
+1 with clipping, gradient norm clipped at 1, and initial action standard deviation 0.5. The contact
+decoder has two hidden layers of 128 units and class weights 0.25 (free), 3.0 (contact), and 2.0 (inside,
+in mesh, around the bolt, or caught). The visual policies see 64×64 wrist RGB images over the same
+30 steps.
+
+A.2    D EPLOYED AND FULL - RANGE POLICIES
+
+Deployed peg policy. The policy we deploy (section 3.4) trains as the study peg policies do, on the
+ranges of Table 2: random convex cross-sections under a handle, and wider contact and pose ranges.
+Its starts lie a median 2 cm from the hole center. It uses the gear’s and nut’s controller and a staged
+safety penalty, which starts once the task has been learned without safety limits and penalizes joint
+speeds and commanded torques above one sixth of the hardware limits. PPO uses 24 minibatches and
+an exploration anneal, during which the learning rate adapts to a target KL of 0.01.
+
+
+                                                   14
+Preprint
+
+
+
+
+Table 1: Study training ranges. The study policies of all three tasks (section 3) train on these
+ranges; Appendix A.2 gives the wider ranges of the deployed peg policy and the full-range gear and
+nut policies. Ranges marked (log) are sampled log-uniformly and the rest uniformly. Geometry is
+drawn once per world; poses and contact parameters at every reset. No observation noise is added.
+‡
+  The peg’s hole center; the gear’s and bolt’s fixtures draw the same offsets from their own nominal
+positions.
+                              Peg insertion              Gear meshing                Nut threading
+Part and fixture
+Part                          stadium prism              involute spur gear, held by ISO metric nut and bolt,
+                                                         an 18 mm boss; 1–2          coarse and fine pitch
+                                                         anchor gears
+Size                          scale 1.35–2.45; opening   module 2.375–3.125 mm; M36 and M42
+                              38–91 × 20–54 mm;          16–24 teeth
+                              length 50–60 mm × scale
+Shape                         aspect ratio 1.25–2.5 (log), pressure angle             across flats and height
+                              area-preserving              21.25–23.75◦ ; tooth width 0.95–1.05 × ISO 4032
+                                                           0.45–0.47 pitch; face
+                                                           width 9.75–13.25 mm
+Clearance                     1.0–1.5 mm per side          backlash 0.4–0.6 mm per flank 0.1–0.2 mm (log)
+                                                           anchor; bore 0.75–1.0 mm
+Fixture                       hole 10 mm × scale deep shaft radius 4.5–5.5 mm, bolt stick-out 7.5–22.5 mm
+                              in an 80 mm × scale          4.75–8.25 mm above the above its minimum
+                              square plate                 gear
+Part mass                     0.35–0.675 kg                128–202 g with boss        73–464 g
+Contact
+Fixture friction (log)        plate 0.5–2.0              plate and shaft 0.5–2.0;    thread 0.24–0.34
+                                                         anchor teeth 0.30–0.67
+Fixture contact time          3.5–7.1 ms                 3.5–7.1 ms                  thread 2 ms, fixed
+constant (log)
+Anchor hinge (log)            —                          damping 0.32–3.2 mN m s; —
+                                                         friction loss
+                                                         0.27–1.9 mN m
+Finger friction scale (log)                                        1.41–2.0
+Finger contact                                                    0.78–1.34
+time-constant scale (log)
+Gripper force cap scale                                          1.41–2.83
+(log)
+Poses
+Fixture center from robot                     x 0.54–0.76 m, y −0.29–0.17 m, z −0.20–0.29 m‡
+base
+Fixture tilt                  roll, pitch, yaw ±5◦       roll, pitch, yaw ±5◦        roll, pitch ±5◦
+Gripper rotation, per axis                                           ±5◦
+Initial part position, per    ±12.5 mm from the hole     ±7.5 mm from the shaft  ±0.42 bolt diameters
+axis                          center                     axis                    from its axis
+Initial phase                 —                          anchors at random angles87.5–142.5◦ of turning
+                                                                                 before the thread catches
+Grasp position                ±5.5 mm along the pads     ±2.5 mm along the pads; ±1 mm across the pads;
+                                                         pad bottoms             middle half of the pads’
+                                                         6.75–10.25 mm above the height
+                                                         gear
+In-hand tilt about the        ±10◦                       ±5◦                     ±10◦
+finger axis
+Control
+Joint gains kp / kd ; action 80 / 20; 0.02 rad           40 / 20; 0.04 rad           40 / 20; 0.04 rad (wrist
+scale                                                                                joint: 0.2 rad)
+Joint speed and torque       none                        none                        none
+penalty
+
+
+
+                                                       15
+Preprint
+
+
+
+
+Table 2: Deployed peg policy’s training ranges, where they differ from the study peg’s (Table 1);
+scale, aspect ratio, and clearance are the study’s. † Polygonal, smooth, and mixed outlines in equal
+shares, each inside a stadium of the given scale and aspect ratio and redrawn until its hole fits the
+printed fixture insert (at most 106×52 mm), under an 80×44×40 mm stadium handle.
+                  Parameter                                  Deployed peg policy
+                  Part and fixture
+                  Cross-section                              random convex†
+                  Opening, long × short side                 39–91 × 30–52 mm
+                  Peg length                                 25–35 mm, below the handle
+                  Hole depth                                 20 mm
+                  Plate                                      convex, 5–70 mm margin
+                  Peg mass                                   0.12–0.29 kg with handle
+                  Contact
+                  Plate sliding friction (log)               0.25–4.0
+                  Plate contact time constant (log)          2.5–10 ms
+                  Finger friction scale (log)                1.0–2.0
+                  Finger contact time-constant scale (log)   0.6–1.75
+                  Gripper force cap scale (log)              1.0–4.0
+                  Poses
+                  Fixture center from robot base, x          0.39–0.83 m
+                     y/z                                     −0.46–0.46 / −0.48–0.43 m
+                  Fixture roll, pitch, yaw                   ±10◦
+                  Gripper rotation, per axis                 ±10◦
+                  Initial peg position, per axis             ±25 mm
+                  Grasp position along the pads              ±7 mm, on the handle
+                  In-hand tilt about the finger axis         ±20◦
+                  Control
+                  Joint gains kp / kd ; action scale         40 / 20; 0.04 rad
+                  Joint speed and torque penalty             staged
+
+
+
+
+                                                       16
+Preprint
+
+
+
+
+Full-range gear and nut policies. The gear and nut probes of section 3.2 use policies trained on
+the full ranges. Gears have a module of 2–3.5 mm and 12–28 teeth, pressure angles of 20–25◦ , tooth
+widths of 0.44–0.48 of the pitch, face widths of 8–15 mm, 0.2–0.6 mm of backlash per anchor, and
+0.5–1 mm of bore clearance, on 4–6 mm shafts 3–10 mm above the gear; with the boss they weigh
+128–276 g, set by their geometry. Nuts are 870 ISO metric nut and bolt pairs, M24–M42 at coarse
+and fine pitch, with 0.05–0.2 mm of flank clearance, across flats and heights within 10% of ISO 4032,
+and steel masses of 73–855 g. Their contact and pose ranges are wider too: anchor-tooth friction
+0.2–1.0, thread friction 0.2–0.4, and the deployed peg policy’s plate, finger, gripper, fixture, and
+gripper-rotation ranges. Gears start a median 12 mm off the shaft axis; nuts start a median 19 mm
+off the bolt axis and 60–170◦ of turning short of the thread catching. With deterministic actions, the
+gear policy succeeds in 98% of 8,192 episodes on 4,096 unseen gear sets drawn from its training
+distribution, and the nut policy in 93% of 8,192 episodes on 512 unseen nut and bolt pairs drawn
+likewise.
+
+B    C OLLISION BENCHMARK DETAILS
+
+Table 3: Passive probes. Errors are in micrometers of wall position; negative values mean that
+phantom material stopped the peg early.
+     Probe              Setup                                         Exact answer
+     Wall offset        Rays from the hole axis at 720 angles and     Wall on the analytic outline
+                        11 heights; no solver
+     S0 contact onset   Aligned peg placed at known gaps; colli-      Contact appears at gap 0
+                        sion only
+     S1 drop            centered free peg dropped from 1 mm; c        Passes with zero wall contact iff
+                        from +1 mm to −500 µm                         c>0
+     S2 lateral play    Planar slides; 0.1 N push in 24 directions    Support of the feasible translation
+                                                                      set
+     S3 tilt play       Slides and one hinge; 1.5 mN m torque         Maximum tilt at which both faces
+                                                                      fit         √
+     S4 yaw play        Slides and a vertical hinge (square hole)     arcsin(a/(s 2)) − π/4
+
+
+
+Table 4: Real-time factor at a 1 ms time step with the peg pressed against the wall; ranges span each
+method’s settings, best of multi-point collision on and off. GPU figures sum over 512 MuJoCo Warp
+worlds on one RTX 5090. The last column gives the worst settled error at a 20 µm radial clearance.
+       Representation                        CPU, 1 thread GPU, 512 worlds Error at c = 20 µm
+       mjfit, square hole                              93×                 970×    0.2 µm
+       mjfit, circle, 7–32 sides                   82–29×            1120–1070×    ≤2.6 µm
+       mjfit, circle, 63–281 sides                16–4.9×              875–442×    ≤0.4 µm
+       Mesh SDF, octree depth 5–8                 2.9–2.2×             590–840×    fills, or 23–79 µm
+       CoACD, threshold 0.01 (839 hulls)              1.8×                 254×    fills
+       Other CoACD and V-HACD settings            3.3–70×             680–1900×    fills
+
+
+All scenes use a 1 ms time step, the implicit-fast integrator, the Newton solver, solref = (2 ms, 1),
+solimp = (0.99, 0.999, 0.001), µ = 1, and zero margin. Baselines receive an exact, watertight plate
+mesh (the circle tessellated at 1,024 segments, 0.04 µm sagitta), and ground truth uses the analytic
+circle, so mjfit is charged for its own chord error. The peg is always an exact MuJoCo primitive,
+so every difference comes from the hole. Timings come from one idle machine (Intel i9-13900KS,
+NVIDIA RTX 5090). Warp contact and constraint buffers are calibrated per representation, and every
+GPU run is checked for buffer overflow, which would silently drop contacts. At a 2 ms contact time
+constant, frictionless drops let pegs up to 20 µm oversize slip in for every method, including exact
+geometry, so S1 cannot resolve geometric errors below about 20 µm; the play probes can.
+
+Setup. The round and square holes are 16 mm wide in a 15 mm plate, with radial clearance c from
+20 to 200 µm; at c = 20 µm, 2c/D = 0.0025. The M10×1.5 bolt and nut have flank clearance c of
+20 and 100 µm and are probed for axial, radial, and tilt play and for screwing under load. CPU times
+
+
+                                                    17
+Preprint
+
+
+
+
+use one environment on one thread; GPU times use 512 MuJoCo Warp worlds, except in figure 6b,
+which uses 256 and measures the error on Warp as well.
+
+C    A DDITIONAL RESULTS
+
+Training: stadiums                                Unseen: random convex (dashed: matching stadium box)
+
+
+
+
+Figure 13: Study peg cross-sections, to scale. The study policies train on stadiums; the unseen
+random convex pegs used only for evaluation have one vertex on each side of a matching stadium’s
+bounding box and the same clearance.
+
+
+Table 5: In-distribution behaviour (sections 3.1 and 3.2), from 8,192 episodes per seed, averaged
+over both seeds (success, time, rate), and from the 3,964 of 4,096 matched starts where both seed-1
+policies succeed (travel, engagement, tilt). Medians unless stated; insertions per minute count every
+attempt, with failures at their full 5 s. Starts lie a median 10 mm from the hole center.
+                                                         Blind proprioceptive (ours)   Visual
+               Success (%)                                          99.4                 97.2
+               Time to seat (s)                                     0.80                 0.44
+               Insertions per minute                                 65                   82
+               Lateral travel before seating (mm)                    37                   20
+               Time partly engaged (s)                              0.38                 0.22
+               Tilt when partly engaged / seated (◦ )             6.7 / 1.1            5.2 / 1.1
+
+
+Behaviour. The blind policy travels farther than the visual policy from 99% of matched starts
+(Table 5). On unseen random convex pegs, the blind policy succeeds in 36.2% of episodes and the
+visual policy in 3.9% (both seeds); these pegs have a median 53% of the matching stadium’s area.
+
+Speed on gear meshing and nut threading. On the in-distribution episodes of the study policies
+of figure 11 (8,192 per policy, one seed, deterministic actions), counting successful episodes only, the
+blind gear policy succeeds in a median 0.58 s against the visual policy’s 0.64 s, and takes longer on
+43% of the 8,059 starts from which both succeed. Plausibly, the held gear hides the shaft from the
+wrist camera while it aligns, so visual policies also have to search. The blind nut policy succeeds in a
+median 0.76 s against 0.64 s, and takes longer on 98% of the 8,139 starts from which both succeed
+(by a median 0.10 s).
+
+Contact supervision. Without the contact loss (section 2.3), the blind policies still learn all three
+tasks, but need 2.7 (peg), 3.8 (gear), and 5.1 (nut) times as many environment steps to reach 90%
+training success (figure 14). The unsupervised peg policy reaches 97.8% after 486M steps; the
+supervised policies pass 99% by 242M.
+
+Probe details. The search modes are split at 5 mm from the opening, and an inside peg is stuck
+when it progresses less than 0.5 mm in 0.2 s. The probe uses the deployed policy (section 3.4). We roll
+it out in 1,536 worlds of its training distribution (1.15M states), train the probes on even-numbered
+worlds, and test on odd ones. Balanced accuracy over the seven modes is 70% (chance 14%) from the
+history latent, against 56% from the current observation alone and 33% from a randomly initialized
+encoder. The history latent recognizes lifted, moving, and stuck pegs with 84–90% recall; it decodes
+far search as near 19% of the time, and near as far 26%. Swapping latents between a searching and an
+inside state changes the action 1.4–1.9× as much as swapping between two states of the same mode;
+swapping between near and far changes it 0.99–1.11× as much (figure 15a). On the robot, we run the
+policy in 30 further trials on peg I3 (figure 12); its actions recomputed from the logged observations
+match the logged ones to within 2 × 10−5 . At the end of successful trials, the peg pose estimated
+from the joint encoders and planned grasp is a median 6.6 mm (10th–90th percentile 2.6–17.4 mm)
+from the seated pose, as the peg slips and turns in the fingers, and places only 3% of their states fully
+
+
+                                                        18
+Preprint
+
+
+
+
+                          100
+
+
+Success (%)
+                           50
+
+
+                                                       Peg insertion                      Gear meshing                         Nut threading
+                            0
+                                   0     100 200 300 400 500             0     100 200 300 400 500           0     100 200 300 400 500
+                                                                        Environment steps (millions)
+                                                          With contact supervision             Without contact supervision
+
+
+Figure 14: Contact supervision speeds up learning. Training success of the blind study policies of
+figure 8 (blue) and of the same policies trained without the contact loss (gray).
+
+                                        (a) Peg insertion                       (b) Gear meshing                          (c) Nut threading
+Receiving state's mode
+
+
+
+
+                            Far        base 1.11 1.27 1.81 1.56          Far   base 1.04 1.18 1.38 1.34          Far   base 1.18 1.56 1.59 1.60 1.57
+
+                           Near        0.99 base 1.19 1.59 1.40        Near    0.97 base 1.13 1.40 1.38      Near      0.94 base 1.24 1.37 1.40 1.39
+
+                         Partial       0.96 1.03 base 1.20 1.05     Entering   1.02 0.98 base 1.28 1.23   Entering     1.25 1.24 base 1.05 1.15 1.19
+
+                         Moving        1.80 1.84 1.59 base 1.02   Descending   1.37 1.37 1.33 base 0.94    Seated      1.88 1.88 1.31 base 1.11 1.18
+
+                          Stuck        1.79 1.94 1.63 1.20 base     Meshing    1.57 1.59 1.53 1.14 base    Moving      2.40 2.41 2.01 1.43 base 1.14
+
+                                                                                                            Stuck      2.88 3.02 2.65 1.89 1.33 base
+                                                                                          ng
+                                                l
+
+                                               g
+
+                                               k
+
+
+
+
+                                                                                 sc ing
+
+
+
+                                                                                         ng
+                                               r
+                                              ar
+
+
+
+
+                                                                                           r
+
+                                                                                  En ar
+                                             ia
+                                            Fa
+
+
+
+
+                                                                                        Fa
+                                           uc
+                                            in
+                                          Ne
+
+
+
+
+                                                                                      Ne
+                                           rt
+
+
+
+
+                                                                                       di
+
+                                                                                       hi
+                                         ov
+
+
+
+
+                                                                               De ter
+                                         St
+                                        Pa
+
+
+
+
+                                                                                   en
+
+                                                                                    es
+                                       M
+
+
+
+
+                                                                                                                        Se g
+                                                                                                                              ed
+
+                                                                                                                                g
+
+                                                                                                                                k
+                                                                                                                                r
+
+                                                                                                                       En ar
+                                                                                  M
+
+
+
+
+                                                                                                                             Fa
+
+
+
+
+                                                                                                                            uc
+                                                                                                                            rin
+
+
+
+                                                                                                                             in
+                                                                                                                           Ne
+
+
+
+                                                                                                                           at
+                                                                                                                          ov
+
+                                                                                                                         St
+                                                                                                                         te
+
+
+
+                                                                                                                        M
+                                                                               Donor latent's mode
+
+
+
+Figure 15: Latent-swap test for the policies of figure 10 in simulation. Each state keeps its own
+current observation but receives the history latent zt of a state in another mode; each cell is the mean
+change in action relative to a swap within the receiving state’s own mode.
+
+
+inside the hole. Scored states have every point of the peg’s bottom edge at least 3 mm above the plate
+(lifted) or at least 3 mm inside the opening (inside). The estimate never places the peg clearly above
+the plate; the probe labels 62% of the inside states correctly, against 100% in simulation from the
+same start states, and labels the final state of 17 of the 24 successful trials as inside. In figure 10a,
+true and decoded modes of the start state shown agree in simulation on 74% of steps (median over
+the 30 start states: 65%).
+The gear and nut probes use the full-range policies of Appendix A.2 (PPO updates 3,085 and 2,000)
+with the same recipe: one episode with deterministic actions in each of 1,536 worlds of held-out
+geometries from their training distributions (133k and 85k states), probes trained on even-numbered
+worlds and tested on odd ones. The modes come from the environments’ contact labels and the
+part’s pose: lifted; off the shaft (gear only; the nut leaves its bolt too rarely to probe); resting on
+the shaft or bolt tip and searching, far or near (split at the median start distance, 7.2 and 19.7 mm);
+entering, with the tip inside the bore but not yet captured; for the gear, descending the shaft before
+its teeth reach the anchors, then meshing, with its teeth on the anchors’ tops or in mesh; for the nut,
+seated on the bolt before the thread catches, then threading, or stuck when it advances less than
+0.05 pitch in 0.2 s. Balanced accuracy over the seven modes is 61% for the gear and 73% for the
+nut (chance 14%), against 41% and 64% from the current observation and 29% and 46% from a
+randomly initialized encoder; near search is decoded as far 42% and 31% of the time. Swapping
+latents between a searching and an engaged state changes the action 1.3–1.6× (gear) and 1.4–3.0×
+(nut) as much as swapping between two states of the same mode; swapping between near and far
+changes it 0.97–1.04× and 0.94–1.18× as much (figure 15b, c). The start states shown come from a
+re-run of each rollout, decoded with the same probes and rendered from the same states. Among the
+episodes that end engaged and visit at least five modes, the nut’s agrees with the true modes on 74%
+of steps (the median), and the gear’s on 79% (the 75th percentile; median 69%).
+
+
+                                                                                    19
+Preprint
+
+
+
+
+Unseen parts. Each unseen part of figure 11 widens one property of the part beyond its study
+training range (Table 1) while every other range stays at its study value. Table 6 lists the widened
+ranges for each task, grouped as in the figure: a tighter fit; a mild and a strong change of the part’s
+proportions; a mild and an extreme change of size, on both sides of the training range; and a new
+shape. Table 7 lists every bar.
+
+
+Table 6: Unseen parts of figure 11. Each row widens one property beyond its study training range
+(first row of each group); the bar’s name in the figure is in italics where it differs by task. Size bins
+pool parts smaller and larger than training.
+              Peg insertion                       Gear meshing                     Nut threading
+Clearance
+Training      1.0–1.5 mm per side                 backlash 0.4–0.6 mm per          flank 0.1–0.2 mm
+                                                  anchor
+Tighter       0.5–0.625 mm                        0.2–0.25 mm                      0.05–0.0625 mm
+Aspect / depth
+Training       aspect ratio 1.25–2.5              tooth height 1.0 module above ISO thread depth
+                                                  the pitch circle
+Mild          Slender: 3.54–4.20                  Taller teeth: 1.1–1.2 modules Deeper thread: 1.1–1.2×,
+                                                                                same flank angle
+Strong        Very slender: 4.20–5.0              Much taller: 1.2–1.3 modules Much deeper: 1.2–1.3×
+Size
+Training      scale 1.35–2.45                     module 2.375–3.125 mm       M36 and M42
+Mild          1.075–1.35 or 2.45–2.725            2.19–2.375 or 3.125–3.31 mm M30 or M48
+Extreme       0.8–1.075 or 2.725–3.0              2.0–2.19 or 3.31–3.5 mm     M24 or M52, the largest the
+                                                                              gripper holds
+Shape
+Training      stadium                      involute teeth                  hexagon
+Random        Random convex: one vertex on Random tooth: each tooth a      Random nut: a convex outline
+              each side of a matching      random quadrilateral inside the of 5–8 sides with two parallel
+              stadium’s bounding box, same involute one                    gripped faces, 0.75–1.35× the
+              clearance (figure 13)                                        hexagon’s area
+
+
+
+Table 7: Success on unseen parts (%), every bar of figure 11; Table 6 names each task’s columns.
+Peg insertion is the mean over two training seeds per policy; gear meshing and nut threading are one
+seed. Both policies have a 30-step history. Best per task and column in bold.
+                                               Clearance Aspect / depth            Size       Shape
+           Senses                   In dist.    Tighter    Mild   Strong    Mild    Extreme Random
+           Peg insertion
+           Proprioception (blind)      99.4      93.8      97.1    93.3     97.1      91.9     36.2
+           RGB (visual)                97.2      54.1      62.7    40.1     57.7      16.4     3.9
+           Gear meshing
+           Proprioception (blind) >99.9         >99.9      >99.9 >99.9 >99.9         >99.9    >99.9
+           RGB (visual)            98.4         98.0        98.6  98.5  96.5          90.2    87.9
+           Nut threading
+           Proprioception (blind)      99.7      99.2      99.2    98.2     98.8      98.4     99.7
+           RGB (visual)                99.7      98.7      99.1    98.8     25.5      1.6      57.1
+
+
+Real-world pegs. The pegs of figure 12 are 3D printed under an 80×44 mm stadium handle 40 mm
+tall, except H, whose handle is 70 mm tall; they weigh 147–164 g, and every hole is 20 mm deep.
+I1–I5 are cross-sections drawn from the deployed policy’s training distribution (polygonal, smooth,
+and mixed outlines) with 1.11–1.49 mm of clearance per side. C is a polygonal peg with 0.5 mm of
+clearance; L enlarges a training outline by 1.28×1.09 to a 101×37 mm hole; H puts a mixed outline
+under the taller handle. Each peg has 30 planned resets, and each reset counts once, by its first attempt
+
+
+                                                          20
+Preprint
+
+
+
+
+that reached a verdict: the operator’s success or failure, or the 20 s horizon, which counts as a failure.
+Each simulated rate is the same policy over 2,048 worlds of that peg’s geometry at the same 20 s
+horizon, with deterministic actions.
+
+
+
+
+                                                   21
+

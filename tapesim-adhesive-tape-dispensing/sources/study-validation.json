@@ -1,0 +1,199 @@
+{
+  "scope": "学习材料结构、原始统计与派生计算",
+  "checks": [
+    {
+      "name": "学习文件齐全",
+      "passed": true
+    },
+    {
+      "name": "标签恰好两个且互异",
+      "passed": true
+    },
+    {
+      "name": "校正后有十三位作者",
+      "passed": true
+    },
+    {
+      "name": "版本水印为 v2",
+      "passed": true
+    },
+    {
+      "name": "PDF 摘要值一致",
+      "passed": true
+    },
+    {
+      "name": "自测恰好十五问",
+      "passed": true
+    },
+    {
+      "name": "不宣称存在作者源码入口",
+      "passed": true
+    },
+    {
+      "name": "四任务阈值乘四配置",
+      "passed": true
+    },
+    {
+      "name": "Peel/None/Coh-F 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Peel/None/Bond-F 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Peel/None/Bond-R 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Peel/None/Coh-R 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Stick/None/Coh-F 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Stick/None/Bond-F 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Stick/None/Bond-R 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Stick/None/Coh-R 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Wrap/1/Coh-F 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Wrap/1/Bond-F 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Wrap/1/Bond-R 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Wrap/1/Coh-R 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Wrap/2/Coh-F 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Wrap/2/Bond-F 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Wrap/2/Bond-R 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Wrap/2/Coh-R 混淆矩阵与派生指标一致",
+      "passed": true
+    },
+    {
+      "name": "Coh-F 回放五段等权平均",
+      "passed": true
+    },
+    {
+      "name": "Coh-R 回放五段等权平均",
+      "passed": true
+    },
+    {
+      "name": "Bond-F 回放五段等权平均",
+      "passed": true
+    },
+    {
+      "name": "Bond-R 回放五段等权平均",
+      "passed": true
+    },
+    {
+      "name": "均值而非每段都改善",
+      "passed": true
+    },
+    {
+      "name": "作者数据复制无改写",
+      "passed": true
+    },
+    {
+      "name": "主 Peel 和黏附敏感性使用各自样本数",
+      "passed": true
+    },
+    {
+      "name": "封箱步数和时间一致",
+      "passed": true
+    },
+    {
+      "name": "封箱实时倍速保留原文精度",
+      "passed": true
+    },
+    {
+      "name": "不补造 Coh-F 固定容差精确成本",
+      "passed": true
+    },
+    {
+      "name": "页面 ID 不重复",
+      "passed": true
+    },
+    {
+      "name": "无外部资源依赖",
+      "passed": true
+    },
+    {
+      "name": "无 fetch/storage/API 请求",
+      "passed": true
+    },
+    {
+      "name": "页面内嵌完整真实数据",
+      "passed": true
+    },
+    {
+      "name": "内嵌 JavaScript 语法有效",
+      "passed": true
+    },
+    {
+      "name": "教学行为检查全部通过",
+      "passed": true
+    },
+    {
+      "name": "二阶数学检查全部通过",
+      "passed": true
+    },
+    {
+      "name": "三角网格检查全部通过",
+      "passed": true
+    },
+    {
+      "name": "交互网格状态来自实际运行报告",
+      "passed": true
+    },
+    {
+      "name": "交互法向阈值来自实际求根",
+      "passed": true
+    },
+    {
+      "name": "深入页内嵌数据与报告副本一致",
+      "passed": true
+    },
+    {
+      "name": "三角网格示例尺寸与单步推进一致",
+      "passed": true
+    },
+    {
+      "name": "索引中仅有一个新条目且标签一致",
+      "passed": true
+    },
+    {
+      "name": "既有索引条目完整保留",
+      "passed": true
+    }
+  ],
+  "passed": 48,
+  "physical_benchmark_reproduced": false
+}

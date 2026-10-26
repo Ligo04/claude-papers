@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use mjfit, please cite the paper it was built for."
+title: mjfit
+abstract: "Exact convex collision geometry for MuJoCo assemblies: pegs and holes from any outline, threads, and gears."
+type: software
+license: MIT
+repository-code: "https://github.com/younghyopark/mjfit"
+authors:
+  - family-names: Park
+    given-names: Younghyo
+preferred-citation:
+  type: article
+  title: "Blind Precise Assembly: Proprioceptive Sim-to-Real Peg-in-Hole for Diverse Parts"
+  authors:
+    - family-names: Bronars
+      given-names: Antonia
+    - family-names: Park
+      given-names: Younghyo
+    - family-names: Kedia
+      given-names: Kushal
+    - family-names: Agrawal
+      given-names: Pulkit
+  journal: "arXiv preprint arXiv:2610.23849"
+  year: 2026
+  doi: "10.48550/arXiv.2610.23849"
+  url: "https://arxiv.org/abs/2610.23849"

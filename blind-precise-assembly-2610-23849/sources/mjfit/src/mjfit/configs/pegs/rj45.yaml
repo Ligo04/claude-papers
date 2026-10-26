@@ -1,0 +1,21 @@
+# RJ45 (8P8C): an 11.68 x 6.5 mm plug body with a notch for the latch tab,
+# which keys it one way. The notch makes the outline non-convex and not
+# star-shaped, so the plate and the peg are ear-clipped.
+kind: peg
+hole:
+  type: polygon
+  vertices:
+    - [-0.00584, -0.00325]
+    - [ 0.00584, -0.00325]
+    - [ 0.00584,  0.00325]
+    - [ 0.00150,  0.00325]
+    - [ 0.00150,  0.00225]
+    - [-0.00150,  0.00225]
+    - [-0.00150,  0.00325]
+    - [-0.00584,  0.00325]
+clearance: 1.0e-4
+plate_size: 0.03
+plate_thickness: 0.008
+peg_length: 0.016
+handle_height: 0.015
+handle_margin: 0.002

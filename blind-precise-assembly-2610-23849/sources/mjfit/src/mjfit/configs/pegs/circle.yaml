@@ -1,0 +1,9 @@
+# A 16 mm round peg in a 50 mm plate with 100 um of clearance: the case of
+# the collision benchmark. The hole circumscribes the circle, so it is never
+# smaller than drawn.
+kind: peg
+hole: {type: circle, radius: 0.008, n: 32}
+clearance: 1.0e-4
+plate_size: 0.05
+plate_thickness: 0.01
+peg_length: 0.03

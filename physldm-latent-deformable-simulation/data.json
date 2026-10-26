@@ -1,0 +1,830 @@
+{
+  "paper": "arXiv:2610.07609v3",
+  "checked_date": "2026-10-20",
+  "reconstruction": [
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "Standard",
+      "dcc": 0.665,
+      "recon_mean_mm": 5.32,
+      "recon_median_mm": 3.47,
+      "recon_p90_mm": 12.01,
+      "rot_deg": 0.27,
+      "trans_mm": 0.57,
+      "large_recon_mean_mm": 6.14,
+      "large_rot_deg": 0.185,
+      "large_trans_mm": 0.5,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    },
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "Direct world-coord. †",
+      "dcc": 0.88,
+      "recon_mean_mm": 6.5,
+      "recon_median_mm": 4.21,
+      "recon_p90_mm": 15.6,
+      "rot_deg": 0.951,
+      "trans_mm": 3.89,
+      "large_recon_mean_mm": 7.99,
+      "large_rot_deg": 0.846,
+      "large_trans_mm": 4.14,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    },
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "Holistic (ours)",
+      "dcc": 0.949,
+      "recon_mean_mm": 2.48,
+      "recon_median_mm": 1.62,
+      "recon_p90_mm": 8.08,
+      "rot_deg": 0.276,
+      "trans_mm": 0.53,
+      "large_recon_mean_mm": 4.71,
+      "large_rot_deg": 0.169,
+      "large_trans_mm": 0.47,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    },
+    {
+      "dataset": "GSO",
+      "model": "Standard",
+      "dcc": 0.641,
+      "recon_mean_mm": 3.46,
+      "recon_median_mm": 1.64,
+      "recon_p90_mm": 8.83,
+      "rot_deg": 0.161,
+      "trans_mm": 0.48,
+      "large_recon_mean_mm": 4.3,
+      "large_rot_deg": 0.149,
+      "large_trans_mm": 0.42,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    },
+    {
+      "dataset": "GSO",
+      "model": "Direct world-coord. †",
+      "dcc": 0.836,
+      "recon_mean_mm": 5.56,
+      "recon_median_mm": 2.98,
+      "recon_p90_mm": 13.35,
+      "rot_deg": 0.64,
+      "trans_mm": 3.65,
+      "large_recon_mean_mm": 5.17,
+      "large_rot_deg": 0.678,
+      "large_trans_mm": 3.12,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    },
+    {
+      "dataset": "GSO",
+      "model": "Holistic (ours)",
+      "dcc": 0.941,
+      "recon_mean_mm": 1.91,
+      "recon_median_mm": 1.02,
+      "recon_p90_mm": 5.88,
+      "rot_deg": 0.158,
+      "trans_mm": 0.45,
+      "large_recon_mean_mm": 3.39,
+      "large_rot_deg": 0.147,
+      "large_trans_mm": 0.37,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "Standard",
+      "dcc": 0.663,
+      "recon_mean_mm": 5.49,
+      "recon_median_mm": 3.83,
+      "recon_p90_mm": 11.11,
+      "rot_deg": 0.31,
+      "trans_mm": 0.62,
+      "large_recon_mean_mm": 6.86,
+      "large_rot_deg": 0.189,
+      "large_trans_mm": 0.51,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "Direct world-coord. †",
+      "dcc": 0.858,
+      "recon_mean_mm": 6.96,
+      "recon_median_mm": 3.82,
+      "recon_p90_mm": 17.05,
+      "rot_deg": 1.191,
+      "trans_mm": 4.47,
+      "large_recon_mean_mm": 8.16,
+      "large_rot_deg": 0.901,
+      "large_trans_mm": 4.55,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "Holistic (ours)",
+      "dcc": 0.93,
+      "recon_mean_mm": 3.12,
+      "recon_median_mm": 2.05,
+      "recon_p90_mm": 8.29,
+      "rot_deg": 0.301,
+      "trans_mm": 0.61,
+      "large_recon_mean_mm": 5.44,
+      "large_rot_deg": 0.174,
+      "large_trans_mm": 0.49,
+      "source": "表 1，PDF 第 7 页",
+      "window_frames": 32,
+      "scene_count_per_resolution_group": 300
+    }
+  ],
+  "prediction": [
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "Diffusion (ours)",
+      "volume_pct": 7.9,
+      "self_intersection_pct": 0.24,
+      "relative_ke": 0.8,
+      "world_error_mm": 28.2,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    },
+    {
+      "dataset": "GSO",
+      "model": "Diffusion (ours)",
+      "volume_pct": 2.0,
+      "self_intersection_pct": 0.0,
+      "relative_ke": 0.86,
+      "world_error_mm": 14.0,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "Diffusion (ours)",
+      "volume_pct": 10.3,
+      "self_intersection_pct": 0.32,
+      "relative_ke": 0.8,
+      "world_error_mm": 35.6,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    },
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "Regression",
+      "volume_pct": 22.7,
+      "self_intersection_pct": 0.79,
+      "relative_ke": 0.72,
+      "world_error_mm": 37.5,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    },
+    {
+      "dataset": "GSO",
+      "model": "Regression",
+      "volume_pct": 5.1,
+      "self_intersection_pct": 0.01,
+      "relative_ke": 0.72,
+      "world_error_mm": 19.9,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "Regression",
+      "volume_pct": 24.3,
+      "self_intersection_pct": 1.07,
+      "relative_ke": 0.69,
+      "world_error_mm": 42.6,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    },
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "MGN-style AR",
+      "volume_pct": 55.1,
+      "self_intersection_pct": 3.53,
+      "relative_ke": 0.77,
+      "world_error_mm": 80.6,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    },
+    {
+      "dataset": "GSO",
+      "model": "MGN-style AR",
+      "volume_pct": 47.1,
+      "self_intersection_pct": 0.68,
+      "relative_ke": 0.76,
+      "world_error_mm": 78.4,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "MGN-style AR",
+      "volume_pct": 57.5,
+      "self_intersection_pct": 4.73,
+      "relative_ke": 0.77,
+      "world_error_mm": 79.1,
+      "source": "表 2，PDF 第 8 页",
+      "scene_count": 300,
+      "frames": 64,
+      "aggregation": "场景值的中位数"
+    }
+  ],
+  "full_prediction": [
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "ST-VAE reconstruction",
+      "volume_pct": 8.5,
+      "self_intersection_pct": 0.12,
+      "velocity_pct": 0.8,
+      "acceleration_pct": 16.9,
+      "relative_ke": 0.91,
+      "world_error_mm": 1.97,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "Diffusion (ours)",
+      "volume_pct": 7.9,
+      "self_intersection_pct": 0.24,
+      "velocity_pct": 7.0,
+      "acceleration_pct": 25.8,
+      "relative_ke": 0.8,
+      "world_error_mm": 28.2,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "Regression",
+      "volume_pct": 22.7,
+      "self_intersection_pct": 0.79,
+      "velocity_pct": 8.6,
+      "acceleration_pct": 29.2,
+      "relative_ke": 0.72,
+      "world_error_mm": 37.5,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "Objaverse Held-out",
+      "model": "MGN-style AR",
+      "volume_pct": 55.1,
+      "self_intersection_pct": 3.53,
+      "velocity_pct": 21.4,
+      "acceleration_pct": 69.0,
+      "relative_ke": 0.77,
+      "world_error_mm": 80.6,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "GSO",
+      "model": "ST-VAE reconstruction",
+      "volume_pct": 2.1,
+      "self_intersection_pct": 0.0,
+      "velocity_pct": 0.5,
+      "acceleration_pct": 11.8,
+      "relative_ke": 0.92,
+      "world_error_mm": 1.21,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "GSO",
+      "model": "Diffusion (ours)",
+      "volume_pct": 2.0,
+      "self_intersection_pct": 0.0,
+      "velocity_pct": 3.8,
+      "acceleration_pct": 17.4,
+      "relative_ke": 0.86,
+      "world_error_mm": 14.0,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "GSO",
+      "model": "Regression",
+      "volume_pct": 5.1,
+      "self_intersection_pct": 0.01,
+      "velocity_pct": 6.4,
+      "acceleration_pct": 22.7,
+      "relative_ke": 0.72,
+      "world_error_mm": 19.9,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "GSO",
+      "model": "MGN-style AR",
+      "volume_pct": 47.1,
+      "self_intersection_pct": 0.68,
+      "velocity_pct": 20.9,
+      "acceleration_pct": 66.6,
+      "relative_ke": 0.76,
+      "world_error_mm": 78.4,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "ST-VAE reconstruction",
+      "volume_pct": 10.6,
+      "self_intersection_pct": 0.19,
+      "velocity_pct": 1.1,
+      "acceleration_pct": 17.6,
+      "relative_ke": 0.91,
+      "world_error_mm": 2.15,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "Diffusion (ours)",
+      "volume_pct": 10.3,
+      "self_intersection_pct": 0.32,
+      "velocity_pct": 8.6,
+      "acceleration_pct": 28.5,
+      "relative_ke": 0.8,
+      "world_error_mm": 35.6,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "Regression",
+      "volume_pct": 24.3,
+      "self_intersection_pct": 1.07,
+      "velocity_pct": 9.0,
+      "acceleration_pct": 29.6,
+      "relative_ke": 0.69,
+      "world_error_mm": 42.6,
+      "source": "表 8，PDF 第 29 页"
+    },
+    {
+      "dataset": "Toys4K",
+      "model": "MGN-style AR",
+      "volume_pct": 57.5,
+      "self_intersection_pct": 4.73,
+      "velocity_pct": 20.2,
+      "acceleration_pct": 72.2,
+      "relative_ke": 0.77,
+      "world_error_mm": 79.1,
+      "source": "表 8，PDF 第 29 页"
+    }
+  ],
+  "chaos": [
+    {
+      "group": "低分歧",
+      "scenes": 229,
+      "model": "Regression",
+      "volume_pct": 12.6,
+      "relative_ke": 0.72,
+      "world_error_mm": 25.0,
+      "source": "表 6，PDF 第 26 页",
+      "selection_uses_ground_truth": false
+    },
+    {
+      "group": "高分歧",
+      "scenes": 71,
+      "model": "Regression",
+      "volume_pct": 38.4,
+      "relative_ke": 0.69,
+      "world_error_mm": 63.2,
+      "source": "表 6，PDF 第 26 页",
+      "selection_uses_ground_truth": false
+    },
+    {
+      "group": "低分歧",
+      "scenes": 229,
+      "model": "Diffusion, single sample",
+      "volume_pct": 3.8,
+      "relative_ke": 0.82,
+      "world_error_mm": 18.0,
+      "source": "表 6，PDF 第 26 页",
+      "selection_uses_ground_truth": false
+    },
+    {
+      "group": "高分歧",
+      "scenes": 71,
+      "model": "Diffusion, single sample",
+      "volume_pct": 25.4,
+      "relative_ke": 0.75,
+      "world_error_mm": 54.0,
+      "source": "表 6，PDF 第 26 页",
+      "selection_uses_ground_truth": false
+    },
+    {
+      "group": "低分歧",
+      "scenes": 229,
+      "model": "Diffusion, best of 8",
+      "volume_pct": 4.4,
+      "relative_ke": 0.83,
+      "world_error_mm": 14.6,
+      "source": "表 6，PDF 第 26 页",
+      "selection_uses_ground_truth": true
+    },
+    {
+      "group": "高分歧",
+      "scenes": 71,
+      "model": "Diffusion, best of 8",
+      "volume_pct": 22.8,
+      "relative_ke": 0.79,
+      "world_error_mm": 44.7,
+      "source": "表 6，PDF 第 26 页",
+      "selection_uses_ground_truth": true
+    }
+  ],
+  "runtime": [
+    {
+      "vertices": 980,
+      "decode_bf16_ms": 318.0,
+      "decode_fp32_ms": 288.0,
+      "bf16": {
+        "Regression": 195.0,
+        "LDM-20": 82.0,
+        "LDM-50": 44.0
+      },
+      "fp32": {
+        "Regression": 192.0,
+        "LDM-20": 30.0,
+        "LDM-50": 13.0
+      },
+      "peak_gib": 4.8,
+      "source": "表 10，PDF 第 32 页",
+      "hardware": "H200",
+      "batch": 1,
+      "frames": 64,
+      "io_included": false
+    },
+    {
+      "vertices": 2493,
+      "decode_bf16_ms": 327.0,
+      "decode_fp32_ms": 425.0,
+      "bf16": {
+        "Regression": 189.0,
+        "LDM-20": 79.0,
+        "LDM-50": 42.0
+      },
+      "fp32": {
+        "Regression": 136.0,
+        "LDM-20": 28.0,
+        "LDM-50": 13.0
+      },
+      "peak_gib": 4.8,
+      "source": "表 10，PDF 第 32 页",
+      "hardware": "H200",
+      "batch": 1,
+      "frames": 64,
+      "io_included": false
+    },
+    {
+      "vertices": 5007,
+      "decode_bf16_ms": 328.0,
+      "decode_fp32_ms": 597.0,
+      "bf16": {
+        "Regression": 188.0,
+        "LDM-20": 81.0,
+        "LDM-50": 43.0
+      },
+      "fp32": {
+        "Regression": 100.0,
+        "LDM-20": 26.0,
+        "LDM-50": 12.0
+      },
+      "peak_gib": 4.8,
+      "source": "表 10，PDF 第 32 页",
+      "hardware": "H200",
+      "batch": 1,
+      "frames": 64,
+      "io_included": false
+    },
+    {
+      "vertices": 7534,
+      "decode_bf16_ms": 332.0,
+      "decode_fp32_ms": 778.0,
+      "bf16": {
+        "Regression": 186.0,
+        "LDM-20": 81.0,
+        "LDM-50": 43.0
+      },
+      "fp32": {
+        "Regression": 78.0,
+        "LDM-20": 25.0,
+        "LDM-50": 12.0
+      },
+      "peak_gib": 5.2,
+      "source": "表 10，PDF 第 32 页",
+      "hardware": "H200",
+      "batch": 1,
+      "frames": 64,
+      "io_included": false
+    },
+    {
+      "vertices": 9851,
+      "decode_bf16_ms": 384.0,
+      "decode_fp32_ms": 960.0,
+      "bf16": {
+        "Regression": 162.0,
+        "LDM-20": 76.0,
+        "LDM-50": 42.0
+      },
+      "fp32": {
+        "Regression": 64.0,
+        "LDM-20": 23.0,
+        "LDM-50": 12.0
+      },
+      "peak_gib": 5.4,
+      "source": "表 10，PDF 第 32 页",
+      "hardware": "H200",
+      "batch": 1,
+      "frames": 64,
+      "io_included": false
+    }
+  ],
+  "transfer": [
+    {
+      "data": "Stable Neo-Hookean",
+      "output": "ST-VAE reconstruction",
+      "scenes": 40,
+      "volume_pct": 6.9,
+      "relative_ke": 0.92,
+      "world_error_mm": 4.5,
+      "source": "表 16，PDF 第 44 页",
+      "split": "零样本评估"
+    },
+    {
+      "data": "Stable Neo-Hookean",
+      "output": "LDM prediction",
+      "scenes": 40,
+      "volume_pct": 8.9,
+      "relative_ke": 0.83,
+      "world_error_mm": 23.9,
+      "source": "表 16，PDF 第 44 页",
+      "split": "零样本评估"
+    },
+    {
+      "data": "ARAP",
+      "output": "ST-VAE reconstruction",
+      "scenes": 40,
+      "volume_pct": 3.1,
+      "relative_ke": 0.93,
+      "world_error_mm": 4.6,
+      "source": "表 16，PDF 第 44 页",
+      "split": "零样本评估"
+    },
+    {
+      "data": "ARAP",
+      "output": "LDM prediction",
+      "scenes": 40,
+      "volume_pct": 4.9,
+      "relative_ke": 0.79,
+      "world_error_mm": 37.5,
+      "source": "表 16，PDF 第 44 页",
+      "split": "零样本评估"
+    },
+    {
+      "data": "Real captured",
+      "output": "ST-VAE reconstruction",
+      "scenes": 22,
+      "volume_pct": null,
+      "relative_ke": null,
+      "world_error_mm": 6.0,
+      "source": "表 16，PDF 第 44 页",
+      "split": "零样本评估"
+    },
+    {
+      "data": "Real captured",
+      "output": "LDM prediction",
+      "scenes": 22,
+      "volume_pct": null,
+      "relative_ke": null,
+      "world_error_mm": 874.9,
+      "source": "表 16，PDF 第 44 页",
+      "split": "零样本评估"
+    }
+  ],
+  "finetune": [
+    {
+      "data": "Stable Neo-Hookean",
+      "scenes": 32,
+      "before_volume_pct": 8.9,
+      "after_volume_pct": 6.2,
+      "before_ke": 0.82,
+      "after_ke": 0.91,
+      "before_error_mm": 22.9,
+      "after_error_mm": 7.6,
+      "source": "表 17，PDF 第 44 页",
+      "split": "微调子集上的前后统计；非独立测试泛化"
+    },
+    {
+      "data": "ARAP",
+      "scenes": 32,
+      "before_volume_pct": 4.9,
+      "after_volume_pct": 3.1,
+      "before_ke": 0.8,
+      "after_ke": 0.92,
+      "before_error_mm": 34.4,
+      "after_error_mm": 8.8,
+      "source": "表 17，PDF 第 44 页",
+      "split": "微调子集上的前后统计；非独立测试泛化"
+    },
+    {
+      "data": "Real captured",
+      "scenes": 16,
+      "before_volume_pct": null,
+      "after_volume_pct": null,
+      "before_ke": null,
+      "after_ke": null,
+      "before_error_mm": 921.3,
+      "after_error_mm": 6.2,
+      "source": "表 17，PDF 第 44 页",
+      "split": "微调子集上的前后统计；非独立测试泛化"
+    }
+  ],
+  "training_memory": [
+    {
+      "vertices": 500,
+      "raw_ldm_training_gib": 28.9,
+      "stvae_training_gib": 33.5,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 1000,
+      "raw_ldm_training_gib": 55.4,
+      "stvae_training_gib": 37.4,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 2000,
+      "raw_ldm_training_gib": 108.3,
+      "stvae_training_gib": 45.8,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 2500,
+      "raw_ldm_training_gib": 134.5,
+      "stvae_training_gib": 50.7,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 2600,
+      "raw_ldm_training_gib": null,
+      "stvae_training_gib": 50.7,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 3500,
+      "raw_ldm_training_gib": null,
+      "stvae_training_gib": 56.0,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 5000,
+      "raw_ldm_training_gib": null,
+      "stvae_training_gib": 70.4,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 7500,
+      "raw_ldm_training_gib": null,
+      "stvae_training_gib": 92.9,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 10000,
+      "raw_ldm_training_gib": null,
+      "stvae_training_gib": 116.0,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 14000,
+      "raw_ldm_training_gib": null,
+      "stvae_training_gib": 135.3,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    },
+    {
+      "vertices": 14500,
+      "raw_ldm_training_gib": null,
+      "stvae_training_gib": null,
+      "source": "表 9，PDF 第 30 页",
+      "missing_means": "OOM"
+    }
+  ],
+  "architecture": {
+    "spatial": {
+      "query_tokens": 512,
+      "latent_width": 48,
+      "hidden_width": 512,
+      "layers": 8,
+      "parameters_million": 44
+    },
+    "small": {
+      "frames": 32,
+      "temporal_tokens": 4,
+      "parameters_million": 95,
+      "spatial_frozen": true
+    },
+    "base": {
+      "frames": 64,
+      "temporal_tokens": 8,
+      "parameters_million": 124,
+      "spatial_frozen": false
+    },
+    "ldm": {
+      "blocks": 12,
+      "hidden_width": 768,
+      "parameters_million": 170,
+      "latent_tokens": 4104,
+      "evaluation_euler_steps": 50
+    }
+  },
+  "training": {
+    "single_body_trajectories": 63397,
+    "multi_body_trajectories": 16078,
+    "split": [
+      0.9,
+      0.05,
+      0.05
+    ],
+    "gso_trajectories": 1015,
+    "toys_trajectories": 3814,
+    "vertices": [
+      500,
+      5000
+    ],
+    "dt": 0.016666666666666666,
+    "frames": 64,
+    "young_modulus_pa": [
+      30000.0,
+      3000000.0
+    ],
+    "spatial_steps": 183000,
+    "stvae_steps": 150000,
+    "ldm_steps": 278000,
+    "days": 7,
+    "gpu_count": 8,
+    "gpu": "H200"
+  },
+  "inverse": {
+    "material_adam_steps": 40,
+    "material_seconds": 40,
+    "moduli_tested": 7,
+    "final_log10_error_bound_dex": 0.06,
+    "throw_steps": 30,
+    "throw_minutes": 7,
+    "rigid_sensitivity_gain_caption": 13.4,
+    "vertex_sensitivity_gain": 1.85,
+    "local_reference_modulus_pa": 60000.0
+  },
+  "metric_notes": {
+    "reconstruction": "输入完整真实轨迹，评估 encode/decode；表 1 Small、32 帧",
+    "prediction": "只给初始状态，生成64帧；表2单样本、50 Euler步",
+    "dcc": "形变变化幅度曲线的 Pearson 相关；不衡量幅度是否正确",
+    "volume_pct": "仅在 GT 单元体积变化<3%的样本中，统计预测变化>10%的比例",
+    "relative_ke": "形变/刚体动能比相对 GT 的比例，不是能量守恒误差",
+    "runtime": "fps=64/整段生成耗时；不是闭环单步延迟"
+  },
+  "sources": [
+    {
+      "url": "https://arxiv.org/pdf/2610.07609v3",
+      "role": "完整论文与附录"
+    },
+    {
+      "url": "https://arxiv.org/html/2610.07609v3",
+      "role": "公式及表格结构交叉核对"
+    },
+    {
+      "url": "https://yucrazing.github.io/physldm/",
+      "role": "作者项目页"
+    }
+  ]
+}

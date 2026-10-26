@@ -1,0 +1,166 @@
+{
+  "scope": "本包推导的局部能量/Hessian 教学，非作者求解器",
+  "reference_vertices_m": [
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.002,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.002,
+      0.0
+    ],
+    [
+      0.0006,
+      0.0006,
+      0.0002
+    ]
+  ],
+  "dt_s": 0.01,
+  "stiffness_pa": 1000000.0,
+  "break_force_n": 0.5,
+  "reference_volume_m3": 1.3333333333333354e-10,
+  "triangle_area_m2": 2e-06,
+  "critical_normal_stretch": 1.0831036969405674,
+  "stretch_samples": [
+    {
+      "stretch": 0.5,
+      "force_z_n": 1.0000000000000016,
+      "force_norm_n": 1.0000000000000016,
+      "release": false
+    },
+    {
+      "stretch": 1.0,
+      "force_z_n": -1.7526363729328954e-31,
+      "force_norm_n": 1.7526363729328954e-31,
+      "release": false
+    },
+    {
+      "stretch": 1.05,
+      "force_z_n": -0.2870000000000006,
+      "force_norm_n": 0.2870000000000006,
+      "release": false
+    },
+    {
+      "stretch": 1.1,
+      "force_z_n": -0.6160000000000015,
+      "force_norm_n": 0.6160000000000015,
+      "release": true
+    },
+    {
+      "stretch": 1.5,
+      "force_z_n": -5.000000000000012,
+      "force_norm_n": 5.000000000000012,
+      "release": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "精确 Hessian 与梯度中心差分一致",
+      "passed": true,
+      "normalized_max_error": 4.599793988389357e-10
+    },
+    {
+      "name": "精确 Hessian 对称",
+      "passed": true
+    },
+    {
+      "name": "二阶方向导数与能量中心差分一致",
+      "passed": true,
+      "exact": 1.4611168233327332,
+      "finite_difference": 1.4611168514566693
+    },
+    {
+      "name": "平移方向无曲率",
+      "passed": true
+    },
+    {
+      "name": "参考态有六个刚体零模态",
+      "passed": true,
+      "eigenvalues": [
+        -3.188860343106437e-16,
+        -1.0318513936463669e-16,
+        -1.558805943937571e-17,
+        3.208985809286916e-17,
+        8.090121319342691e-17,
+        1.3411918994920191e-16,
+        0.026666666666666665,
+        0.05312979471067068,
+        0.07959292275467433,
+        1.8002035386226662,
+        1.8266666666666698,
+        3.573740410578667
+      ]
+    },
+    {
+      "name": "参考态精确 Hessian 等于 Gauss–Newton",
+      "passed": true
+    },
+    {
+      "name": "参考态的无穷小旋转为零模态",
+      "passed": true
+    },
+    {
+      "name": "压缩态精确 Hessian 存在负曲率",
+      "passed": true,
+      "normal_curvature": -0.33333333333333387
+    },
+    {
+      "name": "压缩态 Gauss–Newton 为半正定",
+      "passed": true
+    },
+    {
+      "name": "压缩态两种 Hessian 确有差别",
+      "passed": true
+    },
+    {
+      "name": "法向伸缩 λ=0.5 的标量公式",
+      "passed": true
+    },
+    {
+      "name": "法向伸缩 λ=1.0 的标量公式",
+      "passed": true
+    },
+    {
+      "name": "法向伸缩 λ=1.05 的标量公式",
+      "passed": true
+    },
+    {
+      "name": "法向伸缩 λ=1.1 的标量公式",
+      "passed": true
+    },
+    {
+      "name": "法向伸缩 λ=1.5 的标量公式",
+      "passed": true
+    },
+    {
+      "name": "法向释放阈值求根",
+      "passed": true,
+      "critical_stretch": 1.0831036969405674
+    },
+    {
+      "name": "压缩示例虽超过阈值也不释放",
+      "passed": true
+    },
+    {
+      "name": "非线性旋转的链式曲率可精确抵消 JᵀHJ",
+      "passed": true,
+      "jt_h_j": 0.0013,
+      "coordinate_curvature": -0.0013,
+      "total": 0.0
+    }
+  ],
+  "passed": 18,
+  "omissions": [
+    "全局 Newton/PCG",
+    "Hessian 正定化策略",
+    "IPC/CCD",
+    "真实胶带参数辨识"
+  ]
+}

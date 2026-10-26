@@ -1,0 +1,45 @@
+# Extended sweep on the circle: finer CoACD, V-HACD and SDF settings, so each
+# method traces its whole speed-accuracy curve down to where it saturates.
+# Adds to configs/probes.yaml (same task) and runs only what the Pareto
+# fronts use (python -m benchmark.reproduce runs these in its stages):
+#   CPU:  python -m benchmark.run_probes --config benchmark/configs/circle_cpu.yaml \
+#             --probes geometry memory lateral tilt
+#         python -m benchmark.run_speed --config benchmark/configs/circle_cpu.yaml \
+#             --parts cpu_single --scenarios wall
+#   GPU:  python -m benchmark.run_warp_probes --config benchmark/configs/circle_cpu.yaml \
+#             --probes lateral tilt --clearances 100 20
+#         python -m benchmark.run_speed --config benchmark/configs/circle_cpu.yaml \
+#             --parts warp --scenarios wall --nworlds 256
+
+task:
+  size: 0.008
+  thickness: 0.015
+  plate_half: 0.024
+  peg_length: 0.040
+
+shapes: [circle]
+
+methods:
+  coacd:        # finer than probes.yaml's 0.01; 0.005 is the first that keeps c = 20 um open
+    - {threshold: 0.0075}
+    - {threshold: 0.005}
+  vhacd:        # error is bounded by voxel size; ~2400 hulls at 60-120M voxels is its floor
+    - {max_hulls: 1024, resolution: 4000000, min_error: 0.1, max_depth: 12}
+    - {max_hulls: 1024, resolution: 20000000, min_error: 0.1, max_depth: 12}
+    - {max_hulls: 4096, resolution: 20000000, min_error: 0.1, max_depth: 14}
+    - {max_hulls: 4096, resolution: 60000000, min_error: 0.1, max_depth: 14}
+    - {max_hulls: 4096, resolution: 120000000, min_error: 0.1, max_depth: 14}
+  sdf:          # depth 9: 5M octree nodes, 24 s compile; depth 10: 20M nodes, 108 s, 13 GB RAM
+    - {depth: 9}
+    - {depth: 10}
+    - {depth: 9, initpoints: 100, iterations: 30}
+    - {depth: 10, initpoints: 100, iterations: 30}
+
+multiccd: [true, false]
+
+probes:
+  static:  {clearance_um: 1000, n_dir: 24}
+  drop:    {clearance_um: [100, 20, -20, -100], friction: [true]}
+  lateral: {clearance_um: [100, 20], force_N: 0.1, n_dir: 24}
+  tilt:    {clearance_um: [100, 20], phi_deg: {circle: [0]}}
+  yaw:     {clearance_um: [100, 20]}

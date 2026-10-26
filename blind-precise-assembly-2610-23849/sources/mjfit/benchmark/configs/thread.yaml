@@ -1,0 +1,46 @@
+# Bolt/nut benchmark: M10 x 1.5 ISO thread, 16 mm threaded rod, 8 mm nut
+# (outer diameter 16 mm), steel. Clearance c is the gap between facing flanks
+# with the nut centred (mjfit.thread's `clearance`): axial play +-2c/sqrt3, radial
+# play c/2.
+# This is the sweep in results/thread/ (python -m benchmark.reproduce --stage
+# thread runs it); CoACD at threshold 0.01 is the optional thread_coacd_fine.yaml.
+
+task: {}            # ThreadTask defaults
+
+clearance_um: [100, 20]
+
+methods:
+  ours:             # mjfit wedges; the knob is segments per turn (chord error ~ 1/n^2)
+    - {segments: 12}
+    - {segments: 16}
+    - {segments: 24}
+    - {segments: 32}
+    - {segments: 48}
+    - {segments: 64}
+    - {segments: 96}
+    - {segments: 128}
+    - {segments: 192}
+  coacd:            # on the exact watertight bolt and nut meshes
+    - {threshold: 0.1}
+    - {threshold: 0.05}
+    - {threshold: 0.03}
+    - {threshold: 0.02}
+  vhacd:
+    - {max_hulls: 64, resolution: 1000000}
+    - {max_hulls: 256, resolution: 4000000, min_error: 0.1, max_depth: 12}
+    - {max_hulls: 1024, resolution: 20000000, min_error: 0.1, max_depth: 12}
+    - {max_hulls: 4096, resolution: 60000000, min_error: 0.1, max_depth: 14}
+  sdf:              # both parts as mesh SDFs; the knob is octree depth
+    - {depth: 6}
+    - {depth: 7}
+    - {depth: 8}
+    - {depth: 9}
+  sdf_analytic:     # the exact parts as an analytic SDF plugin; the knob is MuJoCo's
+                    # SDF contact search: initial points x gradient iterations
+    - {initpoints: 40, iterations: 10}
+    - {initpoints: 100, iterations: 30}
+    - {initpoints: 300, iterations: 60}
+
+multiccd: [true, false]
+
+probes: [memory, axial, radial, tilt, screw, spin]

@@ -1,0 +1,1180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>TapeSim · 中文交互学习</title>
+<style>
+:root{--bg:#f4f2ed;--paper:#fffefa;--ink:#1d3438;--muted:#58696b;--line:#d8dfd9;--blue:#146b91;--orange:#c58a1a;--pink:#ad4e86;--green:#2a7669;--red:#b8583e}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 system-ui,-apple-system,"Noto Sans CJK SC","Microsoft Yahei",sans-serif}button,select,input{font:inherit}button,select{cursor:pointer}button{border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);padding:8px 15px}button:hover{border-color:var(--blue)}button[aria-pressed=true],button[aria-selected=true]{background:var(--ink);color:white;border-color:var(--ink)}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #e49c40;outline-offset:3px}a{color:var(--blue);text-underline-offset:4px}main{max-width:1160px;margin:auto;padding:42px 32px 75px}.mast{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid var(--line);padding-bottom:13px;font:12px/1.6 ui-monospace,monospace;letter-spacing:.06em}.mast a{text-decoration:none}.hero{padding:47px 0 30px}.eyebrow{font-size:13px;letter-spacing:.13em;color:var(--blue)}h1{font-size:clamp(45px,7vw,86px);line-height:1.08;letter-spacing:-.05em;margin:12px 0 24px;font-weight:650}h1 span{font-size:.42em;display:block;letter-spacing:.01em;margin-top:17px}h2{font-size:28px;line-height:1.35;font-weight:650;margin:0 0 14px}h3{font-size:19px;margin:22px 0 10px}.intro{max-width:780px;color:var(--muted);margin:0}.hero-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:28px}.hero-metrics>div{border-top:2px solid var(--ink);padding-top:10px}.big{font:36px/1.4 ui-monospace,monospace;letter-spacing:-.04em}.caption{color:var(--muted);font-size:13px}.nav{display:flex;gap:7px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding:15px 0;z-index:4;border-bottom:1px solid var(--line);margin-bottom:30px}.nav button{font-size:14px;padding:9px 14px}section[hidden]{display:none}.sheet{background:var(--paper);border:1px solid var(--line);padding:27px;border-radius:13px;margin:20px 0}.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(250px,1fr);gap:28px}.note{border-left:3px solid var(--orange);padding:9px 14px;background:#f8f0dd;font-size:14px;margin:18px 0}.muted{color:var(--muted)}.controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0}.controls label{display:flex;gap:8px;align-items:center;font-size:14px}.controls select{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px}.range{width:100%;accent-color:var(--blue)}svg{width:100%;height:auto;display:block}svg text{font-family:inherit;fill:var(--ink)}.legend{display:flex;gap:19px;flex-wrap:wrap;font-size:13px}.legend span:before{content:"";display:inline-block;width:10px;height:10px;background:var(--c);margin-right:6px;border-radius:2px}.formula{font-family:ui-monospace,monospace;font-size:14px;overflow:auto;padding:13px;background:#eaf0ed;border-radius:7px}.steps{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0}.steps button{font-size:13px;flex:1;min-width:110px}.reading{max-width:800px}.reading p{margin:10px 0}.bars{margin-top:18px}.barrow{display:grid;grid-template-columns:76px 1fr 92px;align-items:center;gap:12px;font:14px/1.5 ui-monospace,monospace;margin:12px 0}.track{height:25px;border-radius:4px;background:#e8eeeb;overflow:hidden}.fill{height:100%;background:var(--blue);border-radius:4px;transition:width .22s ease;min-width:0}.barrow.chosen{font-weight:750}.barrow.chosen .track{outline:2px solid var(--ink);outline-offset:3px}.value{text-align:right}.twostats{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0}.twostats>div{border-top:1px solid var(--line);padding-top:8px}.twostats .number{font:30px/1.4 ui-monospace,monospace}.matrix{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}.cell{padding:15px;border-radius:8px;background:#e3eee8}.cell.bad{background:#f4e5da}.cell strong{font:35px/1.3 ui-monospace,monospace;display:block}.cell small{display:block;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:14px;margin:18px 0}th,td{border-bottom:1px solid var(--line);text-align:left;padding:10px 7px;vertical-align:top}th{font-weight:650}.table-scroll{overflow:auto}details{border-top:1px solid var(--line);padding:15px 0}summary{cursor:pointer;font-weight:600}details p{font-size:14px}.badge{font:12px/1.4 ui-monospace,monospace;padding:4px 8px;border:1px solid var(--line);border-radius:6px;display:inline-block}.footer{margin-top:38px;border-top:1px solid var(--line);padding-top:18px;font-size:12px;color:var(--muted)}.row{display:flex;justify-content:space-between;gap:20px;align-items:baseline}.screenreader{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.fit-note{font-size:14px;min-height:3em}.plot-note{font-size:13px;color:var(--muted);margin:14px 0}.rule{border-top:1px solid var(--line);padding-top:18px;margin-top:22px}output{font:14px/1.5 ui-monospace,monospace}@media(max-width:720px){main{padding:22px 17px 50px}.hero{padding-top:30px}.grid{grid-template-columns:1fr}.sheet{padding:19px}.hero-metrics{gap:12px}.big{font-size:26px}.barrow{grid-template-columns:70px 1fr 78px;gap:7px;font-size:12px}.mast{font-size:10px}.nav{gap:5px}.nav button{font-size:12px;padding:7px 8px}h2{font-size:24px}.steps button{flex:auto}.caption{font-size:12px}}@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main>
+<div class="mast"><span>PHYSICS STUDY / TAPESIM</span><a href="https://arxiv.org/abs/2609.28766v2" target="_blank" rel="noreferrer">arXiv 2609.28766v2 ↗</a></div>
+<header class="hero">
+<div class="eyebrow">机器人操作 · 接触仿真 · 释放前沿降阶</div>
+<h1>TapeSim<span>把变形留在放带前沿</span></h1>
+<p class="intro">卷内材料一起运动，前沿附近需要弯曲，放出的胶带继续保持柔性。沿着这条材料边界，理解自由度、黏附历史与数值求解的取舍。</p>
+<div class="hero-metrics"><div><div class="big">3.2–3.4×</div><div class="caption">32 圈 · 固定容差物理步加速</div></div><div><div class="big">4.5–8.4×</div><div class="caption">32 圈 · 可比卷筒运动加速</div></div><div><div class="big">0.422×</div><div class="caption">RTX 5090 · 封箱演示实时倍速</div></div></div>
+</header>
+<nav class="nav" aria-label="学习章节" role="tablist">
+<button role="tab" aria-selected="true" aria-controls="mechanism" id="tab-mechanism" data-panel="mechanism">01 材料怎样释放</button>
+<button role="tab" aria-selected="false" aria-controls="experiments" id="tab-experiments" data-panel="experiments">02 实验怎样比较</button>
+<button role="tab" aria-selected="false" aria-controls="prediction" id="tab-prediction" data-panel="prediction">03 能预测同一案例吗</button>
+<button role="tab" aria-selected="false" aria-controls="limits" id="tab-limits" data-panel="limits">04 验证与边界</button>
+</nav>
+
+<section id="mechanism" role="tabpanel" aria-labelledby="tab-mechanism">
+<div class="row"><h2>一条胶带，三种计算区域</h2><span class="badge">论文 III-C</span></div>
+<div class="grid sheet">
+<div>
+<svg id="roll-diagram" viewBox="0 0 620 325" role="img" aria-label="刚体卷内主体、可变形 collar 与自由胶带的示意图"></svg>
+<label for="payout">推进释放前沿 <output id="payout-value"></output></label>
+<input class="range" id="payout" aria-label="释放进度示意" type="range" min="0" max="28" value="6">
+<div class="legend"><span style="--c:var(--orange)">cluster</span><span style="--c:var(--pink)">collar</span><span style="--c:var(--blue)">自由薄壳</span></div>
+<p class="caption">示意材料行，不对应真实时间、放带长度或运动预测。collar 的论文配置为 10 条图边。</p>
+</div>
+<div>
+<h3>边界移动，材料保持连续</h3>
+<p>cluster 共享 6 个平移与旋转自由度。已释放材料一直是薄壳，可再黏到新目标上。</p>
+<p id="front-explanation" aria-live="polite"></p>
+<div class="formula">F<sub>k</sub> ⊆ F<sub>k+1</sub><br>C<sub>k+1</sub> ⊆ C<sub>k</sub></div>
+<p class="caption">恢复薄壳时保留原 rest shape、黏附历史，并继承刚体速度 v + ω × r。</p>
+</div>
+</div>
+<h3>一次时间步里，何时改状态？</h3>
+<div class="steps" aria-label="时间步阶段"><button aria-pressed="true" data-step="0">运动求解</button><button aria-pressed="false" data-step="1">更新界面</button><button aria-pressed="false" data-step="2">检测前沿</button><button aria-pressed="false" data-step="3">补充 collar</button><button aria-pressed="false" data-step="4">可选切割</button></div>
+<p class="fit-note" id="step-explanation" aria-live="polite"></p>
+<div class="sheet grid">
+<div>
+<h2>同一对接触，可选两种界面</h2>
+<div class="controls" aria-label="界面模型"><button data-interface="Coh" aria-pressed="false">Cohesive</button><button data-interface="Bond" aria-pressed="true">Releasable bond</button></div>
+<div id="interface-explanation"></div>
+<div class="formula" id="interface-formula"></div>
+<p class="caption">Bond 复用四个现有顶点。ABD-type 描述能量形式，cluster 仍为 6 DOF。</p>
+</div>
+<div>
+<svg id="bond-diagram" viewBox="0 0 350 195" role="img" aria-label="界面在压缩、参考态和张开时的形状示意"></svg>
+<div class="controls" aria-label="界面加载状态"><button data-load="compression" aria-pressed="false">压缩</button><button data-load="rest" aria-pressed="true">参考态</button><button data-load="opening" aria-pressed="false">张开至超过阈值</button></div>
+<p id="load-explanation" class="fit-note" aria-live="polite"></p>
+<p class="caption">只示意判据，没有模拟力或材料响应。压缩本身不触发文中的拉伸断裂。</p>
+</div>
+</div>
+<div class="table-scroll"><table><thead><tr><th></th><th>全薄壳 F</th><th>cluster + collar R</th></tr></thead><tbody><tr><th>Cohesive 界面</th><td>Coh-F</td><td>Coh-R</td></tr><tr><th>Bond 界面</th><td>Bond-F</td><td>Bond-R</td></tr></tbody></table></div>
+</section>
+
+<section id="experiments" role="tabpanel" aria-labelledby="tab-experiments" hidden>
+<div class="row"><h2>先对齐运动，再读加速比</h2><span class="badge">论文 IV-B</span></div>
+<div class="sheet">
+<div class="controls"><label>比较口径 <select id="protocol"><option value="matched">可比卷筒运动</option><option value="fixed">固定 Newton 容差</option></select></label><label>卷绕圈数 <select id="turns"><option value="2">2 圈</option><option value="8">8 圈</option><option value="16">16 圈</option><option value="32" selected>32 圈</option></select></label></div>
+<p id="cost-protocol" class="fit-note"></p>
+<div id="cost-bars" class="bars" aria-label="四种配置的物理步成本"></div>
+<div class="twostats"><div><div id="coh-speed" class="number"></div><div class="caption">Coh-F → Coh-R</div></div><div><div id="bond-speed" class="number"></div><div class="caption">Bond-F → Bond-R</div></div></div>
+<div class="note">RTX PRO 6000 Blackwell Server Edition。物理步计时排除前沿更新、控制、遥测和渲染；作者未提供这里各柱的重复级误差条。</div>
+<details><summary>为什么同一容差不等于同一精度？</summary><p>32 圈 Coh-F 仅把容差从 10⁻² 收紧到 10⁻³ m/s，角度范围就从 9.7° 增至 38.1°。可比运动实验以 Bond-R 在 10⁻² m/s 下的角度范围为目标，各模型选择不同容差，使范围差不超过 5%。这只匹配该运动指标，不能保证全部接触行为相同。</p></details>
+</div>
+<div class="sheet">
+<h2>开环回放：平均改善不等于每段都更好</h2>
+<div class="controls"><label>Stick episode <select id="replay-episode"><option value="mean">五段等权平均</option><option value="stick_tape_on_stand__017">17</option><option value="stick_tape_on_stand__018">18</option><option value="stick_tape_on_stand__019">19</option><option value="stick_tape_on_stand__023">23</option><option value="stick_tape_on_stand__025">25</option></select></label></div>
+<div id="replay-bars" aria-label="图像平面卷芯 landmark 平均误差"></div>
+<p id="replay-explanation" class="fit-note"></p>
+<p class="plot-note">848 × 480 ego-camera 图像；排除开头静止的 3 秒；每模型两次重复先在 episode 内平均，再对五段等权平均。单段数字来自作者网页统计，不能解释为 3D 全状态误差。</p>
+</div>
+<div class="sheet">
+<h2>独立力学标定，避免只追成功率</h2>
+<p>实测剥离力 2.5 N；C<sub>n</sub> = C<sub>t</sub> = 0.675 N 时仿真反力中位数 2.54 N。</p>
+<div class="controls"><label>桌面 C<sub>n</sub> 倍率 <select id="adhesion"><option value="0">1× · 标定值</option><option value="1">20×</option><option value="2">100×</option></select></label></div>
+<div id="adhesion-bars" aria-label="98 个 Peel 案例的仿真成功率"></div>
+<p id="adhesion-explanation" class="fit-note"></p>
+<p class="caption">论文 Fig.7，同一组 98 案例，真实成功 68/98 = 69.4%。与 100 例的主 Peel 评估分开。图中百分比按论文保留一位小数。</p>
+</div>
+</section>
+
+<section id="prediction" role="tabpanel" aria-labelledby="tab-prediction" hidden>
+<div class="row"><h2>成功的数量相同，成员也相同吗？</h2><span class="badge">论文 IV-D</span></div>
+<div class="controls"><label>任务 <select id="task"><option value="Peel">Peel</option><option value="Stick" selected>Stick</option><option value="Wrap1">Wrap ≥1 圈</option><option value="Wrap2">Wrap ≥2 圈</option></select></label><label>查看配置 <select id="model"><option>Coh-F</option><option>Coh-R</option><option>Bond-F</option><option selected>Bond-R</option><option value="fail">恒定预测失败</option></select></label></div>
+<p id="task-context"></p>
+<div class="grid">
+<div class="sheet">
+<div class="controls" aria-label="预测评估指标"><button data-metric="sim" aria-pressed="true">仿真成功率</button><button data-metric="agreement" aria-pressed="false">逐例一致率</button><button data-metric="ba" aria-pressed="false">Balanced accuracy</button></div>
+<div id="prediction-bars" aria-label="各配置与全失败基线的指标"></div>
+<p id="metric-explanation" class="fit-note"></p>
+</div>
+<div class="sheet">
+<h3 id="matrix-title"></h3>
+<div class="matrix" id="matrix" aria-label="真实与仿真的逐例混淆矩阵"></div>
+<p id="matrix-result" class="fit-note"></p>
+</div>
+</div>
+<div id="prediction-warning" class="note" aria-live="polite"></div>
+<details><summary>三个指标分别回答什么？</summary><p>仿真成功率 = (TP + FP) / n，只看模拟器有多少成功。Agreement = (TP + TN) / n，检查是否预测同一案例。BA = ½[TP/(TP+FN) + TN/(TN+FP)]，给予真实成功和失败同等权重。恒定预测在两个类别都存在时 BA 为 50%。</p><p>TP：两域都成功；TN：两域都失败；FP：仿真成功、真实失败；FN：真实成功、仿真失败。两种 Wrap 阈值使用同一批 55 个案例，不能当成 110 个独立案例。</p></details>
+</section>
+
+<section id="limits" role="tabpanel" aria-labelledby="tab-limits" hidden>
+<h2>哪些结论可以带走</h2>
+<div class="grid">
+<div class="sheet reading"><h3>对仿真器设计的启发</h3><p>先确认哪些材料需要独立变形，再减少内部冗余求解。cluster 与 bond 应作为两个独立选择比较。</p><p>前沿更新涉及质量、速度、rest shape 和界面历史。只把顶点从“刚体”改成“软体”标签不足以实现连续放带。</p><p>旋转坐标的完整 Hessian 有额外链式项；刚体上的点走弧线，CCD 也需要适配。</p><div class="formula">v<sub>i</sub> = v<sub>p</sub> + ω<sub>p</sub> × (x<sub>i</sub> − c<sub>p</sub>)</div></div>
+<div class="sheet reading"><h3>结论的适用范围</h3><p>可比运动只约束特定摆动测试。五段回放量测二维 landmark。冻结策略使用内部 VLA，真实与仿真的初态手动配准。</p><p>前沿单向推进，已放出的材料不重新入卷。对重新卷绕、卷内滑移或挤压卷筒，需重新检查假设。</p><p>Bond 的任务排名会变。Wrap 中 Coh-R 更好，不能只因 Bond-R 在部分成本指标领先就统一替换全部界面。</p></div>
+</div>
+<div class="sheet">
+<h3>实测量与配置值分开读</h3>
+<div class="table-scroll"><table><thead><tr><th>量</th><th>值</th><th>来源性质</th></tr></thead><tbody><tr><td>宽 / 全厚度</td><td>19 / 0.18 mm</td><td>实测</td></tr><tr><td>密度</td><td>1300 kg/m³</td><td>实测</td></tr><tr><td>膜 / 弯曲 E</td><td>50 / 50 MPa</td><td>配置</td></tr><tr><td>泊松比</td><td>0.45</td><td>配置</td></tr><tr><td>单位长度质量</td><td>4.446 g/m</td><td>由尺寸与密度计算</td></tr><tr><td>collar</td><td>N = 10 图边</td><td>配置，物理宽度依赖网格</td></tr><tr><td>摆动 bond 参数</td><td>κ = 10⁶ Pa；f_break = 0.5 N</td><td>该实验配置</td></tr></tbody></table></div>
+</div>
+<div class="sheet reading"><h3>本地教学验证</h3><p id="demo-status"></p><p>教学程序使用 NumPy，验证 bond 解析梯度与独立有限差分、刚体变换不变性、力的旋转协变、压缩释放门槛，以及前沿旧状态快照、质量分类和刚体速度恢复。</p><p>没有实现薄壳运动、IPC/CCD、Newton-PCG、真实放带、切割、GPU 计时或机器人。它不构成论文实验复现。</p><details><summary>一个势能能保证什么？</summary><p>||FFᵀ − I||² 在任何正交 F 下都为零，包括反射。教学程序会验证这个数学边界。不能由此断言作者系统实际发生了翻转，也不能把这个单项势能当成完整不穿透证明。</p></details></div>
+<div class="note">2026-10-26 查阅：官网代码入口仍为 Coming soon。本学习包包含论文和作者公开网页资料，没有作者求解器或内部策略权重。</div>
+<p><a href="https://arxiv.org/html/2609.28766v2" target="_blank" rel="noreferrer">阅读论文 v2</a> · <a href="https://genesis-embodied-ai.github.io/tapesim-website/" target="_blank" rel="noreferrer">作者项目页</a> · <a href="https://genesis-embodied-ai.github.io/tapesim-website/assets/data/evidence.json" target="_blank" rel="noreferrer">作者统计 JSON</a></p>
+</section>
+<footer class="footer">中文学习整理 · 2026-10-26 · 论文 v2 / 2026-09-28。数字来自原文与作者网页；加速比和混淆矩阵指标由所列数字计算。方法图为示意。页面无外部依赖，可离线运行。</footer>
+</main>
+<script>
+'use strict';
+const DATA = {
+  "models": [
+    "Coh-F",
+    "Coh-R",
+    "Bond-F",
+    "Bond-R"
+  ],
+  "costs": [
+    {
+      "turns": 2,
+      "model": "Coh-F",
+      "physics_mean_ms": 50.05
+    },
+    {
+      "turns": 2,
+      "model": "Bond-F",
+      "physics_mean_ms": 61.96
+    },
+    {
+      "turns": 2,
+      "model": "Bond-R",
+      "physics_mean_ms": 29.41
+    },
+    {
+      "turns": 2,
+      "model": "Coh-R",
+      "physics_mean_ms": 37.93
+    },
+    {
+      "turns": 8,
+      "model": "Coh-F",
+      "physics_mean_ms": 177.35
+    },
+    {
+      "turns": 8,
+      "model": "Bond-F",
+      "physics_mean_ms": 70.9
+    },
+    {
+      "turns": 8,
+      "model": "Bond-R",
+      "physics_mean_ms": 29.82
+    },
+    {
+      "turns": 8,
+      "model": "Coh-R",
+      "physics_mean_ms": 29.44
+    },
+    {
+      "turns": 16,
+      "model": "Coh-F",
+      "physics_mean_ms": 234.52
+    },
+    {
+      "turns": 16,
+      "model": "Bond-F",
+      "physics_mean_ms": 82.91
+    },
+    {
+      "turns": 16,
+      "model": "Bond-R",
+      "physics_mean_ms": 27.07
+    },
+    {
+      "turns": 16,
+      "model": "Coh-R",
+      "physics_mean_ms": 29.98
+    },
+    {
+      "turns": 32,
+      "model": "Coh-F",
+      "physics_mean_ms": 307.77
+    },
+    {
+      "turns": 32,
+      "model": "Bond-F",
+      "physics_mean_ms": 130.43
+    },
+    {
+      "turns": 32,
+      "model": "Bond-R",
+      "physics_mean_ms": 29.14
+    },
+    {
+      "turns": 32,
+      "model": "Coh-R",
+      "physics_mean_ms": 36.73
+    }
+  ],
+  "cost_scope": "Author-corrected mean physics-step costs at comparable roll motion. 32 turns: rotation ranges matched within 5%. Repeat-level uncertainty not supplied.",
+  "closed_loop": [
+    {
+      "task": "Peel",
+      "wrap_turns": null,
+      "model": "Coh-F",
+      "n": 100,
+      "tp": 69,
+      "fp": 31,
+      "fn": 0,
+      "tn": 0,
+      "agreement": 0.69,
+      "real_successes": 69,
+      "sim_successes": 100,
+      "real_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "sim_wilson": [
+        0.9630065017930143,
+        1.0
+      ],
+      "agreement_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "balanced_accuracy": 0.5,
+      "progress_pairs": 100
+    },
+    {
+      "task": "Peel",
+      "wrap_turns": null,
+      "model": "Bond-F",
+      "n": 100,
+      "tp": 67,
+      "fp": 25,
+      "fn": 2,
+      "tn": 6,
+      "agreement": 0.73,
+      "real_successes": 69,
+      "sim_successes": 92,
+      "real_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "sim_wilson": [
+        0.8500189229905127,
+        0.9589065385156194
+      ],
+      "agreement_wilson": [
+        0.6356788323205499,
+        0.8073041585042365
+      ],
+      "balanced_accuracy": 0.5822814399251987,
+      "progress_pairs": 100
+    },
+    {
+      "task": "Peel",
+      "wrap_turns": null,
+      "model": "Bond-R",
+      "n": 100,
+      "tp": 63,
+      "fp": 12,
+      "fn": 6,
+      "tn": 19,
+      "agreement": 0.82,
+      "real_successes": 69,
+      "sim_successes": 75,
+      "real_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "sim_wilson": [
+        0.656955364519384,
+        0.8245478863771232
+      ],
+      "agreement_wilson": [
+        0.7333264161369926,
+        0.8829977450105364
+      ],
+      "balanced_accuracy": 0.7629733520336606,
+      "progress_pairs": 100
+    },
+    {
+      "task": "Peel",
+      "wrap_turns": null,
+      "model": "Coh-R",
+      "n": 100,
+      "tp": 65,
+      "fp": 15,
+      "fn": 4,
+      "tn": 16,
+      "agreement": 0.81,
+      "real_successes": 69,
+      "sim_successes": 80,
+      "real_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "sim_wilson": [
+        0.7111708344068411,
+        0.8666330666689676
+      ],
+      "agreement_wilson": [
+        0.7222115462093562,
+        0.8748524849023126
+      ],
+      "balanced_accuracy": 0.7290790088826554,
+      "progress_pairs": 100
+    },
+    {
+      "task": "Stick",
+      "wrap_turns": null,
+      "model": "Coh-F",
+      "n": 71,
+      "tp": 0,
+      "fp": 0,
+      "fn": 50,
+      "tn": 21,
+      "agreement": 0.29577464788732394,
+      "real_successes": 50,
+      "sim_successes": 0,
+      "real_wilson": [
+        0.5898146180172532,
+        0.7976711479868337
+      ],
+      "sim_wilson": [
+        0.0,
+        0.05132795219689034
+      ],
+      "agreement_wilson": [
+        0.2023288520131663,
+        0.4101853819827467
+      ],
+      "balanced_accuracy": 0.5,
+      "progress_pairs": 71
+    },
+    {
+      "task": "Stick",
+      "wrap_turns": null,
+      "model": "Bond-F",
+      "n": 71,
+      "tp": 36,
+      "fp": 9,
+      "fn": 14,
+      "tn": 12,
+      "agreement": 0.676056338028169,
+      "real_successes": 50,
+      "sim_successes": 45,
+      "real_wilson": [
+        0.5898146180172532,
+        0.7976711479868337
+      ],
+      "sim_wilson": [
+        0.5175721979631125,
+        0.7362977866602549
+      ],
+      "agreement_wilson": [
+        0.5606115705582948,
+        0.7734278828935044
+      ],
+      "balanced_accuracy": 0.6457142857142857,
+      "progress_pairs": 71
+    },
+    {
+      "task": "Stick",
+      "wrap_turns": null,
+      "model": "Bond-R",
+      "n": 71,
+      "tp": 35,
+      "fp": 14,
+      "fn": 15,
+      "tn": 7,
+      "agreement": 0.5915492957746479,
+      "real_successes": 50,
+      "sim_successes": 49,
+      "real_wilson": [
+        0.5898146180172532,
+        0.7976711479868337
+      ],
+      "sim_wilson": [
+        0.5751598742905824,
+        0.7856027354373607
+      ],
+      "agreement_wilson": [
+        0.47538781849423417,
+        0.6983126973007014
+      ],
+      "balanced_accuracy": 0.5166666666666666,
+      "progress_pairs": 70
+    },
+    {
+      "task": "Stick",
+      "wrap_turns": null,
+      "model": "Coh-R",
+      "n": 71,
+      "tp": 34,
+      "fp": 14,
+      "fn": 16,
+      "tn": 7,
+      "agreement": 0.5774647887323944,
+      "real_successes": 50,
+      "sim_successes": 48,
+      "real_wilson": [
+        0.5898146180172532,
+        0.7976711479868337
+      ],
+      "sim_wilson": [
+        0.5606115705582948,
+        0.7734278828935044
+      ],
+      "agreement_wilson": [
+        0.46150748022028815,
+        0.6854698792985033
+      ],
+      "balanced_accuracy": 0.5066666666666667,
+      "progress_pairs": 71
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 1,
+      "model": "Coh-F",
+      "n": 55,
+      "tp": 13,
+      "fp": 9,
+      "fn": 15,
+      "tn": 18,
+      "agreement": 0.5636363636363636,
+      "real_successes": 28,
+      "sim_successes": 22,
+      "real_wilson": [
+        0.380762598469722,
+        0.6362322215099672
+      ],
+      "sim_wilson": [
+        0.2811849723246312,
+        0.5318720078987862
+      ],
+      "agreement_wilson": [
+        0.43269816346414447,
+        0.6862655763936809
+      ],
+      "balanced_accuracy": 0.5654761904761905,
+      "progress_pairs": 23
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 1,
+      "model": "Bond-F",
+      "n": 55,
+      "tp": 15,
+      "fp": 15,
+      "fn": 13,
+      "tn": 12,
+      "agreement": 0.4909090909090909,
+      "real_successes": 28,
+      "sim_successes": 30,
+      "real_wilson": [
+        0.380762598469722,
+        0.6362322215099672
+      ],
+      "sim_wilson": [
+        0.41522690241861226,
+        0.6697471974798342
+      ],
+      "agreement_wilson": [
+        0.36376777849003283,
+        0.619237401530278
+      ],
+      "balanced_accuracy": 0.49007936507936506,
+      "progress_pairs": 30
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 1,
+      "model": "Bond-R",
+      "n": 55,
+      "tp": 25,
+      "fp": 12,
+      "fn": 3,
+      "tn": 15,
+      "agreement": 0.7272727272727273,
+      "real_successes": 28,
+      "sim_successes": 37,
+      "real_wilson": [
+        0.380762598469722,
+        0.6362322215099672
+      ],
+      "sim_wilson": [
+        0.5410322355657868,
+        0.7818693440483107
+      ],
+      "agreement_wilson": [
+        0.5976780188832919,
+        0.8271924806089416
+      ],
+      "balanced_accuracy": 0.7242063492063493,
+      "progress_pairs": 37
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 1,
+      "model": "Coh-R",
+      "n": 55,
+      "tp": 18,
+      "fp": 3,
+      "fn": 10,
+      "tn": 24,
+      "agreement": 0.7636363636363637,
+      "real_successes": 28,
+      "sim_successes": 21,
+      "real_wilson": [
+        0.380762598469722,
+        0.6362322215099672
+      ],
+      "sim_wilson": [
+        0.265159542588938,
+        0.5139077976751008
+      ],
+      "agreement_wilson": [
+        0.6365163381083228,
+        0.8563334413026682
+      ],
+      "balanced_accuracy": 0.7658730158730158,
+      "progress_pairs": 21
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 2,
+      "model": "Coh-F",
+      "n": 55,
+      "tp": 1,
+      "fp": 6,
+      "fn": 3,
+      "tn": 45,
+      "agreement": 0.8363636363636363,
+      "real_successes": 4,
+      "sim_successes": 7,
+      "real_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "sim_wilson": [
+        0.06304210427364634,
+        0.24017027655909076
+      ],
+      "agreement_wilson": [
+        0.7173625426094283,
+        0.9114457966390772
+      ],
+      "balanced_accuracy": 0.5661764705882353,
+      "progress_pairs": 23
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 2,
+      "model": "Bond-F",
+      "n": 55,
+      "tp": 0,
+      "fp": 11,
+      "fn": 4,
+      "tn": 40,
+      "agreement": 0.7272727272727273,
+      "real_successes": 4,
+      "sim_successes": 11,
+      "real_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "sim_wilson": [
+        0.11552214909761245,
+        0.32364879157263937
+      ],
+      "agreement_wilson": [
+        0.5976780188832919,
+        0.8271924806089416
+      ],
+      "balanced_accuracy": 0.39215686274509803,
+      "progress_pairs": 30
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 2,
+      "model": "Bond-R",
+      "n": 55,
+      "tp": 1,
+      "fp": 20,
+      "fn": 3,
+      "tn": 31,
+      "agreement": 0.5818181818181818,
+      "real_successes": 4,
+      "sim_successes": 21,
+      "real_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "sim_wilson": [
+        0.265159542588938,
+        0.5139077976751008
+      ],
+      "agreement_wilson": [
+        0.45033103735230756,
+        0.7026223424648965
+      ],
+      "balanced_accuracy": 0.42892156862745096,
+      "progress_pairs": 37
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 2,
+      "model": "Coh-R",
+      "n": 55,
+      "tp": 1,
+      "fp": 3,
+      "fn": 3,
+      "tn": 48,
+      "agreement": 0.8909090909090909,
+      "real_successes": 4,
+      "sim_successes": 4,
+      "real_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "sim_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "agreement_wilson": [
+        0.7817445091344648,
+        0.9490327499921767
+      ],
+      "balanced_accuracy": 0.5955882352941176,
+      "progress_pairs": 21
+    }
+  ],
+  "replay": {
+    "episodes": {
+      "stick_tape_on_stand__017": {
+        "Coh-F": {
+          "full_mean_px": 13.14392917424255,
+          "active_mean_px": 21.64831948106937
+        },
+        "Bond-F": {
+          "full_mean_px": 15.37554434022871,
+          "active_mean_px": 25.43945140070197
+        },
+        "Bond-R": {
+          "full_mean_px": 18.374754953364047,
+          "active_mean_px": 30.540333422643673
+        },
+        "Coh-R": {
+          "full_mean_px": 16.869652564953952,
+          "active_mean_px": 27.984373060099898
+        }
+      },
+      "stick_tape_on_stand__018": {
+        "Coh-F": {
+          "full_mean_px": 20.400811555095643,
+          "active_mean_px": 28.040436430624254
+        },
+        "Bond-F": {
+          "full_mean_px": 10.095938560605827,
+          "active_mean_px": 13.54913916612282
+        },
+        "Bond-R": {
+          "full_mean_px": 6.6251734150749115,
+          "active_mean_px": 8.649997970560644
+        },
+        "Coh-R": {
+          "full_mean_px": 9.824938643606286,
+          "active_mean_px": 13.189674162153251
+        }
+      },
+      "stick_tape_on_stand__019": {
+        "Coh-F": {
+          "full_mean_px": 13.407459228754412,
+          "active_mean_px": 19.035479171440876
+        },
+        "Bond-F": {
+          "full_mean_px": 8.33354034175503,
+          "active_mean_px": 11.488394256490867
+        },
+        "Bond-R": {
+          "full_mean_px": 9.79781362066578,
+          "active_mean_px": 13.636075189399335
+        },
+        "Coh-R": {
+          "full_mean_px": 8.561255076020487,
+          "active_mean_px": 11.83094473175775
+        }
+      },
+      "stick_tape_on_stand__023": {
+        "Coh-F": {
+          "full_mean_px": 17.019766983197904,
+          "active_mean_px": 23.396302910228513
+        },
+        "Bond-F": {
+          "full_mean_px": 13.465490249924995,
+          "active_mean_px": 18.303531826402036
+        },
+        "Bond-R": {
+          "full_mean_px": 11.630031740156298,
+          "active_mean_px": 15.712500030486616
+        },
+        "Coh-R": {
+          "full_mean_px": 14.412109148505865,
+          "active_mean_px": 19.64446757399699
+        }
+      },
+      "stick_tape_on_stand__025": {
+        "Coh-F": {
+          "full_mean_px": 16.81142461322417,
+          "active_mean_px": 22.676177730191583
+        },
+        "Bond-F": {
+          "full_mean_px": 12.202969091564666,
+          "active_mean_px": 16.34574329980079
+        },
+        "Bond-R": {
+          "full_mean_px": 9.658285692604641,
+          "active_mean_px": 12.864059593039254
+        },
+        "Coh-R": {
+          "full_mean_px": 11.349184544249095,
+          "active_mean_px": 15.206893927624126
+        }
+      }
+    },
+    "models": {
+      "Coh-F": {
+        "full_mean_px": 16.156678310902937,
+        "active_mean_px": 22.95934314471092,
+        "active_bootstrap95": [
+          20.603183357217972,
+          25.833186336634128
+        ]
+      },
+      "Bond-F": {
+        "full_mean_px": 11.894696516815847,
+        "active_mean_px": 17.025251989903698,
+        "active_bootstrap95": [
+          13.263570752399492,
+          21.634205038926154
+        ]
+      },
+      "Bond-R": {
+        "full_mean_px": 11.217211884373135,
+        "active_mean_px": 16.280593241225905,
+        "active_bootstrap95": [
+          11.059713826313576,
+          23.778630129345938
+        ]
+      },
+      "Coh-R": {
+        "full_mean_px": 12.203427995467138,
+        "active_mean_px": 17.571270691126404,
+        "active_bootstrap95": [
+          13.049626343089226,
+          23.085706297210887
+        ]
+      }
+    },
+    "bond_r_minus_bond_f": {
+      "mean_px": -0.7446587486777922,
+      "bootstrap95": [
+        -3.8705363201125693,
+        2.7937286583944085
+      ]
+    },
+    "protocol": "Original reference time >=3 s; repeats averaged within episode; five episodes weighted equally. Exact 5^5 paired episode bootstrap, linearly interpolated 2.5/97.5 percentiles; descriptive small-n uncertainty, not annotation or alignment uncertainty."
+  },
+  "provenance": {
+    "statistics.json": "08e9e7bf9e516c936568589a3b231b342a90f742304bce182c17b632ce210132",
+    "corrected_cost.json": "e46159be05572538f4cc2f8481818a937841f79c458478664860906b8d974f58",
+    "tolerance_recovery.json": "4976e1b3b5f7d23d18f73fb8af751318f7003e4a6f030957d2772084fb070566"
+  },
+  "fixed_tolerance_32": {
+    "Coh-F": null,
+    "Coh-R": 116,
+    "Bond-F": 366,
+    "Bond-R": 115,
+    "tolerance_m_s": 0.001,
+    "note": "来自论文正文；Coh-F 仅报告约 3.4x 加速，未补造精确成本"
+  },
+  "adhesion": {
+    "factors": [
+      1,
+      20,
+      100
+    ],
+    "n": 98,
+    "real_successes": 68,
+    "rates_pct": {
+      "Coh-F": [
+        100,
+        70.4,
+        8.2
+      ],
+      "Bond-F": [
+        91.8,
+        44.9,
+        1.0
+      ],
+      "Bond-R": [
+        75.5,
+        40.8,
+        0
+      ],
+      "Coh-R": [
+        80.6,
+        36.7,
+        0
+      ]
+    },
+    "source": "论文 Fig.7 标签；百分比为原文四舍五入值"
+  },
+  "packaging": {
+    "steps": 3846,
+    "dt_s": 0.03333333333333333,
+    "sim_time_s": 128.2,
+    "wall_time_s": 304.1,
+    "reported_real_time_factor": 0.422,
+    "gpu": "RTX 5090",
+    "model": "Coh-R"
+  },
+  "demo": {
+    "scope": "CPU 教学验证；不是 TapeSim 物理或性能复现",
+    "paper_parameters": {
+      "stiffness_pa": 1000000.0,
+      "break_force_n": 0.5,
+      "dt_s": 0.01,
+      "front_delta_m": 0.0009,
+      "collar_edges": 10
+    },
+    "synthetic_settings": {
+      "triangle_edge_m": 0.002,
+      "reference_height_m": 0.0002,
+      "material_rows": 40,
+      "row_length_m": 0.001
+    },
+    "checks": [
+      {
+        "name": "共同刚体变换不产生 bond 应变",
+        "passed": true,
+        "energy": 2.3464006867896548e-36
+      },
+      {
+        "name": "解析梯度与独立中心差分一致",
+        "passed": true,
+        "maximum_relative_error": 1.9873948215709095e-09
+      },
+      {
+        "name": "四顶点合力为零",
+        "passed": true
+      },
+      {
+        "name": "恢复力随整体旋转协变",
+        "passed": true
+      },
+      {
+        "name": "物理力不含额外时间步缩放",
+        "passed": true
+      },
+      {
+        "name": "超过力阈值的压缩仍不触发拉伸断裂",
+        "passed": true,
+        "force_n": 1.0000000000000016
+      },
+      {
+        "name": "张开且超过阈值才断裂",
+        "passed": true,
+        "force_n": 5.000000000000012
+      },
+      {
+        "name": "参考态不释放",
+        "passed": true
+      },
+      {
+        "name": "单独的正交势能也允许反射",
+        "passed": true,
+        "note": "数学边界，不表示作者系统实际发生翻转"
+      },
+      {
+        "name": "拒绝共面参考四面体",
+        "passed": true
+      },
+      {
+        "name": "一次更新只接受旧自由区的邻居",
+        "passed": true,
+        "released": [
+          1
+        ]
+      },
+      {
+        "name": "collar 推进会恢复下一批材料",
+        "passed": true
+      },
+      {
+        "name": "恢复原黏附历史而非重置为一",
+        "passed": true
+      },
+      {
+        "name": "第 2 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 3 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 4 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 5 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 6 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 7 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 8 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 9 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "没有新门槛事件时不回卷或继续前进",
+        "passed": true
+      },
+      {
+        "name": "live support 阻止 Bond 候选释放",
+        "passed": true
+      },
+      {
+        "name": "Bond 需要明确 release event",
+        "passed": true
+      },
+      {
+        "name": "Coh 几何前沿不要求 beta 已为零",
+        "passed": true
+      },
+      {
+        "name": "刚体速度投影和恢复保持运动",
+        "passed": true,
+        "maximum_error_m_s": 1.3877787807814457e-17
+      },
+      {
+        "name": "表 I 的单位长度质量可由独立单位计算恢复",
+        "passed": true,
+        "grams_per_m": 4.446000000000001
+      }
+    ],
+    "front_trace": [
+      {
+        "step": 2,
+        "free": 3,
+        "collar": 10,
+        "cluster": 27,
+        "released": [
+          2
+        ],
+        "thawed": [
+          12
+        ]
+      },
+      {
+        "step": 3,
+        "free": 4,
+        "collar": 10,
+        "cluster": 26,
+        "released": [
+          3
+        ],
+        "thawed": [
+          13
+        ]
+      },
+      {
+        "step": 4,
+        "free": 5,
+        "collar": 10,
+        "cluster": 25,
+        "released": [
+          4
+        ],
+        "thawed": [
+          14
+        ]
+      },
+      {
+        "step": 5,
+        "free": 6,
+        "collar": 10,
+        "cluster": 24,
+        "released": [
+          5
+        ],
+        "thawed": [
+          15
+        ]
+      },
+      {
+        "step": 6,
+        "free": 7,
+        "collar": 10,
+        "cluster": 23,
+        "released": [
+          6
+        ],
+        "thawed": [
+          16
+        ]
+      },
+      {
+        "step": 7,
+        "free": 8,
+        "collar": 10,
+        "cluster": 22,
+        "released": [
+          7
+        ],
+        "thawed": [
+          17
+        ]
+      },
+      {
+        "step": 8,
+        "free": 9,
+        "collar": 10,
+        "cluster": 21,
+        "released": [
+          8
+        ],
+        "thawed": [
+          18
+        ]
+      },
+      {
+        "step": 9,
+        "free": 10,
+        "collar": 10,
+        "cluster": 20,
+        "released": [
+          9
+        ],
+        "thawed": [
+          19
+        ]
+      }
+    ],
+    "limitations": [
+      "没有薄壳、IPC/CCD 或隐式运动求解",
+      "行图并非三角网格前沿实现",
+      "没有执行真实放带、切割、GPU 计时或机器人策略"
+    ]
+  }
+}
+;
+const $ = id => document.getElementById(id);
+const COLORS = {'Coh-F':'#64716d','Coh-R':'#146b91','Bond-F':'#c58a1a','Bond-R':'#ad4e86',fail:'#97a9a2'};
+const MODELS = ['Coh-F','Coh-R','Bond-F','Bond-R'];
+const pct = v => (100*v).toFixed(1)+'%';
+function bars(target, rows, max, unit, chosen='') {
+  $(target).innerHTML = rows.map(r => `<div class="barrow ${r.name===chosen?'chosen':''}"><span>${r.name==='fail'?'全失败':r.name}</span><div class="track"><div class="fill" style="width:${r.value===null?0:Math.max(0,Math.min(100,100*r.value/max))}%;background:${COLORS[r.name]}"></div></div><span class="value">${r.value===null?'未列精确值':r.value.toFixed(unit==='ms'?2:1)+' '+unit}</span></div>`).join('');
+}
+document.querySelectorAll('[data-panel]').forEach(button => button.addEventListener('click',()=>{
+ document.querySelectorAll('[data-panel]').forEach(b=>b.setAttribute('aria-selected',String(b===button)));
+ document.querySelectorAll('section[role=tabpanel]').forEach(p=>p.hidden=p.id!==button.dataset.panel);
+}));
+const steps = [
+ '运动求解：保持 bond 集合、黏附历史和 cluster 成员不变，最小化隐式增量势能。Newton/PCG 的停止精度会影响运动恢复。',
+ '更新界面：求解完成后更新 β，或创建/释放 bond。断开的源对从下一次搜索恢复普通接触处理。',
+ '检测前沿：只看旧自由区的一条图边外候选；位移门槛满足后，Bond 还需要释放事件及无 live support。同一次更新不能递归穿过 collar。',
+ '补充 collar：相对新自由区重算图距离，把下一批 cluster 元素恢复成薄壳，保留 rest geometry 和原界面历史，继承刚体速度。',
+ '可选切割：局部压力连续两步达到阈值后，在步边界移除有限宽 kerf 并重建网格、碰撞与抓取约束。例中阈值 1 kPa 是配置值。'
+];
+document.querySelectorAll('[data-step]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-step]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('step-explanation').textContent=steps[Number(b.dataset.step)];}));
+$('step-explanation').textContent=steps[0];
+function drawFront(){
+ const progress=Number($('payout').value), free=2+progress, collar=10, cluster=42-free-collar;
+ $('payout-value').textContent=`示意第 ${progress} 次推进`;
+ let path='',lastX=0,lastY=0; for(let i=0;i<230;i++){let a=i/229*Math.PI*5.3,r=17+i/229*(87-progress*.7);let x=443+r*Math.cos(a),y=142+r*Math.sin(a);lastX=x;lastY=y;path+=(i?'L':'M')+x.toFixed(2)+','+y.toFixed(2);}
+ let cells='';for(let i=0;i<42;i++){let color=i<free?COLORS['Coh-R']:i<free+collar?COLORS['Bond-R']:COLORS['Bond-F'];cells+=`<rect x="${22+i*13.6}" y="266" width="12.6" height="22" rx="2" fill="${color}"/>`;}
+ $('roll-diagram').innerHTML=`<path d="${path}" fill="none" stroke="#c58a1a" stroke-width="13"/><circle cx="443" cy="142" r="20" fill="#f4f2ed" stroke="#64716d" stroke-width="3"/><path d="M ${lastX} ${lastY} Q 340 52 310 62" fill="none" stroke="#ad4e86" stroke-width="15"/><path d="M310 62 C235 ${70+progress*2} 188 195 75 194 L27 194" fill="none" stroke="#146b91" stroke-width="13"/><path d="M24 220 L181 220" stroke="#d8dfd9" stroke-width="13"/><path d="M49 203 L49 216 M85 203 L85 216 M121 201 L121 216" stroke="#c58a1a" stroke-width="3"/><text x="417" y="142" font-size="12">hub</text><text x="373" y="39" font-size="17">cluster · 6 DOF</text><text x="224" y="34" font-size="15">collar</text><text x="28" y="151" font-size="16">已释放：可再次黏附</text>${cells}<text x="22" y="316" font-size="12">材料坐标示意：自由区 ${free} 行 / collar ${collar} 行 / cluster ${cluster} 行</text>`;
+ $('front-explanation').textContent=progress===0?'起始时，只有自由端和前沿附近保留独立变形。拖动滑块，观察自由区增长、cluster 缩小。':`示意推进 ${progress} 次后，更内侧的材料恢复为薄壳。图中的 ${collar} 行表示持续存在的局部变形区，不是论文的网格规模。`;
+}
+$('payout').addEventListener('input',drawFront);drawFront();
+let interfaceFamily='Bond', loadState='rest';
+function drawInterface(){
+ const bond=interfaceFamily==='Bond';
+ $('interface-explanation').textContent=bond?'对选定 point–triangle 对，以一个形状保持 bond 替换该对的 barrier、friction 和 cohesive 项。其他接触对继续工作，断裂后恢复源对普通搜索。':'使用正常接触 barrier、摩擦和带 β 历史的黏附能量。压缩促进黏合，张开或滑移促进脱黏；运动求解后更新 β。';
+ $('interface-formula').innerHTML=bond?'E<sub>b</sub> = Δt² V κ ‖F Fᵀ − I‖²<br>F = D<sub>s</sub> D<sub>b</sub>⁻¹':'E<sub>a</sub> = Δt² β² [C<sub>n</sub>/(2d̂) · (d−d*)²<br>+ C<sub>t</sub>/d̂ · ‖Δx<sub>t</sub>‖²]';
+ const y=loadState==='compression'?116:loadState==='opening'?20:72;
+ const released=bond&&loadState==='opening';
+ $('bond-diagram').innerHTML=`<polygon points="65,157 284,157 185,119" fill="#c6d7de" stroke="#64716d" stroke-width="2"/><path d="M65 157 L170 ${y} L284 157 M185 119 L170 ${y}" fill="none" stroke="${released?'#b8583e':'#ad4e86'}" stroke-width="3" ${released?'stroke-dasharray="6 6"':''}/><circle cx="170" cy="${y}" r="6" fill="#1d3438"/><text x="186" y="${y+4}" font-size="14">P</text><text x="61" y="180" font-size="13">T₀</text><text x="278" y="180" font-size="13">T₁</text><text x="194" y="117" font-size="13">T₂</text>`;
+ const descriptions=bond?{compression:'压缩：d ≤ d_ref，即使恢复力模超过阈值，也不触发这条拉伸断裂判据。',rest:'参考态：相对形状不变，bond 能量为零。共同平移或旋转同样不产生应变。',opening:'张开并超过阈值：d > d_ref 且 ‖f_b‖ > f_break，步末解除 bond。物理力由 E_b / Δt² 求导。'}:{compression:'压缩：在接触带内，压力项可促进 β 增长。这里只展示状态，不数值积分 β。',rest:'参考间隙且无滑移：黏附的法向与切向弹性项为零；接触 barrier 是另一个项。',opening:'张开：随 β 的历史演化逐步脱黏。Cohesive 接口不使用 bond 的二值力阈值。'};
+ $('load-explanation').textContent=descriptions[loadState];
+}
+document.querySelectorAll('[data-interface]').forEach(b=>b.addEventListener('click',()=>{interfaceFamily=b.dataset.interface;document.querySelectorAll('[data-interface]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));drawInterface();}));
+document.querySelectorAll('[data-load]').forEach(b=>b.addEventListener('click',()=>{loadState=b.dataset.load;document.querySelectorAll('[data-load]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));drawInterface();}));drawInterface();
+function drawCosts(){
+ const matched=$('protocol').value==='matched';$('turns').disabled=!matched;if(!matched)$('turns').value='32';
+ const turns=Number($('turns').value);
+ const rows=MODELS.map(name=>({name,value:matched?DATA.costs.find(x=>x.model===name&&x.turns===turns).physics_mean_ms:DATA.fixed_tolerance_32[name]}));
+ bars('cost-bars',rows,Math.max(...rows.map(x=>x.value||0)), 'ms');
+ const val=name=>rows.find(x=>x.name===name).value;
+ $('coh-speed').textContent=matched?(val('Coh-F')/val('Coh-R')).toFixed(2)+'×':'约 3.4×';
+ $('bond-speed').textContent=matched?(val('Bond-F')/val('Bond-R')).toFixed(2)+'×':'约 3.2×';
+ $('cost-protocol').textContent=matched?`${turns} 圈：以 Bond-R 的卷芯角度范围为目标，各模型选择容差，范围误差 ≤5%。下列为作者公布的均值，不是同一停止容差。`:'32 圈：Newton tolerance = 10⁻³ m/s。仅使用正文明确给出的步时；Coh-F 没有列精确值，因此不从图补造。';
+}
+$('protocol').addEventListener('change',drawCosts);$('turns').addEventListener('change',drawCosts);drawCosts();
+function drawReplay(){
+ const key=$('replay-episode').value;const source=key==='mean'?DATA.replay.models:DATA.replay.episodes[key];
+ const rows=MODELS.map(name=>({name,value:source[name].active_mean_px}));bars('replay-bars',rows,Math.max(...rows.map(x=>x.value)), 'px');
+ const base=source['Coh-F'].active_mean_px;
+ const delta=name=>100*(base-source[name].active_mean_px)/base;
+ $('replay-explanation').textContent=key==='mean'?`五段平均：Coh-R / Bond-R 相对 Coh-F 误差下降 ${delta('Coh-R').toFixed(1)}% / ${delta('Bond-R').toFixed(1)}%。这是跨 episode 平均。`:key.endsWith('017')?'Stick 17 中 clustered 模型的均值误差更大。平均改善没有保证每个 episode 都改善。':`本段：Coh-R / Bond-R 相对 Coh-F 的误差降幅为 ${delta('Coh-R').toFixed(1)}% / ${delta('Bond-R').toFixed(1)}%。`;
+}
+$('replay-episode').addEventListener('change',drawReplay);drawReplay();
+function drawAdhesion(){
+ const index=Number($('adhesion').value);bars('adhesion-bars',MODELS.map(name=>({name,value:DATA.adhesion.rates_pct[name][index]})),100,'%');
+ $('adhesion-explanation').textContent=[
+ '标定值下，真实成功率为 69.4%。四种模型的桌面参数相同，卷内表示与界面不同。',
+ '20× 时 Coh-F 的 70.4% 偶然接近真实 69.4%，但 clustered 模型偏差扩大。仅匹配总成功率不能辨识正确黏附参数。',
+ '100× 时两个 clustered 模型全部失败。总成功率对物理参数敏感，参数应先由独立剥离力测量约束。'][index];
+}
+$('adhesion').addEventListener('change',drawAdhesion);drawAdhesion();
+let metric='sim';
+function taskRows(){let key=$('task').value;return DATA.closed_loop.filter(x=>key==='Peel'||key==='Stick'?x.task===key:x.task==='Wrap'&&x.wrap_turns===Number(key.slice(-1)));}
+function rates(row){return {sim:(row.tp+row.fp)/row.n,agreement:(row.tp+row.tn)/row.n,ba:0.5*(row.tp/(row.tp+row.fn)+row.tn/(row.tn+row.fp))};}
+function drawPrediction(){
+ const rows=taskRows(), first=rows[0], real=first.tp+first.fn, negative=first.n-real;
+ const baseline={model:'fail',n:first.n,tp:0,fp:0,fn:real,tn:negative};
+ const all=MODELS.map(name=>rows.find(x=>x.model===name)).concat([baseline]);
+ const selected=$('model').value, row=all.find(x=>x.model===selected), values=rates(row);
+ bars('prediction-bars',all.map(r=>({name:r.model,value:rates(r)[metric]*100})),100,'%',selected);
+ $('task-context').textContent=`${first.n} 个配对案例；真实成功 ${real}/${first.n} = ${pct(real/first.n)}。每个域运行同一冻结策略，根据各自观测继续决策。`;
+ $('matrix-title').textContent=(selected==='fail'?'恒定预测失败':selected)+' · 逐例结果';
+ $('matrix').innerHTML=[['TP',row.tp,'两域都成功',false],['FP',row.fp,'仿真成功，真实失败',true],['FN',row.fn,'真实成功，仿真失败',true],['TN',row.tn,'两域都失败',false]].map(([label,value,note,bad])=>`<div class="cell ${bad?'bad':''}"><small>${label}</small><strong>${value}</strong><small>${note}</small></div>`).join('');
+ $('matrix-result').textContent=`Agreement ${pct(values.agreement)} · BA ${pct(values.ba)}。真实成功召回 ${row.tp}/${real}，真实失败召回 ${row.tn}/${negative}。`;
+ $('metric-explanation').textContent=metric==='sim'?`真实成功率 ${pct(real/first.n)}。本图只比较成功数量；是否为同一案例，需要查看混淆矩阵。`:metric==='agreement'?`全失败基线 agreement 为 ${pct(negative/first.n)}。类别不平衡会让这个指标偏高。`:'BA 给予真实成功和真实失败同等权重。恒定预测的 50% 是判别能力基线。';
+ const key=$('task').value;
+ $('prediction-warning').textContent={Peel:'Peel：clustered 两种配置的 BA 从 Coh-F 的 50% 提升到 72.9% / 76.3%。注意这是成败预测，不是新策略的真机成功率。',Stick:'Stick：Coh-R / Bond-R 总成功率接近真实 70.4%，BA 却只有 50.7% / 51.7%。Bond-F 的 BA 为 64.6%，界面与表示的排名随指标改变。',Wrap1:'Wrap ≥1 圈：Coh-R 的 BA 为 76.6%，Bond-R 为 72.4%。更快的界面配置不自动更擅长预测结果。',Wrap2:'Wrap ≥2 圈：Coh-R 仿真与真实均成功 4/55，但共同成功只有 1 次。其 89.1% agreement 低于全失败基线 92.7%；BA 为 59.6%。稀少成功仍难预测。'}[key];
+}
+$('task').addEventListener('change',drawPrediction);$('model').addEventListener('change',drawPrediction);
+document.querySelectorAll('[data-metric]').forEach(b=>b.addEventListener('click',()=>{metric=b.dataset.metric;document.querySelectorAll('[data-metric]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));drawPrediction();}));drawPrediction();
+const checks=DATA.demo.checks;
+const grad=checks.find(x=>x.maximum_relative_error!==undefined).maximum_relative_error;
+$('demo-status').textContent=`CPU 教学 demo 已通过 ${checks.length} 项行为检查。bond 解析梯度与中心差分的最大归一化误差约 ${grad.toExponential(2)}。`;
+</script>
+</body>
+</html>

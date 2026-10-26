@@ -1,0 +1,145 @@
+{
+  "date": "2026-10-26",
+  "url": "http://127.0.0.1:41197/index.html",
+  "checks": [
+    {
+      "name": "释放滑块下界",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "释放滑块上界",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "前沿阶段解释切换",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "压缩不误断说明",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "张开断裂说明",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "Cohesive 使用历史解释",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "可比运动32圈数值",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "卷绕圈数切换",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "固定容差不补造数值",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "恢复可比运动选择",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "回放反例可见",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "20倍黏附警示",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "100倍黏附警示",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "Stick 总率与 BA 分开显示",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "BA 图更新",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "Wrap 两圈精确配对",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "全失败基线可见",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "全失败矩阵与 BA",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "Peel 主评估100例",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "Wrap 一圈55例",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "教学验证与复现范围清楚",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "sandbox 无同源权限仍运行",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "sandbox 无控制台错误",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "交付页恢复默认学习状态",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "桌面页面无控制台错误",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "默认桌面布局无横向溢出",
+      "passed": true,
+      "details": ""
+    }
+  ],
+  "passed": 26,
+  "consoleErrors": [],
+  "viewport": {
+    "contentWidth": 1265,
+    "height": 720,
+    "width": 1280
+  },
+  "sandbox": "iframe sandbox=allow-scripts; no allow-same-origin; interactive prediction verified",
+  "mobileViewportTested": false
+}

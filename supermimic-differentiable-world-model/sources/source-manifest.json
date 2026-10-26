@@ -1,0 +1,209 @@
+{
+  "studyDate": "2026-10-22",
+  "paper": "arXiv:2610.28480v1",
+  "pdfUrl": "https://arxiv.org/pdf/2610.28480v1",
+  "projectUrl": "https://supermimic.github.io/",
+  "codeSource": "独立编写的CPU教学例子，未使用官方demo材料",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 3906,
+      "sha256": "2b1514f748ec37f237d488f006444d25d9cf69857d199b3d2ddacabb051d3cac"
+    },
+    {
+      "path": "code/README.md",
+      "bytes": 1343,
+      "sha256": "3c900fd19e0e036330c9a6b8bc785955c3ec200742dd5c5ccd61a1e7ec78a6be"
+    },
+    {
+      "path": "code/differentiable_control_loop.py",
+      "bytes": 9652,
+      "sha256": "8f6e90fa38c0e71b24a2dbc9f8e546986d8b928755e6846f3399fdcb465ebb6e"
+    },
+    {
+      "path": "data.json",
+      "bytes": 6014,
+      "sha256": "7e373c6ed8e76ba9f9febc26509717f0e4b881ff6dce1c3dbe425eed4ee99b30"
+    },
+    {
+      "path": "engineering.md",
+      "bytes": 4069,
+      "sha256": "b9e60d3cc2346dbd510287dadd62ca67b6da24f5afa1923df84dd1a23683375b"
+    },
+    {
+      "path": "evidence.md",
+      "bytes": 5700,
+      "sha256": "4da1e13029effbd8b121552fa7dad90168fd806aaeb24fbd61f2df97c8d5a2ee"
+    },
+    {
+      "path": "images/failure_table.png",
+      "bytes": 48069,
+      "sha256": "c04827772f70c82c8e5e2545fe80a959c314ceeda62760df81d812596ebc0396"
+    },
+    {
+      "path": "images/hyperparameters.png",
+      "bytes": 90699,
+      "sha256": "a27ae4f1119bc20685792bbbd82c96679d30d74651588ab6864d2533e8d760e2"
+    },
+    {
+      "path": "images/page_1_img_1.png",
+      "bytes": 1135046,
+      "sha256": "56467852186137431ddca9e70475ed98496d25155eedfb53548e91f2d2706655"
+    },
+    {
+      "path": "images/page_4_img_1.png",
+      "bytes": 1840,
+      "sha256": "3d9d0c43ce05b990475eb67512b22e8bf14c7ac017a8cb88715ec50f17c234a4"
+    },
+    {
+      "path": "images/page_4_img_2.png",
+      "bytes": 1200,
+      "sha256": "854e827dc80413dccbe3acd3216a6ada39dab91124112a4e1cf55462fef3e621"
+    },
+    {
+      "path": "images/page_9_img_1.jpeg",
+      "bytes": 382560,
+      "sha256": "48a37e6ca6f37c00930be5f0b515cabf4ccd8af68d9ef39553deff6c530aac8f"
+    },
+    {
+      "path": "images/page_9_img_2.jpeg",
+      "bytes": 390018,
+      "sha256": "62e2e8f3a2168e1cee420de17f2a5e1bb25fff017e1955398cf5ee38161bf04c"
+    },
+    {
+      "path": "images/page_9_img_3.jpeg",
+      "bytes": 401603,
+      "sha256": "24825f14e4b97d9a9b8d6ec4617580224ad24557450410b4ab71d4d2ba0ebdb2"
+    },
+    {
+      "path": "images/page_9_img_4.jpeg",
+      "bytes": 377596,
+      "sha256": "900d4efe6512e3b9b6e821e887e2d8287d096d660f570deaa2046414ad1965a3"
+    },
+    {
+      "path": "images/scaling_and_horizon.png",
+      "bytes": 211879,
+      "sha256": "f39fc683b296f0a7f4102a389d27b95a895d75dee9095ac7daa28a75b4feed5a"
+    },
+    {
+      "path": "images/speed_and_gradient.png",
+      "bytes": 108804,
+      "sha256": "08152bb87701d873ebcb396ef4b4e1a784d2d352e547c9e462c5630e32bc3e4a"
+    },
+    {
+      "path": "images/training_loop.png",
+      "bytes": 71973,
+      "sha256": "beb9b0ada16464af94d1857279124bb2e8af57b2fefe567b51650747fa0d35b0"
+    },
+    {
+      "path": "index.html",
+      "bytes": 29432,
+      "sha256": "b2bbf2bc33862d16542c820111b9e8bb5afbc6d721e72cbd7a7621d1be6cd6b3"
+    },
+    {
+      "path": "insights.md",
+      "bytes": 5822,
+      "sha256": "96d9d169bb1083b68c0c3436f0de3dc332174f610873b7685aaebc3bb844c92b"
+    },
+    {
+      "path": "mental-model.md",
+      "bytes": 2616,
+      "sha256": "41e35ed199f3eafe683e88c60c71b1fa8b29e0547ab07a6579f3d26ce1fd7778"
+    },
+    {
+      "path": "meta.json",
+      "bytes": 79133,
+      "sha256": "bd7c3f28f6841c841dbfe5f579c9eac8deaf422fb9888232358edf3e71ec7240"
+    },
+    {
+      "path": "method.md",
+      "bytes": 9991,
+      "sha256": "2d9d9659fcf433e459bcd427d64e1dbc491a97640c1c5ca6d7e240a5b3dfbf49"
+    },
+    {
+      "path": "paper.pdf",
+      "bytes": 3524904,
+      "sha256": "fe213017ab062f4acc3965da89abd3c29969163e144a2628a662b8ce46691009"
+    },
+    {
+      "path": "paper.txt",
+      "bytes": 75714,
+      "sha256": "6a8922037cfb6efafd943beb80052e11c87a71f369bca59eb9c2454b68ffdd8d"
+    },
+    {
+      "path": "qa.md",
+      "bytes": 5971,
+      "sha256": "f51403d93af03edd701fd6ce463efacd35229b471b0809cce0372eddbd5fcadf"
+    },
+    {
+      "path": "reflection.md",
+      "bytes": 2367,
+      "sha256": "18dd8966788681184fba113d10b4380f02e7daf88843613ddb9c88a6a1fa8205"
+    },
+    {
+      "path": "sources/arxiv-abstract.html",
+      "bytes": 43122,
+      "sha256": "c00566c043065495f5c67dd04cf8ecca6567ac0d3e38c67a08dc1ccdd6242c29"
+    },
+    {
+      "path": "sources/browser-checks.json",
+      "bytes": 1739,
+      "sha256": "a774ab45940c1a598f9757445b7763d1adb25333f5d995baf75adb20ed6f09ad"
+    },
+    {
+      "path": "sources/demo-results.json",
+      "bytes": 3018,
+      "sha256": "8eb2a78d42f6c42cdb9cebf8b849b10e94f345553562e10337d3a693204b7645"
+    },
+    {
+      "path": "sources/evidence-browser.png",
+      "bytes": 124451,
+      "sha256": "14e66faaf2c9ef72241dc9047839d4442095e9f240a825ca3ac15f86a015b9a3"
+    },
+    {
+      "path": "sources/explorer-browser.png",
+      "bytes": 119428,
+      "sha256": "87b71b871645ee3af50fdf18acede3db45aa765884168b1ece08e3b98d3262c3"
+    },
+    {
+      "path": "sources/image-extraction.log",
+      "bytes": 946,
+      "sha256": "3d8fa61fba1aba6dc6c031e01b9241f11a8ef05a74aa19ce1d5590f4e806fef8"
+    },
+    {
+      "path": "sources/index-before.json",
+      "bytes": 83379,
+      "sha256": "8050080e7d74a6b9743c307b66e6419e4ae896b438a2178c80dbfe4b1015a0da"
+    },
+    {
+      "path": "sources/index-update.json",
+      "bytes": 348,
+      "sha256": "f718d02a34f18e830f7a344cdb7510ebdf23f2b198d8f1e7407c6fa7c97f1dbb"
+    },
+    {
+      "path": "sources/parser-output.json",
+      "bytes": 52629,
+      "sha256": "97dd1dc3e814f4767435827bb46962bbdafa243197b580f50cc636e165fb7f51"
+    },
+    {
+      "path": "sources/pdfinfo.txt",
+      "bytes": 617,
+      "sha256": "fd085edb5b7065c1053f134a7ab3f66fc4cb32ec0deb75522529f1fd4e1294e5"
+    },
+    {
+      "path": "sources/project-page.html",
+      "bytes": 39930,
+      "sha256": "12ef8489aedd405b2fc7f81f6aabbe0825cf3907a91e49ddd729db0300590f5b"
+    },
+    {
+      "path": "sources/validation.json",
+      "bytes": 2573,
+      "sha256": "e23d83f97194cd92afc3a8244fd28461cb1b3a9c790338725f3439f30d6bfb33"
+    },
+    {
+      "path": "summary.md",
+      "bytes": 4981,
+      "sha256": "c0cd157ffcff458677ca7306d6aadc6f0e7178c060ada608db797081528c8b75"
+    }
+  ]
+}

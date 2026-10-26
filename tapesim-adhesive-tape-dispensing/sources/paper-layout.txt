@@ -1,0 +1,606 @@
+                                                     TAPE S IM: Efficient Simulation of Adhesive Tape Dispensing
+                                                                       for Robotic Manipulation
+                                                                      Zhaofeng Luo1,2 , Xinyu Lu2 , Jaehoon Choi2 , Zhehuan Chen2
+                                                               Trinity Chung2 , Xiaowen Qiu2 , Hugh Nicholas Perkins2 , Gianna Calderon2
+                                                          Alexis Duburcq2 , Sanghyun Son2 , Tsun-Hsuan Wang2 , Yi-Ling Qiao2 , Minchen Li1,2
+                                                                                       1                                      2
+                                                                                           Carnegie Mellon University             Genesis AI
+arXiv:2609.28766v2 [cs.RO] 28 Sep 2026
+
+
+
+
+                                            Abstract— Applying adhesive tape to secure wire harnesses                layers move together, increasing cost and suppressing motion
+                                         or seal packages requires robots to coordinate a flexible strip,            at practical solver tolerances. Tighter solves recover motion
+                                         a moving roll, and surfaces that attach and detach. Simulation              at additional cost. Permanently rigidifying the roll removes
+                                         could make these interactions repeatable for robot development
+                                         and evaluation, but resolving every adhesive layer is expensive             this burden but prevents the deformation needed for payout.
+                                         and can suppress roll motion at practical solver tolerances, while          We therefore ask where deformation must be retained and
+                                         a permanently rigid roll cannot release material. We present                which adhesive interfaces can be simplified.
+                                         TAPE S IM, a tape simulator that concentrates deformation near                 Our key observation is that most wound material moves
+                                         the unwinding region and along the released strip. We will
+                                                                                                                     approximately as a rigid body, while deformation is essential
+                                         release the source code. A rigid cluster represents most wound
+                                         material, while an advancing deformable collar enables payout               near the advancing release front. We therefore propose
+                                         and leaves released tape flexible and reattachable. Optional                TAPE S IM, which represents most wound tape as a rigid
+                                         releasable bonds simplify adhesive interfaces and reduce mean               cluster connected to the released strip through an advancing
+                                         step times for smaller rolls. Controlled swing tests show improved          deformable collar. This allocation retains deformation where
+                                         roll rotation. At 32 turns, clustering gives 3.2–3.4× mean physics-
+                                                                                                                     needed for progressive payout, while all released tape remains
+                                         step speedups at a fixed Newton tolerance and 4.5–8.4× for
+                                         comparable roll motion. Across five real-motion Stick replays,              flexible and can adhere to new surfaces (Fig. 1). Adhesive
+                                         the clustered variants reduce mean image-plane core-landmark                interfaces can use either the cohesive model or optional
+                                         error by 23–29% relative to the full-shell cohesive baseline. On            releasable bonds, which replace selected contact–adhesion
+                                         100 paired Peel cases, they improve balanced accuracy from 50%              pairs with a single interface energy. We evaluate roll motion
+                                         to 72.9–76.3%, with interface rankings varying across tasks.
+                                                                                                                     and computational efficiency, then assess agreement with real
+                                         A teleoperated box-sealing sequence demonstrates attachment,
+                                         dispensing, cutting, and sealing in a continuous workflow.                  robotic interaction through motion replay and paired real/sim
+                                                                                                                     policy rollouts. Our contributions are:
+                                                                 I. I NTRODUCTION                                      • A release-front-driven reduction that couples a rigid
+                                            Robotic tape manipulation for wire-harnessing and pack-                      wound region to an advancing deformable collar, restor-
+                                         aging requires attaching the free end, dispensing material                      ing shell motion and adhesive history as tape is dis-
+                                         from a moving roll, and, where needed, cutting without dis-                     pensed.
+                                                                                                                       • An optional releasable bond interface, evaluated against
+                                         turbing existing attachments. Existing robotic tape-handling
+                                         systems [1], [2] motivate simulation tools for developing and                   cohesive contact to characterize its computational bene-
+                                         evaluating these behaviors.                                                     fits and task-dependent prediction accuracy.
+                                                                                                                       • A robot-integrated simulator supporting attachment,
+                                            Simulation supports repeatable policy evaluation for rigid
+                                         and soft-object manipulation [3], [4]. For tape, it must capture                dispensing, and cutting, evaluated through real-motion
+                                         the coupled strip–roll response: pulling the free end should                    replay, frozen-policy outcomes, and continuous teleoper-
+                                         move and rotate the roll, release material, and preserve                        ated packaging.
+                                         attachment elsewhere. Errors in these responses can alter
+                                         a vision-based policy’s observations and task outcome.                                           II. R ELATED W ORK
+                                            Existing models meet only part of these requirements.                       Robotic manipulation of deformable and adhesive
+                                         Numerical tape placement can exploit a taut strip and                       objects. Robotic manipulation benchmarks cover cables,
+                                         prescribed attachment [2], while adhesive contact simulation                fabrics, and bags [6], while adhesive tape additionally requires
+                                         supports deformation and peeling [5]. A freely moving roll                  attachment, release, and continuous dispensing. Tushar et al.
+                                         must also translate, rotate, and unwind. Resolving every                    automate tape manipulation using specialized tooling [1],
+                                         wound layer retains stiff interfaces even when neighboring                  and Liang et al. learn tape detachment and numerically plan
+                                                                                                                     placement [2] using a taut strip with prescribed attachment.
+                                           This work has been submitted to the IEEE for possible publication.
+                                         Copyright may be transferred without notice, after which this version may   In contrast, TAPE S IM simulates a freely moving tape roll
+                                         no longer be accessible.                                                    coupled to a progressively released and reattachable strip.
+          a                                                                                       b
+                                                                   collar (soft shell)                  releasable bond
+                 free end (soft shell)                             a few on-roll mesh rings
+                 all material already off the roll                                                 point–triangle pair     virtual tetrahedron
+                                                               peel front
+                                                                                                           P                       P
+
+
+                                                                                                                T2                T2
+
+                 may contact and adhere
+                                                                                                   T0                T1    T0              T1
+                                                                                                   barrier + adhesion     one ABD-type energy
+
+                                                                                                        same vertices; frozen rest shape
+                other surface                                                                             compression · opening · slip
+                                                                            cluster
+                                                                   most tape still on the roll             release → resume pair tests
+
+
+Fig. 1. Spatial reduction and unified bond interfaces. (a) Most on-roll tape forms a rigid cluster, connected through a deformable on-roll collar to the
+fully released strip, which can adhere to other surfaces. (b) A virtual tetrahedron uses the four vertices of a point–triangle pair, adding no material or
+degrees of freedom. A single affine-body-type energy replaces its normal-contact barrier, friction, and adhesion; upon release, ordinary pair tests resume.
+Other pairs remain active. The schematic exaggerates the bond gap.
+
+
+
+   Adhesion and contact. Tape peeling depends on backing                       configuration minimizes
+elasticity, peel angle, and fracture energy [7]. Incremental
+potential contact (IPC) provides barrier-based contact for                                       Φ0 (q) = I(q) + Eel (q)
+                                                                                                                                                       (1)
+deformable solids [8], [9], with GPU extensions improving                                                      + Enc (q) + Efric (q).
+efficiency [10]. Fang et al. extend IPC to adhesive contact and
+                                                                               Here I penalizes departure from inertially predicted motion,
+demonstrate tape peeling [5], while Raous–Cangemi–Cocou
+                                                                               including external forces. Eel resists deformation, Enc handles
+models couple adhesion, friction, and unilateral contact [11].
+                                                                               normal contact, and Efric resists sliding along contacting
+Our focus is complementary: rather than introducing a more
+                                                                               surfaces. Potential-energy terms include scaling of ∆t2 .
+detailed adhesion law, we simplify the dense, persistent
+                                                                                  Incremental potential contact (IPC) detects nearby vertex–
+interfaces inside a wound roll using releasable bonds.
+                                                                               triangle and edge–edge pairs, both within the strip and against
+   Reduced simulation for manipulation. Affine body dy-
+                                                                               other objects [8], [9]. Contact half-thickness ξ gives the mesh
+namics (ABD) compactly represents nearly rigid objects [12].
+                                                                               a finite collision thickness: equal-thickness midsurfaces touch
+Adaptive rigidification switches regions between rigid and
+                                                                               at separation 2ξ. The barrier energy Enc activates as surfaces
+deformable representations for solids and shells [13], [14],
+                                                                               approach and rises without bound as clearance vanishes.
+while Embedded IPC combines reduced deformation with
+                                                                               Continuous collision detection limits solver updates to prevent
+fine collision geometry [15]. In TAPE S IM, reduction is tied
+                                                                               surfaces from crossing. Projected Newton iterations minimize
+specifically to the advancing payout front: most wound
+                                                                               this objective (1); preconditioned conjugate gradients (PCG)
+material remains rigid, while a deformable collar advances
+                                                                               solve the linearized systems [18].
+with release and all dispensed tape remains deformable.
+Cutting follows standard mesh-surgery techniques [16].                         B. From Cohesive Contact to Releasable Bonds
+   Real-to-sim robot evaluation. SIMPLER aligns simulated
+control and visual observations for evaluating frozen robot                       Cohesive baseline. Contact repels approaching surfaces;
+policies [3], and Zhang et al. extend real-to-sim evaluation to                adhesion must also resist pulling them apart. Our RCC-
+soft-body interactions [4]. RealSimLoop uses differentiable                    inspired baseline assigns each adhesive point–triangle pair
+reduced-order simulation and visual feedback for online                        a persistent intensity β ∈ [0, 1], from disengaged to fully
+material adaptation [17]. We instead keep the tape models                      engaged. Either tape face can contact objects, butP  only the
+fixed and evaluate their predictive fidelity through real-motion               sticky face can adhere. The cohesive model adds a∈A Ea
+replay and paired real/sim outcomes of frozen policies.                        to (1). For pair distance d, rest gap d∗ , and tangential slip
+                                                                               ∆xt measured in a lagged contact frame,
+                            III. M ETHOD                                                                                         
+                                                                                                       Cn               Ct
+A. Thin-Shell Simulation with IPC                                                       Ea = ∆t2 β 2       (d − d∗ )2 +    ∥∆xt ∥2 .      (2)
+                                                                                                       2dˆ              dˆ
+   We model the tape backing with a triangular thin shell using
+StVK membrane elasticity and discrete-shell bending. Both                      dˆ is the contact activation length in IPC. Cn , Ct are per-
+use the flat rest mesh, so winding stores elastic strain rather                pair coefficients in newtons that control opening and sliding
+than defining a new stress-free configuration. We first describe               resistance. A fixed side mask excludes backing-to-backing
+the nonadhesive strip, then add adhesion in Section III-B.                     adhesion, not contact. Compression promotes engagement,
+   At each time step with size ∆t, we solve jointly for the                    while opening and slip promote debonding. After each motion
+tape and body coordinates q. Without adhesion, the next                        solve, active sticky pairs within the contact band update
+                                                        ˆ 2 and
+β k+1 = clip[0,1] (β k + ∆t β̇). With an = 4[(d − d∗ )/d]           preserving the deformation needed for subsequent contact
+at = 4(Ct /Cn )∥∆xt /d∥  ˆ 2 , the implemented rate is              and attachment to new surfaces (Fig. 1). The hub remains
+        (                                                           a separate body coupled to the tape through the tape–hub
+           10
+           η [W − β(an + at )]− ,                 p < 0,            interface.
+    β̇ = 100γ                    10
+                                                             (3)
+                                                                       Instead of three unknowns per member vertex, the cluster
+            pb [p − βp0 ]+ + η [W − βat ]− , p ≥ 0.
+                                                                    shares six translation/rotation degrees of freedom. A stored
+Here [z]+ = max(z, 0) and [z]− = min(z, 0). The com-                local coordinate yi maps to world position xi = Rp yi + tp
+pression measure is p = −2ddB   ˆ ′ (d2 ) − (Cn /d)β
+                                                 ˆ 2 (d − d∗ ),
+                                                                    under cluster pose (Rp , tp ). Member elasticity and internal
+where the IPC kernel B omits time-step and area factors. pb         contacts/adhesion are omitted; boundary elements and external
+is the barrier-only compression at the contact-band midpoint        contacts still couple the cluster to deformable tape and the
+above the pair’s contact thickness (growth is zero if pb = 0).      scene. To transfer their contributions to reduced coordinates,
+W, η, γ, p0 control retention, debonding, engagement, and           let J = ∂x/∂q map coordinate changes to vertex motion.
+pressure saturation, respectively.                                  For vertex-space energy gradient gx and Hessian Hx ,
+   Many wound-layer interfaces barely move, yet their stiff                                                X
+barrier and cohesive terms increase solve cost and can sup-             gq = J T gx ,    Hq = J T Hx J +       (gx )j ∇2q [x]j . (5)
+press roll rotation under practical solver stopping tolerances.                                              j
+Interface histories and cluster membership stay fixed during        The sum runs over scalar vertex coordinates and accounts
+each motion solve and update at time-step boundaries.               for the nonlinear rotation map. Collision detection uses
+   Unified bond response. To accelerate cohesive contact,           conservative advancement along screw trajectories, bounding
+we introduce a persistent bond for selected adhesive point–         their deviation from straight chords during line search.
+triangle pairs. The contacting point xP and the triangle’s             Mass contributions from member elements are assigned
+three vertices define a virtual tetrahedron (Fig. 1b), adding       to the cluster, while shell vertices retain contributions from
+no material or degrees of freedom. Its creation-time edge           incident elements outside the cluster. The elastic rest geometry
+matrix Db records the reference shape, while Ds describes           is preserved during this change of representation. At cluster
+its current shape. With deformation gradient Fb = Ds Db−1           formation, vertex velocities are projected onto rigid motion.
+and reference volume Vb = | det Db |/6, we use the rigidity         When a cluster vertex becomes deformable, it inherits vi =
+energy [12]                                                         vp + ωp × (xi − cp ), where cp is the cluster center of mass
+                Eb = ∆t2 Vb κb ∥Fb FbT − I∥2F .              (4)    and vp , ωp are its instantaneous linear and angular velocities.
+                                                                       Front update. A fixed cluster boundary would prevent
+Stiffness κb (Pa) resists opening, compression, and slip while      continued payout, so we maintain a collar of N mesh-graph
+allowing joint translation and rotation. The bond replaces          edges between the cluster and free region. Strip ordering
+the source pair’s cohesive energy, normal-contact barrier,          and adhesive support initialize cluster membership, excluding
+and friction, for better computing efficiency; other contact        the collar and free end. Every tape vertex stores its initial
+pairs remain active. This defines an alternative finite-stiffness   local position yi in the cluster frame. Its carried position
+interface law.                                                      x̃i = Rp yi + tp follows rigid cluster motion, while collar
+   Bond creation and release. We update bonds at the end            positions xi remain independent shell unknowns.
+of each time step, keeping the bond set fixed throughout each          After each motion solve, we update interface histories
+motion solve. A bond is created when an eligible adhesive           and test collar vertices one graph edge from the previous
+point–triangle pair lies within a prescribed bonding distance.      free region Fk . The gate gi = ∥xi − x̃i ∥ > δ detects
+Once established, the bond persists until its release criterion     deformation away from rigid cluster motion. With bond
+is met. Our primary release criterion is force-based and active     interfaces, candidates must also be marked by a release event
+only in tension. Let d be the current point–triangle distance       and have no remaining live support; with cohesive interfaces,
+and dref the bond’s reference separation. We evaluate the           the gate does not require β to reach zero. Passing vertices
+restoring force fb = −∂(Eb /∆t2 )/∂xP and release the bond          join Fk+1 . We then recompute graph distance to this set and
+only when d > dref and ∥fb ∥ > fbreak . When d ≤ dref ,             restore deformation to cluster elements with a corner less
+this force-based criterion is disabled, so compressive loads        than N edges away, replenishing the collar for subsequent
+do not trigger release. Here fbreak is the prescribed force         payout. Thus the free region grows as the cluster shrinks:
+threshold in newtons. Removing the bond restores ordinary
+IPC processing for the source pair at the next contact search.                      Fk ⊆ Fk+1 ,        Ck+1 ⊆ Ck .              (6)
+C. Rigid Wound Region and Advancing Collar                          Candidate adjacency is evaluated against the previous free
+   Even with bonds, resolving the deformation of every wound        region Fk , preventing releases within one update from
+layer remains costly. Away from the release front, neighboring      recursively propagating through the collar. As cluster elements
+layers largely move together, so we represent most wound            become deformable, cohesive interfaces recover the intensities
+tape as a rigid cluster C. Near the front, a deformable collar      β saved during winding, while bond interfaces recover their
+L allows tape to bend away from the roll and release its            original bonds and reference shapes. Released tape may
+adhesive support. The released region F also remains a shell,       adhere elsewhere but never rejoins the original cluster.
+                                                                                            TABLE I
+D. Free-Strip Cutting
+                                                                           PARAMETER SETTINGS FOR THE 19- MM TAPE ASSETS .
+   Cutting is triggered by the peak local pressure from blade–
+tape contact:                                                            Quantity                   Value            Source
+                                                                         Tape width                 19 mm            Measurement
+                                P
+                                       Fn,c
+                   pmax = max c→e           .              (7)           Full film thickness        0.18 mm          Measurement
+                             e       Ae                                  Core inner / outer diam.   38.0 / 42.2 mm   Measurement
+                                                                         Core axial height          20.0 mm          Measurement
+Here Fn,c is the IPC barrier normal force from sharp blade               Tape density               1300 kg/m3       Measurement
+contact c assigned to tape element e, including stiffness                Membrane / bending E       50 / 50 MPa      Configured
+and area weights. The associated reference area Ae is the                Poisson ratio              0.45             Configured
+                                                                         Tape mass per length       4.446 g/m        Derived
+triangle area or, for edges and vertices, a share of incident
+                                                                         Contact band dˆ            0.18 mm          Configured
+triangle areas. We trigger cutting when pmax reaches the                 Table Cn / Ct (N)          0.675 / 0.675    Numerical fit
+prescribed threshold for two consecutive time steps. At a step
+boundary, we project the blade curve and nearby triangles onto
+a local plane, remove a finite-width kerf, and retriangulate
+                                                                   geometry from the first real frame and include a movable
+the retained material. The kerf separates newly exposed edges
+                                                                   core and the tabletop or target stand.
+beyond their combined contact thickness, avoiding coincident
+                                                                      2) Peel-force calibration: We calibrate tabletop release
+surfaces in the next contact step.
+                                                                   against a measured peel force of 2.5 N. In both real and
+   New vertices inherit material and kinematic state through
+                                                                   simulated fixtures, tape is adhered to the tabletop and its free
+parent-triangle interpolation, with mass determined by re-
+                                                                   end is lifted and pulled at approximately 180◦ . The real free
+tained rest areas. We rebuild shell/contact connectivity and
+                                                                   end is attached to a force gauge. In simulation, a 300-by-
+remap grasp constraints so both pieces continue interacting
+                                                                   19-mm strip is pulled at 6 mm/s, and we measure the pull-
+with the scene.
+                                                                   direction reaction during advancing release. The simulated
+                      IV. E VALUATION                              robot fixture gives a median of 2.54 N at Cn = Ct = 0.675.
+   We evaluate tape handling, computational cost, and real/sim     These coefficients are fixed for all four Peel models before
+agreement through motion replay and paired policy rollouts.        policy evaluation.
+We also test adhesion sensitivity and demonstrate continuous          3) Dispensing and cutting feasibility: The collar follows
+teleoperated packaging.                                            the release front while maintaining strip continuity (Fig. 2b).
+   Models and shared settings. We compare Coh-F, Bond-             With the tip held in zero gravity, we translate the freely
+F, Bond-R, and Coh-R. Coh/Bond selects cohesive or bond            rotating hub at 25 mm/s. During 17.75 s of payout, the
+tape–tape and tape–hub interfaces; F/R selects full shells         32-turn Bond-R boundary advances 370.5 mm along the rest-
+or rigid clusters. Within each comparison, all four models         material coordinate. The tracked row passes from cluster
+share tape geometry and nonadhesive material parameters,           through collar to free end: newly released material becomes
+including membrane and bending stiffness. F/R pairs use the        deformable as dispensing proceeds.
+same input motion or frozen policy. Tape–hub parameters for           To demonstrate cutting feasibility, a rigid blade descends
+each adhesive model are shared across Peel, Stick, and Wrap.       at 6 mm/s onto a fixed-end 200-by-19-mm strip (Fig. 2c).
+All four Peel models use the calibrated cohesive tabletop          We prescribe a peak local contact-pressure threshold of
+interface (Section IV-A).                                          1 kPa, sustained for two consecutive time steps, using
+   Unless noted otherwise, ∆t = 0.01 s and the Newton              the same pressure threshold and two-step trigger as the
+velocity tolerance is 10−2 m/s. Payout, fixed-tolerance timing,    teleoperated box-packaging demonstration (Section IV-F). The
+Stick replay, and cutting use 10−3 m/s; the comparable-motion      cut separates the strip and releases its tension; the matched
+benchmark selects tolerances by model and roll size. Blade         no-cut control remains connected through 6.5 s.
+indentation uses a 5-ms step and box packaging a 1/30-s step.
+                                                                   B. Roll Motion and Computational Efficiency
+Reduced rolls use an N = 10-edge collar. Initial placements
+are manually verified; real-robot test outcomes are not used          A held-tip swing isolates the roll’s response to motion of
+to select simulator configurations.                                the free end. We lift and hold the tip, drive the roll center
+                                                                   through a 30◦ arc, and release it for 10 s, leaving roll rotation
+A. Physical Setup and Tape-Handling Capabilities                   unconstrained. We test all four models at 2, 8, 16, 24, and 32
+   1) Tape Assets: Except for box packaging (Section IV-F),        turns over a 17.5-s sequence. The additional comparison for
+experiments use the 19-mm tape assets in Table I. Mass             comparable roll motion uses 2, 8, 16, and 32 turns. These rolls
+is computed from measured density, flat rest area, and             use Cn = Ct = 1 N with W = 1, η = 100, γ = 1, and p0 =
+full thickness. We wind a triangular shell with six cells          0 for cohesive interfaces, or κb = 106 Pa bonds with a 0.5-N
+across its width, adhesive face inward, around a hollow            release threshold and no rest-gap snapping. The front uses the
+core. After settling in zero gravity, we save its geometry and     Euclidean gate with δ = 5dˆ = 0.9 mm. For these benchmarks,
+adhesive interfaces for full or reduced simulation. Our robot      Newton iterations stop when maxi ∥∆xi ∥∞ /∆t < εv . Here
+platform uses Marvin arms equipped with Wuji hands. For            ∆xi is the world-space Newton update before CCD and line-
+paired real/sim trials, simulated scenes reconstruct the initial   search scaling. For R models, translation and rotation updates
+        a                     Real                       Sim (50 s)                           b     Bond-R                                             Cluster         Collar     Free end
+
+                                                                                                                   0s                                     8s                      17.75 s
+                                                6 mm/s
+
+
+
+                                                                                   50 mm          20 mm
+                                                 Table
+
+
+
+
+        c                               Settled (1.000 s)                                           Before cut (3.000 s)                                         Separated (3.060 s)
+
+
+
+
+                              20 mm
+
+                                                      Membrane tension (N/m)
+                                                                                              0                                 10                20              30
+
+
+
+Fig. 2. Peel-force calibration and tape-handling feasibility. (a) Force-gauge measurement and simulated peel shape at 50 s; the simulated fixture gives a
+median reaction of 2.54 N at Cn = Ct = 0.675. The arrow indicates pulling direction; the simulated profile uses equal horizontal and vertical scales. (b)
+A 32-turn Bond-R roll dispenses tape as the collar advances. Orange/magenta/blue indicate cluster/collar/free end, and gray the hub. State bars span the
+same rest-material interval; black markers track one material row. Roll views share a common scale. (c) Blade indentation and separation of a fixed-end
+strip. Black edges are fixed and gray denotes the blade. Color denotes positive maximum principal membrane tension (N/m), showing tension release after
+contact-pressure-triggered cutting.
+
+
+                                                     Coh-F                          Bond-F         Bond-R                             Coh-R                            (d) Coh-F
+                                                                                                                                                                          7.48 s        12.00 s
+                                  (a) Physics cost                                 (b) Physics cost                                  (c) 32-turn motion                          2 turns
+                                  tol. 0.001                                       Comparable roll motion                            tol. 0.01
+                                                                                                          Hub rotation (deg)
+
+
+
+
+                                                                             300
+        Physics step (ms)
+
+
+
+
+                                                         Physics step (ms)
+
+
+
+
+                                                                                                                                0
+                            300
+                                                                                                                               -20                                              32 turns
+                                                                             150
+                            150
+                                                                                                                               -40
+
+                              0                                                0
+                                  2   8  16 24 32                                  2   8  16       32                                0         5         10
+                                      Wound turns                                      Wound turns                                   Time after release (s)                5 cm
+
+
+Fig. 3. Roll motion and computational cost. (a) Mean physics-step time over 1750 steps at Newton tolerance 10−3 m/s, excluding cluster updates and
+rendering. (b) Mean physics-step time for comparable roll motion, using tolerances selected by matching hub-rotation ranges. (c) Hub rotation after release
+for a 32-turn roll at 10−2 m/s, relative to the first post-release state. (d) Coh-F at 7.48 and 12 s, before and after hub release at 7.5 s. Views share time and
+scale; dots mark the held tip, circles the hub center, and spokes the hub orientation.
+
+
+
+are mapped to constituent vertices, including clustered tape                                                                    common stopping tolerance can yield different roll responses,
+vertices. With the tip held, gravity loads the strip, whose                                                                     we also compare costs for comparable motion below. Timing
+off-center pull turns the roll. In this approximately planar                                                                    uses the same RTX PRO 6000 Blackwell Server Edition
+test, we characterize roll motion by the hub angle θ(t) about                                                                   GPU within each group, with two independent 32-turn
+the roll axis and its range ∆θ = maxt θ(t) − mint θ(t) over                                                                     repeats. Physics steps are bracketed by GPU synchronization,
+the 10-s release.                                                                                                               excluding front updates, control, telemetry, and rendering.
+   Rotation improves when internal interfaces are simpli-                                                                       At 32 turns, clustering reduces mean physics-step time from
+fied. Tightening the 32-turn Coh-F Newton tolerance from                                                                        366 to 115 ms within the bond family, a 3.2× speedup; the
+10−2 to 10−3 m/s raises its angular range from 9.7◦ to 38.1◦ ,                                                                  cohesive family gains 3.4× (Fig. 3 a). Including front updates
+with the asset, interface law, time step, and input unchanged.                                                                  retains a 3.1× bond-family speedup.
+This identifies a solver-induced component of the suppressed                                                                       At this tolerance, Bond-R is approximately 1.8× and 1.5×
+motion. At 10−2 m/s, Coh-F’s range falls from 28.1◦ at 2                                                                        faster than Coh-R for 2- and 8-turn rolls, respectively. Their
+turns to 9.7◦ at 32 turns. At 32 turns, bonds increase the                                                                      mean step times are nearly equal at 32 turns (115 versus
+range to 26.6◦ ; clustering yields 37.7◦ for Bond-R and 52.2◦                                                                   116 ms).
+for Coh-R (Fig. 3 c,d).                                                                                                            Cost for comparable roll motion. For each roll size, Bond-
+   Clustering provides the main computational savings.                                                                          R at 10−2 m/s defines ∆θ⋆ . We select Newton tolerances
+The fixed-tolerance benchmark uses 10−3 m/s. Because a                                                                          satisfying |∆θ −∆θ⋆ |/∆θ⋆ ≤ 0.05. The selected runs exhibit
+                                                                    Coh-F       Bond-F        Bond-R        Coh-R           Inferred
+
+
+
+
+           Core-landmark error (px)
+                                              Stick 17          Stick 18                 Stick 19                Stick 23              Stick 25
+                                       80
+
+
+                                       40
+
+
+                                        0
+                                            3    4        6     3       6       9        3      6       9        3    6       9        3 4        8   12
+
+                                                                                    Time from replay start (s)
+
+                                                         Real               Coh-F              Bond-F                  Bond-R                Coh-R
+
+
+
+                                      6.5 s
+
+
+
+
+                                      9.5 s
+
+
+
+
+Fig. 4. Clustered models retain Stick replay fidelity. Top: ego-camera core-landmark error for five real-motion replays; each curve averages two
+simulation repeats. Time is measured from recording start, excluding the stationary first 3 s. Hollow markers identify estimated real landmarks. Bottom:
+synchronized real/sim frames from Stick 19, repeat 1, at 6.5 and 9.5 s, using the same crop across models.
+
+
+
+comparable roll trajectories and velocities; Fig. 3b reports                                    similar mean errors support both interface choices within the
+their mean physics-step times. At 32 turns, clustering reduces                                  clustered representation. Bond-F gives 17.03 px, indicating
+mean step time from 307.77 to 36.73 ms in the cohesive                                          that clustering also retains comparable replay fidelity within
+family and from 130.43 to 29.14 ms in the bond family,                                          the bond family.
+giving 8.4× and 4.5× speedups, respectively. Under this
+                                                                                               D. Closed-Loop Prediction of Policy Outcomes
+criterion, Bond-R is 1.26× faster than Coh-R at 32 turns.
+   In a separate 32-turn comparison, Bond-F and Bond-R                                            Closed-loop tests ask whether the simulator predicts the
+use 10−3 m/s, with Bond-F at 10−4 m/s as the numerical                                         same successes and failures as the real robot. In Peel, the
+reference and the same time step. Clustering reduces roll-                                     robot peels tape initially adhered to the tabletop. In Stick, it
+center RMSE from 11.11 to 5.09 mm and orientation RMSE                                         picks up the tape by its free end and attaches it to the stand.
+from 4.68◦ to 2.17◦ .                                                                          In Wrap, it inserts a finger through the core of a roll hanging
+                                                                                               from the stand and moves the roll around the stand, dispensing
+C. Open-Loop Motion Fidelity                                                                   and attaching tape as it goes (Fig. 5). The stand provides a
+   Stick replay tests tape motion as the robot grasps the                                      controlled target for the Stick/Wrap wire-harnessing subtasks.
+free end, lifts the roll off the tabletop, and attaches the end                                Each policy acts on its own rollout observations, allowing
+to a stand. We replay measured arm and finger trajectories                                     tape response to affect subsequent robot actions.
+from five real Stick episodes, twice per model, with shared                                       1) Policies, cases, and metrics: Training and test trials use
+geometry and cameras.                                                                          the same tape product and similar placement regions. Initial
+   We measure Euclidean core-landmark error in undistorted                                     tape position, orientation, wound-turn count, and free-end
+848 × 480 ego-camera images. Manually verified real land-                                      length are randomized across trials. For each real test trial,
+marks use the inner-hole ellipse center or, in side views, the                                 we align the simulated initial placement to the first real image
+outer-core midpoint excluding the strip. Partially obscured                                    using an overlay. The resulting case is shared by all four
+points are estimated from visible contours; all models and                                     simulation configurations, pairing their starting conditions
+repeats share these annotations. Simulated landmarks use                                       while allowing subsequent robot and tape motions to differ
+the projected camera-facing inner-rim ellipse center or the                                    through policy feedback.
+projected center of the hub’s three-dimensional axis-aligned                                      We fine-tune an internal vision–language–action base model
+bounding box, respectively. Timestamps select the nearest                                      on human teleoperation demonstrations to obtain one policy
+simulated state without fitting a time shift. We average errors                                per task. Peel/Stick/Wrap use 284/241/241 training and
+after 3 s within each run, across repeats, then equally across                                 16/14/14 validation episodes. For each task, we select the
+the five episodes.                                                                             checkpoint by validation action R2 and freeze it for evaluation.
+   Coh-R and Bond-R reduce mean core-landmark error                                            Real and simulated trials use the same frozen policy weights
+from Coh-F’s 22.96 px to 17.57 and 16.28 px, respectively,                                     and preprocessing. The policy receives ego and two wrist
+corresponding to reductions of 23% and 29% (Fig. 4). Their                                     RGB views, proprioception, and task text, and predicts a
+                                                                        Peel                                                        Stick                                            Wrap
+
+
+
+
+                                                                                               Peel                       Stick             Wrap ≥1 turn            Wrap ≥2 turns
+                                                         Coh-F                                            Bond-F                                  Bond-R                             Coh-R
+                                                100                                          100                                           100                               100
+                             Real success (%)
+
+
+
+
+                                                 50                                           50                                            50                                50
+
+
+
+                                                     0                                            0                                           0                                  0
+                                                         0          50        100                         0         50        100                 0         50        100            0         50        100
+                                                              Sim success (%)                                 Sim success (%)                         Sim success (%)                    Sim success (%)
+
+
+Fig. 5. Real versus simulated policy success across three tape tasks. Top: Coh-R rollout scenes. Bottom: simulated success rate (horizontal) versus real
+success rate (vertical); the dashed diagonal indicates equal rates. Circles/squares denote Peel/Stick, and filled/open triangles denote Wrap success with at
+least one/two completed turns. Peel, Stick, and Wrap use 100, 71, and 55 matched cases, respectively.
+
+                                                                                     TP: both succeed                      TN: both fail          FP: sim only         FN: real only
+                                                         a Peel                                       b Stick                                 c Wrap ≥1 turn              d Wrap ≥2 turns
+                                                         n = 100                       Agree n = 71                                 Agree n = 55                    Agree n = 55                     Agree
+                                                Coh-F                                  69.0%                                        29.6%                           56.4%                            83.6%
+
+                                       Bond-F                                          73.0%                                        67.6%                           49.1%                            72.7%
+
+                                      Bond-R                                           82.0%                                        59.2%                           72.7%                            58.2%
+
+                                                Coh-R                                  81.0%                                        57.7%                           76.4%                            89.1%
+
+                                                         0           50              100              0              50           100        0          50       100         0           50       100
+                                                                                                                           Share of matched cases (%)
+
+
+Fig. 6. Paired prediction of individual policy outcomes. Each bar partitions the same n matched cases into four outcomes. Blue segments indicate
+agreement: both succeed (TP) or both fail (TN); orange segments indicate disagreement: sim only (FP) or real only (FN). Right-hand values report paired
+agreement, (TP + TN)/n. Both Wrap thresholds use the same 55 cases.
+
+
+
+                                                         1×        20×         100×        Real: 69.4%                                  turns. Peel/Stick outcomes are automatically scored and
+                                                100                91.8
+                                                                                                                                        manually verified; Wrap is manually labeled. Numerical
+                       100                                                                                    80.6                      failures count as failures. We compare success rates in Fig. 5
+     Sim success (%)
+
+
+
+
+                                                                                      75.5
+                                                     70.4
+                        75                                                                                                              and paired agreement in Fig. 6: the former measures overall
+                                                                        44.9               40.8                    36.7                 task difficulty, the latter whether the same cases succeed or
+                        50
+                                                                                                                                        fail. Success-rate error bars and bands denote 95% Wilson
+                        25                                   8.2                                                                        intervals. To separate prediction from class imbalance, we
+                                                                               1.0                0                       0
+                         0
+                                                                                                                                        also report balanced accuracy (BA): the mean recall over real
+                                                 1    20 100        1     20 100       1     20 100            1     20 100             successes and real failures. A constant prediction has 50%
+                                                  Coh-F             Bond-F             Bond-R                   Coh-R                   BA.
+                                                                                                                                           2) Prediction accuracy: For Peel, both clustered variants
+Fig. 7. Tabletop adhesion strongly affects Peel success. Within each                                                                    improve individual predictions over Coh-F: agreement rises
+model, bars show 1× (solid gray), 20× (blue dotted hatch), and 100×                                                                     from 69% to 81% for Coh-R and 82% for Bond-R, while BA
+(orange diagonal hatch) tabletop Cn , evaluated on the same 98 cases. Error
+bars show 95% Wilson intervals; the dashed line and gray band mark real                                                                 rises from 50% to 72.9% and 76.3%, respectively (Fig. 6).
+success (68/98) and its 95% Wilson interval.                                                                                            This supports clustering with either interface model.
+                                                                                                                                           For Stick, Coh-R and Bond-R predict similar overall
+                                                                                                                                        success rates (67.6% and 69.0%, versus the real 70.4%),
+32-step action chunk of end-effector poses and hand-joint                                                                               but their BA values of 50.7% and 51.7% show weak
+commands. Both domains use 100-Hz robot control, 30-                                                                                    discrimination of individual outcomes. Bond-F performs better
+Hz action waypoints, and 3-Hz policy replanning. Camera                                                                                 on this measure, with 48/71 correct predictions and 64.6% BA.
+acquisition runs at 60 Hz on the real robot and 30 Hz                                                                                   Agreement in aggregate success therefore does not establish
+in simulation. Peel succeeds on complete tabletop release;                                                                              accurate case-by-case prediction.
+Stick on lifting the tape from the tabletop and maintaining                                                                                For one-turn Wrap, Coh-R achieves 76.4% agreement and
+attachment to the stand; Wrap on at least one or two completed                                                                          76.6% BA, compared with Bond-R’s 72.7% and 72.4%. The
+        Close flaps                   Attach tape                     Dispense                         Cutting                         Press seal
+
+
+
+
+             4s                            16 s                          20 s                          25.53 s                             40 s
+
+Fig. 8. Continuous teleoperated box sealing. Frames from one simulated rollout show flap closing, tape attachment, dispensing, cutting, and pressing the
+seal. Times are measured from the start of the recording.
+
+
+
+difference is larger at the two-turn threshold: Coh-R produces                interface choice guided by task and cost. Teleoperated box
+3 false positives, versus 20 for Bond-R, while both identify                  sealing demonstrates the complete workflow.
+only one of the four real successes. Coh-R’s 49/55 agreement
+includes 48 joint failures; always predicting failure would                                             ACKNOWLEDGMENT
+agree on 51/55 cases. Thus interface rankings depend on the                     ChatGPT assisted with drafting the manuscript. The authors
+task, and rare two-turn successes remain difficult to identify.               remain responsible for all content.
+E. Sensitivity to Tabletop Adhesion                                                                          R EFERENCES
+   We test how substrate-release resistance affects policy                     [1] N. Tushar, R. Wu, Y. She, W. Zhou, and W. Shou, “Desktop-scale
+predictions by changing tabletop Cn from its calibrated 0.675                      robot tape manipulation for additive manufacturing,” Device, vol. 3,
+to 13.5 and 67.5 (20× and 100×). Geometry, policy, solver                          no. 1, p. 100555, 2025.
+                                                                               [2] X. Liang, L. Shen, P. Zhang, S. Atar, F. Richter, and M. C. Yip,
+settings, and hand/roll-interior adhesion remain fixed across                      “Towards autonomous tape handling for robotic wound redressing,”
+the same 98 Peel cases.                                                            in Proc. IEEE Int. Conf. Robotics and Automation (ICRA), 2026.
+   Stronger adhesion drives the clustered models away from                         [Online]. Available: https://arxiv.org/abs/2510.06127
+                                                                               [3] X. Li, K. Hsu, J. Gu, O. Mees, K. Pertsch, H. R. Walke, C. Fu,
+real success (Fig. 7). At 20×, Bond-R’s sim–real success                           I. Lunawat, I. Sieh, S. Kirmani, S. Levine, J. Wu, C. Finn, H. Su,
+gap grows from 6.1 to 28.6 percentage points, and Coh-                             Q. Vuong, and T. Xiao, “Evaluating real-world robot manipulation
+R’s from 11.2 to 32.7 points; at 100×, both fail every                             policies in simulation,” in Proc. Conf. Robot Learning (CoRL), ser.
+                                                                                   Proc. Machine Learning Research, vol. 270, 2025, pp. 3705–3728.
+case. Coh-F instead reaches 70.4% at 20×, close to the                         [4] K. Zhang, S. Sha, H. Jiang, M. Loper, H. Song, G. Cai, Z. Xu, X. Hu,
+real 69.4%. This coincidence shows why matching aggregate                          C. Zheng, and Y. Li, “Real-to-sim robot policy evaluation with Gaussian
+success alone cannot calibrate adhesion. The independent peel-                     splatting simulation of soft-body interactions,” in Proc. IEEE Int. Conf.
+                                                                                   Robotics and Automation (ICRA), 2026.
+force measurement fixes release resistance before testing; the                 [5] Y. Fang, M. Li, Y. Cao, X. Li, J. Wolper, Y. Yang, and C. Jiang,
+perturbation then exposes its effect on policy outcomes.                           “Augmented incremental potential contact for sticky interactions,” IEEE
+                                                                                   Trans. Visual. Comput. Graphics, vol. 30, no. 8, pp. 5596–5608, 2024.
+F. Teleoperated Box Packaging                                                  [6] D. Seita, P. Florence, J. Tompson, E. Coumans, V. Sindhwani,
+                                                                                   K. Goldberg, and A. Zeng, “Learning to rearrange deformable cables,
+   The box-sealing demonstration uses a larger packaging-                          fabrics, and bags with goal-conditioned transporter networks,” in Proc.
+tape asset modeled from physical measurements and scans                            IEEE Int. Conf. Robotics and Automation (ICRA), 2021, pp. 4568–4575.
+                                                                               [7] K. Kendall, “Thin-film peeling—the elastic term,” J. Phys. D: Appl.
+of Scotch 3850 tape and its dispenser (Fig. 8). The operator                       Phys., vol. 8, no. 13, pp. 1449–1452, 1975.
+closes the flaps, anchors the free strip, dispenses tape across                [8] M. Li, Z. Ferguson, T. Schneider, T. Langlois, D. Zorin, D. Panozzo,
+the box, cuts it, and presses the seal. The cut strip stays                        C. Jiang, and D. M. Kaufman, “Incremental potential contact:
+                                                                                   Intersection- and inversion-free large deformation dynamics,” ACM
+attached to the box while the remaining tape stays with the                        Trans. Graph., vol. 39, no. 4, pp. 49:1–49:20, 2020.
+dispenser. Using Coh-R with a 1/30-s physics time step on an                   [9] M. Li, D. M. Kaufman, and C. Jiang, “Codimensional incremental
+NVIDIA GeForce RTX 5090, a 3,846-step rollout advances                             potential contact,” ACM Trans. Graph., vol. 40, no. 4, 2021.
+                                                                              [10] K. Huang, X. Lu, H. Lin, T. Komura, and M. Li, “StiffGIPC: Advancing
+128.2 s of simulated time in 304.1 s of wall-clock time,                           GPU IPC for stiff affine-deformable simulation,” ACM Trans. Graph.,
+yielding 0.422× real-time throughput.                                              vol. 44, no. 3, pp. 31:1–31:20, 2025.
+                                                                              [11] M. Raous, L. Cangémi, and M. Cocu, “A consistent model coupling
+                          V. C ONCLUSION                                           adhesion, friction, and unilateral contact,” Computer methods in applied
+                                                                                   mechanics and engineering, vol. 177, no. 3-4, pp. 383–399, 1999.
+   We presented TAPE S IM, which combines a rigid wound                       [12] L. Lan, D. M. Kaufman, M. Li, C. Jiang, and Y. Yang, “Affine body
+cluster with an advancing deformable collar for progressive                        dynamics: Fast, stable and intersection-free simulation of stiff materials,”
+                                                                                   ACM Trans. Graph., vol. 41, no. 4, pp. 67:1–67:14, 2022.
+tape payout. At 32 turns, clustering gives 3.2–3.4× mean                      [13] A. Mercier-Aubin, P. G. Kry, A. Winter, and D. I. W. Levin, “Adaptive
+physics-step speedups at a fixed Newton tolerance and 4.5–                         rigidification of elastic solids,” ACM Trans. Graph., vol. 41, no. 4, pp.
+8.4× for comparable roll motion. Both clustered variants                           71:1–71:11, 2022.
+                                                                              [14] A. Mercier-Aubin and P. G. Kry, “Adaptive rigidification of discrete
+improve Stick replay error and Peel outcome agreement over                         shells,” Proc. ACM Comput. Graph. Interact. Tech., vol. 6, no. 3, pp.
+full-shell cohesive contact. Bond-R provides an additional                         39:1–39:17, 2023.
+speed option, with similar replay and Peel/Stick prediction                   [15] W. Du, C. Yu, S. Ma, Y. Jiang, Z. Zong, Y. Yang, J. Masterjohn,
+                                                                                   A. Castro, X. Han, and C. Jiang, “Embedded IPC: Fast and intersection-
+results to Coh-R; Coh-R performs better on Wrap. We                                free simulation in reduced subspace for robot manipulation,” in Proc.
+recommend clustering as the default representation, with                           IEEE Int. Conf. Robotics and Automation (ICRA), 2025, pp. 6911–6918.
+[16] T. Pfaff, R. Narain, J. M. de Joya, and J. F. O’Brien, “Adaptive tearing
+     and cracking of thin sheets,” ACM Trans. Graph., vol. 33, no. 4, pp.
+     110:1–110:9, 2014.
+[17] Z. Cen, C. Xian, H. Sun, Y. Liufu, Z. Zhang, X. Chu, H. Cai,
+     Y. Zhang, and G. Fang, “RealSimLoop: Online real-to-sim adaptation
+     via differentiable reduced-order simulation with vision feedback,” arXiv
+     preprint arXiv:2609.09828, 2026.
+[18] M. Li, C. Jiang, Z. Luo, W. Du, C. Yu, Ž. Kovačič, and T. Xie, Physics-
+     Based Simulation, Mar. 2026, open-source online book. Live version
+     available at https://phys-sim-book.github.io/.
+

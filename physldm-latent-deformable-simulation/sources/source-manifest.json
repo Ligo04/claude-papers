@@ -1,0 +1,29 @@
+{
+  "checked_date": "2026-10-20",
+  "version": "arXiv:2610.07609v3",
+  "pdf_sha256": "6c9d5b5da313c192eefee9c8c1ca76ba1aa63f040c40f1bb1936e40d6b712734",
+  "pdf_pages": 45,
+  "sources": [
+    {
+      "url": "https://arxiv.org/abs/2610.07609v3",
+      "role": "作者、版本和修订日期"
+    },
+    {
+      "url": "https://arxiv.org/pdf/2610.07609v3",
+      "role": "完整论文与附录"
+    },
+    {
+      "url": "https://arxiv.org/html/2610.07609v3",
+      "role": "表格与公式交叉核对"
+    },
+    {
+      "url": "https://yucrazing.github.io/physldm/",
+      "role": "项目展示和发布入口"
+    }
+  ],
+  "official_release": "已核对论文与项目页，未确认代码、权重或数据下载入口",
+  "metadata_corrected": [
+    "标题被截断；作者只识别一位；Newton GitHub 是引用基线而非本文代码。已按原文修正，并使用完整 pdftotext 文本。"
+  ],
+  "download_note": "PDF 超过 web 工具大小限制，使用 curl 下载固定 v3，已由 PyMuPDF 和 pdfinfo 完整打开。"
+}

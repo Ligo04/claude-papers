@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-22",
+  "staticChecks": [
+    {
+      "check": "必需文件齐全",
+      "passed": true
+    },
+    {
+      "check": "恰好两个不同语义标签",
+      "passed": true
+    },
+    {
+      "check": "15道问答与15个折叠答案",
+      "passed": true
+    },
+    {
+      "check": "分组动作合计129514",
+      "passed": true
+    },
+    {
+      "check": "sonic失败数合计",
+      "passed": true
+    },
+    {
+      "check": "one失败数合计",
+      "passed": true
+    },
+    {
+      "check": "two失败数合计",
+      "passed": true
+    },
+    {
+      "check": "固定PDF哈希一致",
+      "passed": true
+    },
+    {
+      "check": "完整文本与meta一致",
+      "passed": true
+    },
+    {
+      "check": "文档本地链接有效",
+      "passed": true
+    },
+    {
+      "check": "HTML无占位符",
+      "passed": true
+    },
+    {
+      "check": "HTML无外部脚本或网络存储依赖",
+      "passed": true
+    },
+    {
+      "check": "HTML内嵌数据与data.json一致",
+      "passed": true
+    },
+    {
+      "check": "HTML脚本语法通过",
+      "passed": true
+    },
+    {
+      "check": "Python语法通过",
+      "passed": true
+    },
+    {
+      "check": "索引无重复论文",
+      "passed": true
+    },
+    {
+      "check": "已有索引条目全部保留",
+      "passed": true
+    }
+  ],
+  "allStaticChecksPassed": true,
+  "pdfPages": 19,
+  "index": {
+    "beforeCount": 60,
+    "afterCount": 61,
+    "beforeSha256": "8050080e7d74a6b9743c307b66e6419e4ae896b438a2178c80dbfe4b1015a0da",
+    "afterSha256": "f7c6949c7db4bd774dc7b7683c818c428cdadc488ab5c53bfad562cd5d5f1ed1",
+    "previousEntriesPreserved": true,
+    "addedSlug": "supermimic-differentiable-world-model",
+    "backup": "sources/index-before.json"
+  },
+  "runtimeDemo": {
+    "status": "passed",
+    "device": "cpu",
+    "torchVersion": "2.14.0+cu130",
+    "gradientMaxAbsoluteError": 3.335676179716529e-11,
+    "realTeachingSystemRmseBefore": 0.5108278393745422,
+    "realTeachingSystemRmseAfter": 0.098324254155159,
+    "details": "sources/demo-results.json"
+  },
+  "browserVerification": {
+    "status": "passed",
+    "checks": 14,
+    "consoleErrors": 0,
+    "details": "sources/browser-checks.json"
+  },
+  "notRun": [
+    "作者训练",
+    "129514动作评测",
+    "H100吞吐",
+    "真机",
+    "仿真项目集成"
+  ],
+  "limitations": [
+    "独立新标签预览按钮被浏览器安全策略阻止；已改在既有sandbox预览验证。",
+    "移动端viewport未测试。"
+  ],
+  "allRequestedArtifactsVerified": true
+}

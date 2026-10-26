@@ -1,0 +1,954 @@
+{
+  "models": [
+    "Coh-F",
+    "Coh-R",
+    "Bond-F",
+    "Bond-R"
+  ],
+  "costs": [
+    {
+      "turns": 2,
+      "model": "Coh-F",
+      "physics_mean_ms": 50.05
+    },
+    {
+      "turns": 2,
+      "model": "Bond-F",
+      "physics_mean_ms": 61.96
+    },
+    {
+      "turns": 2,
+      "model": "Bond-R",
+      "physics_mean_ms": 29.41
+    },
+    {
+      "turns": 2,
+      "model": "Coh-R",
+      "physics_mean_ms": 37.93
+    },
+    {
+      "turns": 8,
+      "model": "Coh-F",
+      "physics_mean_ms": 177.35
+    },
+    {
+      "turns": 8,
+      "model": "Bond-F",
+      "physics_mean_ms": 70.9
+    },
+    {
+      "turns": 8,
+      "model": "Bond-R",
+      "physics_mean_ms": 29.82
+    },
+    {
+      "turns": 8,
+      "model": "Coh-R",
+      "physics_mean_ms": 29.44
+    },
+    {
+      "turns": 16,
+      "model": "Coh-F",
+      "physics_mean_ms": 234.52
+    },
+    {
+      "turns": 16,
+      "model": "Bond-F",
+      "physics_mean_ms": 82.91
+    },
+    {
+      "turns": 16,
+      "model": "Bond-R",
+      "physics_mean_ms": 27.07
+    },
+    {
+      "turns": 16,
+      "model": "Coh-R",
+      "physics_mean_ms": 29.98
+    },
+    {
+      "turns": 32,
+      "model": "Coh-F",
+      "physics_mean_ms": 307.77
+    },
+    {
+      "turns": 32,
+      "model": "Bond-F",
+      "physics_mean_ms": 130.43
+    },
+    {
+      "turns": 32,
+      "model": "Bond-R",
+      "physics_mean_ms": 29.14
+    },
+    {
+      "turns": 32,
+      "model": "Coh-R",
+      "physics_mean_ms": 36.73
+    }
+  ],
+  "cost_scope": "Author-corrected mean physics-step costs at comparable roll motion. 32 turns: rotation ranges matched within 5%. Repeat-level uncertainty not supplied.",
+  "closed_loop": [
+    {
+      "task": "Peel",
+      "wrap_turns": null,
+      "model": "Coh-F",
+      "n": 100,
+      "tp": 69,
+      "fp": 31,
+      "fn": 0,
+      "tn": 0,
+      "agreement": 0.69,
+      "real_successes": 69,
+      "sim_successes": 100,
+      "real_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "sim_wilson": [
+        0.9630065017930143,
+        1.0
+      ],
+      "agreement_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "balanced_accuracy": 0.5,
+      "progress_pairs": 100
+    },
+    {
+      "task": "Peel",
+      "wrap_turns": null,
+      "model": "Bond-F",
+      "n": 100,
+      "tp": 67,
+      "fp": 25,
+      "fn": 2,
+      "tn": 6,
+      "agreement": 0.73,
+      "real_successes": 69,
+      "sim_successes": 92,
+      "real_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "sim_wilson": [
+        0.8500189229905127,
+        0.9589065385156194
+      ],
+      "agreement_wilson": [
+        0.6356788323205499,
+        0.8073041585042365
+      ],
+      "balanced_accuracy": 0.5822814399251987,
+      "progress_pairs": 100
+    },
+    {
+      "task": "Peel",
+      "wrap_turns": null,
+      "model": "Bond-R",
+      "n": 100,
+      "tp": 63,
+      "fp": 12,
+      "fn": 6,
+      "tn": 19,
+      "agreement": 0.82,
+      "real_successes": 69,
+      "sim_successes": 75,
+      "real_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "sim_wilson": [
+        0.656955364519384,
+        0.8245478863771232
+      ],
+      "agreement_wilson": [
+        0.7333264161369926,
+        0.8829977450105364
+      ],
+      "balanced_accuracy": 0.7629733520336606,
+      "progress_pairs": 100
+    },
+    {
+      "task": "Peel",
+      "wrap_turns": null,
+      "model": "Coh-R",
+      "n": 100,
+      "tp": 65,
+      "fp": 15,
+      "fn": 4,
+      "tn": 16,
+      "agreement": 0.81,
+      "real_successes": 69,
+      "sim_successes": 80,
+      "real_wilson": [
+        0.5937394428051057,
+        0.7722030278762395
+      ],
+      "sim_wilson": [
+        0.7111708344068411,
+        0.8666330666689676
+      ],
+      "agreement_wilson": [
+        0.7222115462093562,
+        0.8748524849023126
+      ],
+      "balanced_accuracy": 0.7290790088826554,
+      "progress_pairs": 100
+    },
+    {
+      "task": "Stick",
+      "wrap_turns": null,
+      "model": "Coh-F",
+      "n": 71,
+      "tp": 0,
+      "fp": 0,
+      "fn": 50,
+      "tn": 21,
+      "agreement": 0.29577464788732394,
+      "real_successes": 50,
+      "sim_successes": 0,
+      "real_wilson": [
+        0.5898146180172532,
+        0.7976711479868337
+      ],
+      "sim_wilson": [
+        0.0,
+        0.05132795219689034
+      ],
+      "agreement_wilson": [
+        0.2023288520131663,
+        0.4101853819827467
+      ],
+      "balanced_accuracy": 0.5,
+      "progress_pairs": 71
+    },
+    {
+      "task": "Stick",
+      "wrap_turns": null,
+      "model": "Bond-F",
+      "n": 71,
+      "tp": 36,
+      "fp": 9,
+      "fn": 14,
+      "tn": 12,
+      "agreement": 0.676056338028169,
+      "real_successes": 50,
+      "sim_successes": 45,
+      "real_wilson": [
+        0.5898146180172532,
+        0.7976711479868337
+      ],
+      "sim_wilson": [
+        0.5175721979631125,
+        0.7362977866602549
+      ],
+      "agreement_wilson": [
+        0.5606115705582948,
+        0.7734278828935044
+      ],
+      "balanced_accuracy": 0.6457142857142857,
+      "progress_pairs": 71
+    },
+    {
+      "task": "Stick",
+      "wrap_turns": null,
+      "model": "Bond-R",
+      "n": 71,
+      "tp": 35,
+      "fp": 14,
+      "fn": 15,
+      "tn": 7,
+      "agreement": 0.5915492957746479,
+      "real_successes": 50,
+      "sim_successes": 49,
+      "real_wilson": [
+        0.5898146180172532,
+        0.7976711479868337
+      ],
+      "sim_wilson": [
+        0.5751598742905824,
+        0.7856027354373607
+      ],
+      "agreement_wilson": [
+        0.47538781849423417,
+        0.6983126973007014
+      ],
+      "balanced_accuracy": 0.5166666666666666,
+      "progress_pairs": 70
+    },
+    {
+      "task": "Stick",
+      "wrap_turns": null,
+      "model": "Coh-R",
+      "n": 71,
+      "tp": 34,
+      "fp": 14,
+      "fn": 16,
+      "tn": 7,
+      "agreement": 0.5774647887323944,
+      "real_successes": 50,
+      "sim_successes": 48,
+      "real_wilson": [
+        0.5898146180172532,
+        0.7976711479868337
+      ],
+      "sim_wilson": [
+        0.5606115705582948,
+        0.7734278828935044
+      ],
+      "agreement_wilson": [
+        0.46150748022028815,
+        0.6854698792985033
+      ],
+      "balanced_accuracy": 0.5066666666666667,
+      "progress_pairs": 71
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 1,
+      "model": "Coh-F",
+      "n": 55,
+      "tp": 13,
+      "fp": 9,
+      "fn": 15,
+      "tn": 18,
+      "agreement": 0.5636363636363636,
+      "real_successes": 28,
+      "sim_successes": 22,
+      "real_wilson": [
+        0.380762598469722,
+        0.6362322215099672
+      ],
+      "sim_wilson": [
+        0.2811849723246312,
+        0.5318720078987862
+      ],
+      "agreement_wilson": [
+        0.43269816346414447,
+        0.6862655763936809
+      ],
+      "balanced_accuracy": 0.5654761904761905,
+      "progress_pairs": 23
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 1,
+      "model": "Bond-F",
+      "n": 55,
+      "tp": 15,
+      "fp": 15,
+      "fn": 13,
+      "tn": 12,
+      "agreement": 0.4909090909090909,
+      "real_successes": 28,
+      "sim_successes": 30,
+      "real_wilson": [
+        0.380762598469722,
+        0.6362322215099672
+      ],
+      "sim_wilson": [
+        0.41522690241861226,
+        0.6697471974798342
+      ],
+      "agreement_wilson": [
+        0.36376777849003283,
+        0.619237401530278
+      ],
+      "balanced_accuracy": 0.49007936507936506,
+      "progress_pairs": 30
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 1,
+      "model": "Bond-R",
+      "n": 55,
+      "tp": 25,
+      "fp": 12,
+      "fn": 3,
+      "tn": 15,
+      "agreement": 0.7272727272727273,
+      "real_successes": 28,
+      "sim_successes": 37,
+      "real_wilson": [
+        0.380762598469722,
+        0.6362322215099672
+      ],
+      "sim_wilson": [
+        0.5410322355657868,
+        0.7818693440483107
+      ],
+      "agreement_wilson": [
+        0.5976780188832919,
+        0.8271924806089416
+      ],
+      "balanced_accuracy": 0.7242063492063493,
+      "progress_pairs": 37
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 1,
+      "model": "Coh-R",
+      "n": 55,
+      "tp": 18,
+      "fp": 3,
+      "fn": 10,
+      "tn": 24,
+      "agreement": 0.7636363636363637,
+      "real_successes": 28,
+      "sim_successes": 21,
+      "real_wilson": [
+        0.380762598469722,
+        0.6362322215099672
+      ],
+      "sim_wilson": [
+        0.265159542588938,
+        0.5139077976751008
+      ],
+      "agreement_wilson": [
+        0.6365163381083228,
+        0.8563334413026682
+      ],
+      "balanced_accuracy": 0.7658730158730158,
+      "progress_pairs": 21
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 2,
+      "model": "Coh-F",
+      "n": 55,
+      "tp": 1,
+      "fp": 6,
+      "fn": 3,
+      "tn": 45,
+      "agreement": 0.8363636363636363,
+      "real_successes": 4,
+      "sim_successes": 7,
+      "real_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "sim_wilson": [
+        0.06304210427364634,
+        0.24017027655909076
+      ],
+      "agreement_wilson": [
+        0.7173625426094283,
+        0.9114457966390772
+      ],
+      "balanced_accuracy": 0.5661764705882353,
+      "progress_pairs": 23
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 2,
+      "model": "Bond-F",
+      "n": 55,
+      "tp": 0,
+      "fp": 11,
+      "fn": 4,
+      "tn": 40,
+      "agreement": 0.7272727272727273,
+      "real_successes": 4,
+      "sim_successes": 11,
+      "real_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "sim_wilson": [
+        0.11552214909761245,
+        0.32364879157263937
+      ],
+      "agreement_wilson": [
+        0.5976780188832919,
+        0.8271924806089416
+      ],
+      "balanced_accuracy": 0.39215686274509803,
+      "progress_pairs": 30
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 2,
+      "model": "Bond-R",
+      "n": 55,
+      "tp": 1,
+      "fp": 20,
+      "fn": 3,
+      "tn": 31,
+      "agreement": 0.5818181818181818,
+      "real_successes": 4,
+      "sim_successes": 21,
+      "real_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "sim_wilson": [
+        0.265159542588938,
+        0.5139077976751008
+      ],
+      "agreement_wilson": [
+        0.45033103735230756,
+        0.7026223424648965
+      ],
+      "balanced_accuracy": 0.42892156862745096,
+      "progress_pairs": 37
+    },
+    {
+      "task": "Wrap",
+      "wrap_turns": 2,
+      "model": "Coh-R",
+      "n": 55,
+      "tp": 1,
+      "fp": 3,
+      "fn": 3,
+      "tn": 48,
+      "agreement": 0.8909090909090909,
+      "real_successes": 4,
+      "sim_successes": 4,
+      "real_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "sim_wilson": [
+        0.02864406023304053,
+        0.17259940072156052
+      ],
+      "agreement_wilson": [
+        0.7817445091344648,
+        0.9490327499921767
+      ],
+      "balanced_accuracy": 0.5955882352941176,
+      "progress_pairs": 21
+    }
+  ],
+  "replay": {
+    "episodes": {
+      "stick_tape_on_stand__017": {
+        "Coh-F": {
+          "full_mean_px": 13.14392917424255,
+          "active_mean_px": 21.64831948106937
+        },
+        "Bond-F": {
+          "full_mean_px": 15.37554434022871,
+          "active_mean_px": 25.43945140070197
+        },
+        "Bond-R": {
+          "full_mean_px": 18.374754953364047,
+          "active_mean_px": 30.540333422643673
+        },
+        "Coh-R": {
+          "full_mean_px": 16.869652564953952,
+          "active_mean_px": 27.984373060099898
+        }
+      },
+      "stick_tape_on_stand__018": {
+        "Coh-F": {
+          "full_mean_px": 20.400811555095643,
+          "active_mean_px": 28.040436430624254
+        },
+        "Bond-F": {
+          "full_mean_px": 10.095938560605827,
+          "active_mean_px": 13.54913916612282
+        },
+        "Bond-R": {
+          "full_mean_px": 6.6251734150749115,
+          "active_mean_px": 8.649997970560644
+        },
+        "Coh-R": {
+          "full_mean_px": 9.824938643606286,
+          "active_mean_px": 13.189674162153251
+        }
+      },
+      "stick_tape_on_stand__019": {
+        "Coh-F": {
+          "full_mean_px": 13.407459228754412,
+          "active_mean_px": 19.035479171440876
+        },
+        "Bond-F": {
+          "full_mean_px": 8.33354034175503,
+          "active_mean_px": 11.488394256490867
+        },
+        "Bond-R": {
+          "full_mean_px": 9.79781362066578,
+          "active_mean_px": 13.636075189399335
+        },
+        "Coh-R": {
+          "full_mean_px": 8.561255076020487,
+          "active_mean_px": 11.83094473175775
+        }
+      },
+      "stick_tape_on_stand__023": {
+        "Coh-F": {
+          "full_mean_px": 17.019766983197904,
+          "active_mean_px": 23.396302910228513
+        },
+        "Bond-F": {
+          "full_mean_px": 13.465490249924995,
+          "active_mean_px": 18.303531826402036
+        },
+        "Bond-R": {
+          "full_mean_px": 11.630031740156298,
+          "active_mean_px": 15.712500030486616
+        },
+        "Coh-R": {
+          "full_mean_px": 14.412109148505865,
+          "active_mean_px": 19.64446757399699
+        }
+      },
+      "stick_tape_on_stand__025": {
+        "Coh-F": {
+          "full_mean_px": 16.81142461322417,
+          "active_mean_px": 22.676177730191583
+        },
+        "Bond-F": {
+          "full_mean_px": 12.202969091564666,
+          "active_mean_px": 16.34574329980079
+        },
+        "Bond-R": {
+          "full_mean_px": 9.658285692604641,
+          "active_mean_px": 12.864059593039254
+        },
+        "Coh-R": {
+          "full_mean_px": 11.349184544249095,
+          "active_mean_px": 15.206893927624126
+        }
+      }
+    },
+    "models": {
+      "Coh-F": {
+        "full_mean_px": 16.156678310902937,
+        "active_mean_px": 22.95934314471092,
+        "active_bootstrap95": [
+          20.603183357217972,
+          25.833186336634128
+        ]
+      },
+      "Bond-F": {
+        "full_mean_px": 11.894696516815847,
+        "active_mean_px": 17.025251989903698,
+        "active_bootstrap95": [
+          13.263570752399492,
+          21.634205038926154
+        ]
+      },
+      "Bond-R": {
+        "full_mean_px": 11.217211884373135,
+        "active_mean_px": 16.280593241225905,
+        "active_bootstrap95": [
+          11.059713826313576,
+          23.778630129345938
+        ]
+      },
+      "Coh-R": {
+        "full_mean_px": 12.203427995467138,
+        "active_mean_px": 17.571270691126404,
+        "active_bootstrap95": [
+          13.049626343089226,
+          23.085706297210887
+        ]
+      }
+    },
+    "bond_r_minus_bond_f": {
+      "mean_px": -0.7446587486777922,
+      "bootstrap95": [
+        -3.8705363201125693,
+        2.7937286583944085
+      ]
+    },
+    "protocol": "Original reference time >=3 s; repeats averaged within episode; five episodes weighted equally. Exact 5^5 paired episode bootstrap, linearly interpolated 2.5/97.5 percentiles; descriptive small-n uncertainty, not annotation or alignment uncertainty."
+  },
+  "provenance": {
+    "statistics.json": "08e9e7bf9e516c936568589a3b231b342a90f742304bce182c17b632ce210132",
+    "corrected_cost.json": "e46159be05572538f4cc2f8481818a937841f79c458478664860906b8d974f58",
+    "tolerance_recovery.json": "4976e1b3b5f7d23d18f73fb8af751318f7003e4a6f030957d2772084fb070566"
+  },
+  "fixed_tolerance_32": {
+    "Coh-F": null,
+    "Coh-R": 116,
+    "Bond-F": 366,
+    "Bond-R": 115,
+    "tolerance_m_s": 0.001,
+    "note": "来自论文正文；Coh-F 仅报告约 3.4x 加速，未补造精确成本"
+  },
+  "adhesion": {
+    "factors": [
+      1,
+      20,
+      100
+    ],
+    "n": 98,
+    "real_successes": 68,
+    "rates_pct": {
+      "Coh-F": [
+        100,
+        70.4,
+        8.2
+      ],
+      "Bond-F": [
+        91.8,
+        44.9,
+        1.0
+      ],
+      "Bond-R": [
+        75.5,
+        40.8,
+        0
+      ],
+      "Coh-R": [
+        80.6,
+        36.7,
+        0
+      ]
+    },
+    "source": "论文 Fig.7 标签；百分比为原文四舍五入值"
+  },
+  "packaging": {
+    "steps": 3846,
+    "dt_s": 0.03333333333333333,
+    "sim_time_s": 128.2,
+    "wall_time_s": 304.1,
+    "reported_real_time_factor": 0.422,
+    "gpu": "RTX 5090",
+    "model": "Coh-R"
+  },
+  "demo": {
+    "scope": "CPU 教学验证；不是 TapeSim 物理或性能复现",
+    "paper_parameters": {
+      "stiffness_pa": 1000000.0,
+      "break_force_n": 0.5,
+      "dt_s": 0.01,
+      "front_delta_m": 0.0009,
+      "collar_edges": 10
+    },
+    "synthetic_settings": {
+      "triangle_edge_m": 0.002,
+      "reference_height_m": 0.0002,
+      "material_rows": 40,
+      "row_length_m": 0.001
+    },
+    "checks": [
+      {
+        "name": "共同刚体变换不产生 bond 应变",
+        "passed": true,
+        "energy": 2.3464006867896548e-36
+      },
+      {
+        "name": "解析梯度与独立中心差分一致",
+        "passed": true,
+        "maximum_relative_error": 1.9873948215709095e-09
+      },
+      {
+        "name": "四顶点合力为零",
+        "passed": true
+      },
+      {
+        "name": "恢复力随整体旋转协变",
+        "passed": true
+      },
+      {
+        "name": "物理力不含额外时间步缩放",
+        "passed": true
+      },
+      {
+        "name": "超过力阈值的压缩仍不触发拉伸断裂",
+        "passed": true,
+        "force_n": 1.0000000000000016
+      },
+      {
+        "name": "张开且超过阈值才断裂",
+        "passed": true,
+        "force_n": 5.000000000000012
+      },
+      {
+        "name": "参考态不释放",
+        "passed": true
+      },
+      {
+        "name": "单独的正交势能也允许反射",
+        "passed": true,
+        "note": "数学边界，不表示作者系统实际发生翻转"
+      },
+      {
+        "name": "拒绝共面参考四面体",
+        "passed": true
+      },
+      {
+        "name": "一次更新只接受旧自由区的邻居",
+        "passed": true,
+        "released": [
+          1
+        ]
+      },
+      {
+        "name": "collar 推进会恢复下一批材料",
+        "passed": true
+      },
+      {
+        "name": "恢复原黏附历史而非重置为一",
+        "passed": true
+      },
+      {
+        "name": "第 2 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 3 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 4 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 5 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 6 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 7 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 8 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "第 9 次更新保持材料与质量",
+        "passed": true
+      },
+      {
+        "name": "没有新门槛事件时不回卷或继续前进",
+        "passed": true
+      },
+      {
+        "name": "live support 阻止 Bond 候选释放",
+        "passed": true
+      },
+      {
+        "name": "Bond 需要明确 release event",
+        "passed": true
+      },
+      {
+        "name": "Coh 几何前沿不要求 beta 已为零",
+        "passed": true
+      },
+      {
+        "name": "刚体速度投影和恢复保持运动",
+        "passed": true,
+        "maximum_error_m_s": 1.3877787807814457e-17
+      },
+      {
+        "name": "表 I 的单位长度质量可由独立单位计算恢复",
+        "passed": true,
+        "grams_per_m": 4.446000000000001
+      }
+    ],
+    "front_trace": [
+      {
+        "step": 2,
+        "free": 3,
+        "collar": 10,
+        "cluster": 27,
+        "released": [
+          2
+        ],
+        "thawed": [
+          12
+        ]
+      },
+      {
+        "step": 3,
+        "free": 4,
+        "collar": 10,
+        "cluster": 26,
+        "released": [
+          3
+        ],
+        "thawed": [
+          13
+        ]
+      },
+      {
+        "step": 4,
+        "free": 5,
+        "collar": 10,
+        "cluster": 25,
+        "released": [
+          4
+        ],
+        "thawed": [
+          14
+        ]
+      },
+      {
+        "step": 5,
+        "free": 6,
+        "collar": 10,
+        "cluster": 24,
+        "released": [
+          5
+        ],
+        "thawed": [
+          15
+        ]
+      },
+      {
+        "step": 6,
+        "free": 7,
+        "collar": 10,
+        "cluster": 23,
+        "released": [
+          6
+        ],
+        "thawed": [
+          16
+        ]
+      },
+      {
+        "step": 7,
+        "free": 8,
+        "collar": 10,
+        "cluster": 22,
+        "released": [
+          7
+        ],
+        "thawed": [
+          17
+        ]
+      },
+      {
+        "step": 8,
+        "free": 9,
+        "collar": 10,
+        "cluster": 21,
+        "released": [
+          8
+        ],
+        "thawed": [
+          18
+        ]
+      },
+      {
+        "step": 9,
+        "free": 10,
+        "collar": 10,
+        "cluster": 20,
+        "released": [
+          9
+        ],
+        "thawed": [
+          19
+        ]
+      }
+    ],
+    "limitations": [
+      "没有薄壳、IPC/CCD 或隐式运动求解",
+      "行图并非三角网格前沿实现",
+      "没有执行真实放带、切割、GPU 计时或机器人策略"
+    ]
+  }
+}

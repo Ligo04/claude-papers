@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-26",
+  "checks": [
+    {
+      "name": "默认张开未达阈值",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "参考态零能量和零力",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "曲率图确实切换",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "压缩超过阈值仍不释放",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "压缩负曲率可见",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "张开超过阈值释放",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "恢复力图单位明确",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "初始元素分类80个",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "第一次三角网格更新",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "第六次状态与总质量",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "N改变元素及自由度",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "N3初始分类",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "质量中心说明可展开",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "坐标曲率说明可展开",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "原成本章节回归",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "原配对预测章节回归",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "扩展章节无桌面横向溢出",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "深入曲线在 sandbox 中运行",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "三角网格在 sandbox 中切换",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "sandbox 无脚本错误",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "name": "扩展后主页面无脚本错误",
+      "passed": true,
+      "details": ""
+    }
+  ],
+  "passed": 21,
+  "consoleErrors": [],
+  "viewport": {
+    "contentWidth": 1097,
+    "height": 1194,
+    "width": 1112
+  },
+  "sandbox": "allow-scripts only; no allow-same-origin; math and mesh verified",
+  "mobileViewportTested": false
+}

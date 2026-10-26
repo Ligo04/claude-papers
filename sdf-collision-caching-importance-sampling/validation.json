@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-19",
+  "language": "zh-CN",
+  "paper": {
+    "pages": 12,
+    "sha256": "8a4c0e63114699443099307030647527a52affec763111ac788614f2737fb1b4",
+    "projectAndPinnedRepoPdfMatch": true,
+    "codeCommit": "08539dd3ad5fa9b41fdd160c730747de0b510b4e"
+  },
+  "materials": {
+    "coreNotes": [
+      "README.md",
+      "summary.md",
+      "insights.md",
+      "qa.md"
+    ],
+    "additionalNotes": [
+      "method.md",
+      "mental-model.md",
+      "reflection.md",
+      "source-audit.md"
+    ],
+    "qaQuestions": 15,
+    "tags": [
+      "SDF碰撞检测",
+      "接触流形缓存"
+    ],
+    "sourceTableRows": 71,
+    "localMarkdownLinks": "passed",
+    "metadataManuallyCorrected": true
+  },
+  "demo": {
+    "python": "3.13.12",
+    "selfChecks": [
+      "矩形 SDF 基本数值",
+      "softmax 上界与浅重叠反例",
+      "有界 Nelder–Mead 对已知二次函数求解",
+      "曲率种子存在性"
+    ],
+    "runConfigurations": [
+      "默认曲率与缓存",
+      "仅改均匀采样",
+      "无缓存且每帧 5 个新种子"
+    ],
+    "defaultFrames": 12,
+    "defaultFindsBothRegionsEveryFrame": true,
+    "longRunFrames": 1000,
+    "longRunBoundsAndClearedCacheOnSeparation": "passed",
+    "scope": "二维几何与优化教学，不含刚体动力学、摩擦或 GPU benchmark"
+  },
+  "browser": {
+    "status": "passed",
+    "assertions": 112,
+    "algorithmSteps": 5,
+    "gpuScenes": 5,
+    "cpuAblationModes": 4,
+    "distortionConfigurations": 10,
+    "budgetCombinations": 12,
+    "offlineSandbox": true,
+    "opaqueOrigin": true,
+    "mobileLayout": {
+      "width": 390,
+      "scroll": 390
+    },
+    "errors": [],
+    "externalRequests": [],
+    "scope": "验证本地 HTML 交互、数据选择和离线 iframe；不验证原作者仿真。"
+  },
+  "index": {
+    "path": "/home/ligo/claude-papers/index.json",
+    "beforeCount": 56,
+    "afterCount": 57,
+    "priorEntriesPreserved": true,
+    "beforeSha256": "df1446d6e7ef8ffb16a21f16664db8390ed6bc50a53814e434e0b9adf28a8281",
+    "afterSha256": "7e9cacf155811d6678a0772cf5ca1a0983655a47b70345346c1c863576797c50"
+  },
+  "notRun": [
+    "原作者 C++ 编译与运行",
+    "GPU AVBD benchmark",
+    "原论文完整实验复现",
+    "神经 SDF 运行评估"
+  ]
+}

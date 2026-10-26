@@ -1,0 +1,577 @@
+{
+  "provenance": {
+    "source": "paper.pdf",
+    "tables": "人工从表格转录，并对照 PDF 页面图像；曲线未数字化。",
+    "gpu": "表 1、2；RTX 4090；接触响应使用 AVBD。",
+    "cpu": "表 3、4、5；单线程 Core i9-13900H；顺序冲量接触响应。",
+    "timing": "ms 是 t_coll，不是整帧耗时。",
+    "missing": "null 表示原文未报告或 FAIL，详见 status。",
+    "queryWarning": "表中保留原报告的 SDF queries；公开 demo 的计数器按一次目标评估计数，内部同时查询两个场，不能直接视为单次场调用。"
+  },
+  "table1": [
+    {
+      "scene": "Spikes (cows)",
+      "bodies": 583,
+      "NM": 0.7,
+      "Ellipsoid": 1.0,
+      "SGD": 1.3
+    },
+    {
+      "scene": "Funnel (cylinders)",
+      "bodies": 16000,
+      "NM": 2.2,
+      "Ellipsoid": 1.8,
+      "SGD": 7.1
+    },
+    {
+      "scene": "Funnel (horses)",
+      "bodies": 16000,
+      "NM": 20.0,
+      "Ellipsoid": 20.2,
+      "SGD": 42.3
+    },
+    {
+      "scene": "Colosseum",
+      "bodies": 8819,
+      "NM": 0.5,
+      "Ellipsoid": 0.4,
+      "SGD": 1.9
+    },
+    {
+      "scene": "Bunnies",
+      "bodies": 4314,
+      "NM": 1.8,
+      "Ellipsoid": 2.4,
+      "SGD": 5.1
+    }
+  ],
+  "table2": [
+    {
+      "cache": 4,
+      "random": 1,
+      "ms": 1.8
+    },
+    {
+      "cache": 4,
+      "random": 2,
+      "ms": 2.4
+    },
+    {
+      "cache": 4,
+      "random": 4,
+      "ms": 4.2
+    },
+    {
+      "cache": 6,
+      "random": 1,
+      "ms": 2.7
+    },
+    {
+      "cache": 6,
+      "random": 2,
+      "ms": 3.0
+    },
+    {
+      "cache": 6,
+      "random": 4,
+      "ms": 4.4
+    },
+    {
+      "cache": 8,
+      "random": 1,
+      "ms": 3.9
+    },
+    {
+      "cache": 8,
+      "random": 2,
+      "ms": 4.2
+    },
+    {
+      "cache": 8,
+      "random": 4,
+      "ms": 5.0
+    },
+    {
+      "cache": 16,
+      "random": 1,
+      "ms": 7.7
+    },
+    {
+      "cache": 16,
+      "random": 2,
+      "ms": 8.1
+    },
+    {
+      "cache": 16,
+      "random": 4,
+      "ms": 8.9
+    }
+  ],
+  "table3": [
+    {
+      "method": "SAT",
+      "ms": 0.09,
+      "contacts": 116,
+      "iterations": null,
+      "queries": null
+    },
+    {
+      "method": "GJK+EPA",
+      "ms": 0.18,
+      "contacts": 116,
+      "iterations": 1000,
+      "queries": null
+    },
+    {
+      "method": "Liu et al. 2024",
+      "ms": 12.75,
+      "contacts": 372,
+      "iterations": 12000,
+      "queries": 12000
+    },
+    {
+      "method": "NM",
+      "ms": 1.15,
+      "contacts": 116,
+      "iterations": 1000,
+      "queries": 2500
+    },
+    {
+      "method": "NM / no softmax",
+      "ms": 2.23,
+      "contacts": 116,
+      "iterations": 2840,
+      "queries": 7100
+    },
+    {
+      "method": "NM / no cache",
+      "ms": 3.03,
+      "contacts": 116,
+      "iterations": 3800,
+      "queries": 7700
+    },
+    {
+      "method": "Ellipsoid",
+      "ms": 0.46,
+      "contacts": 116,
+      "iterations": 550,
+      "queries": 550
+    },
+    {
+      "method": "Ellipsoid / no softmax",
+      "ms": 3.67,
+      "contacts": 116,
+      "iterations": 8100,
+      "queries": 8100
+    },
+    {
+      "method": "Ellipsoid / no cache",
+      "ms": 1.75,
+      "contacts": 116,
+      "iterations": 3600,
+      "queries": 3600
+    },
+    {
+      "method": "SGD",
+      "ms": 2.07,
+      "contacts": 116,
+      "iterations": 6600,
+      "queries": 6000
+    },
+    {
+      "method": "SGD / no softmax",
+      "ms": 3.19,
+      "contacts": 116,
+      "iterations": 8700,
+      "queries": 8700
+    },
+    {
+      "method": "SGD / no cache",
+      "ms": 2.87,
+      "contacts": 116,
+      "iterations": 8500,
+      "queries": 8500
+    }
+  ],
+  "table4": [
+    {
+      "method": "SAT",
+      "ms": 1.36,
+      "contacts": 182,
+      "iterations": null,
+      "queries": null,
+      "status": "ok"
+    },
+    {
+      "method": "GJK+EPA",
+      "ms": 2.39,
+      "contacts": 182,
+      "iterations": 26600,
+      "queries": null,
+      "status": "ok"
+    },
+    {
+      "method": "Liu et al. 2024",
+      "ms": 3.99,
+      "contacts": 62,
+      "iterations": 1200,
+      "queries": 1200,
+      "status": "ok"
+    },
+    {
+      "method": "NM",
+      "ms": 0.1,
+      "contacts": 12,
+      "iterations": 180,
+      "queries": 420,
+      "status": "ok"
+    },
+    {
+      "method": "NM / no softmax",
+      "ms": 0.14,
+      "contacts": 12,
+      "iterations": 460,
+      "queries": 980,
+      "status": "ok"
+    },
+    {
+      "method": "NM / no cache",
+      "ms": 0.19,
+      "contacts": 12,
+      "iterations": 420,
+      "queries": 860,
+      "status": "ok"
+    },
+    {
+      "method": "Ellipsoid",
+      "ms": 0.1,
+      "contacts": 12,
+      "iterations": 160,
+      "queries": 160,
+      "status": "ok"
+    },
+    {
+      "method": "Ellipsoid / no softmax",
+      "ms": 0.29,
+      "contacts": 12,
+      "iterations": 1100,
+      "queries": 1100,
+      "status": "ok"
+    },
+    {
+      "method": "Ellipsoid / no cache",
+      "ms": 0.19,
+      "contacts": 12,
+      "iterations": 510,
+      "queries": 510,
+      "status": "ok"
+    },
+    {
+      "method": "SGD",
+      "ms": 0.16,
+      "contacts": 12,
+      "iterations": 700,
+      "queries": 700,
+      "status": "ok"
+    },
+    {
+      "method": "SGD / no softmax",
+      "ms": 0.21,
+      "contacts": 12,
+      "iterations": 1200,
+      "queries": 1200,
+      "status": "ok"
+    },
+    {
+      "method": "SGD / no cache",
+      "ms": null,
+      "contacts": null,
+      "iterations": null,
+      "queries": null,
+      "status": "FAIL"
+    }
+  ],
+  "table5": [
+    {
+      "operator": "Undistorted",
+      "k": null,
+      "method": "NM",
+      "ms": 0.33,
+      "contacts": 45.7,
+      "iterations": 1066,
+      "queries": 2302
+    },
+    {
+      "operator": "Undistorted",
+      "k": null,
+      "method": "Ellipsoid",
+      "ms": 0.66,
+      "contacts": 36.8,
+      "iterations": 1949,
+      "queries": 1949
+    },
+    {
+      "operator": "Undistorted",
+      "k": null,
+      "method": "SGD",
+      "ms": 0.71,
+      "contacts": 52.2,
+      "iterations": 5269,
+      "queries": 5269
+    },
+    {
+      "operator": "BEND",
+      "k": 0.15,
+      "method": "NM",
+      "ms": 0.77,
+      "contacts": 46.0,
+      "iterations": 2389,
+      "queries": 5010
+    },
+    {
+      "operator": "BEND",
+      "k": 0.15,
+      "method": "Ellipsoid",
+      "ms": 1.8,
+      "contacts": 39.8,
+      "iterations": 5149,
+      "queries": 5149
+    },
+    {
+      "operator": "BEND",
+      "k": 0.15,
+      "method": "SGD",
+      "ms": 1.25,
+      "contacts": 49.8,
+      "iterations": 8166,
+      "queries": 8166
+    },
+    {
+      "operator": "BEND",
+      "k": 0.55,
+      "method": "NM",
+      "ms": 0.75,
+      "contacts": 39.8,
+      "iterations": 2346,
+      "queries": 4896
+    },
+    {
+      "operator": "BEND",
+      "k": 0.55,
+      "method": "Ellipsoid",
+      "ms": 1.78,
+      "contacts": 37.2,
+      "iterations": 5223,
+      "queries": 5223
+    },
+    {
+      "operator": "BEND",
+      "k": 0.55,
+      "method": "SGD",
+      "ms": 1.22,
+      "contacts": 40.5,
+      "iterations": 8054,
+      "queries": 8054
+    },
+    {
+      "operator": "BEND",
+      "k": 0.95,
+      "method": "NM",
+      "ms": 0.9,
+      "contacts": 36.4,
+      "iterations": 2842,
+      "queries": 5870
+    },
+    {
+      "operator": "BEND",
+      "k": 0.95,
+      "method": "Ellipsoid",
+      "ms": 1.78,
+      "contacts": 36.8,
+      "iterations": 5224,
+      "queries": 5224
+    },
+    {
+      "operator": "BEND",
+      "k": 0.95,
+      "method": "SGD",
+      "ms": 1.24,
+      "contacts": 43.7,
+      "iterations": 7557,
+      "queries": 7557
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.05,
+      "method": "NM",
+      "ms": 0.69,
+      "contacts": 42.0,
+      "iterations": 1707,
+      "queries": 3600
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.05,
+      "method": "Ellipsoid",
+      "ms": 1.28,
+      "contacts": 34.5,
+      "iterations": 3317,
+      "queries": 3317
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.05,
+      "method": "SGD",
+      "ms": 1.27,
+      "contacts": 42.3,
+      "iterations": 6506,
+      "queries": 6506
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.1,
+      "method": "NM",
+      "ms": 0.73,
+      "contacts": 36.1,
+      "iterations": 1861,
+      "queries": 3939
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.1,
+      "method": "Ellipsoid",
+      "ms": 1.87,
+      "contacts": 33.4,
+      "iterations": 5077,
+      "queries": 5077
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.1,
+      "method": "SGD",
+      "ms": 1.26,
+      "contacts": 41.6,
+      "iterations": 6734,
+      "queries": 6734
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.2,
+      "method": "NM",
+      "ms": 0.91,
+      "contacts": 36.1,
+      "iterations": 2330,
+      "queries": 4982
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.2,
+      "method": "Ellipsoid",
+      "ms": 2.25,
+      "contacts": 32.6,
+      "iterations": 6144,
+      "queries": 6144
+    },
+    {
+      "operator": "DISPLACE",
+      "k": 0.2,
+      "method": "SGD",
+      "ms": 1.51,
+      "contacts": 41.5,
+      "iterations": 7992,
+      "queries": 7992
+    },
+    {
+      "operator": "TWIST",
+      "k": 0.5,
+      "method": "NM",
+      "ms": 0.99,
+      "contacts": 45.8,
+      "iterations": 3161,
+      "queries": 6561
+    },
+    {
+      "operator": "TWIST",
+      "k": 0.5,
+      "method": "Ellipsoid",
+      "ms": 2.47,
+      "contacts": 44.4,
+      "iterations": 7092,
+      "queries": 7092
+    },
+    {
+      "operator": "TWIST",
+      "k": 0.5,
+      "method": "SGD",
+      "ms": 1.38,
+      "contacts": 47.8,
+      "iterations": 8635,
+      "queries": 8635
+    },
+    {
+      "operator": "TWIST",
+      "k": 2.5,
+      "method": "NM",
+      "ms": 1.14,
+      "contacts": 42.1,
+      "iterations": 3354,
+      "queries": 7081
+    },
+    {
+      "operator": "TWIST",
+      "k": 2.5,
+      "method": "Ellipsoid",
+      "ms": 2.41,
+      "contacts": 38.0,
+      "iterations": 7073,
+      "queries": 7073
+    },
+    {
+      "operator": "TWIST",
+      "k": 2.5,
+      "method": "SGD",
+      "ms": 1.6,
+      "contacts": 52.8,
+      "iterations": 9636,
+      "queries": 9636
+    },
+    {
+      "operator": "TWIST",
+      "k": 5.0,
+      "method": "NM",
+      "ms": 1.01,
+      "contacts": 43.5,
+      "iterations": 2743,
+      "queries": 5871
+    },
+    {
+      "operator": "TWIST",
+      "k": 5.0,
+      "method": "Ellipsoid",
+      "ms": 2.26,
+      "contacts": 39.2,
+      "iterations": 6747,
+      "queries": 6747
+    },
+    {
+      "operator": "TWIST",
+      "k": 5.0,
+      "method": "SGD",
+      "ms": 1.43,
+      "contacts": 50.6,
+      "iterations": 8526,
+      "queries": 8526
+    }
+  ],
+  "parameters": {
+    "cache": 4,
+    "random": 1,
+    "alpha": 0.01,
+    "epsilon": 0.1,
+    "tau": 0.01,
+    "dt_seconds": 0.016,
+    "voxel_resolution": 100,
+    "kappa": 4,
+    "delta": 0.001
+  }
+}

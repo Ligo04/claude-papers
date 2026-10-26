@@ -1,0 +1,239 @@
+{
+  "scope": "CPU 教学验证；不是 TapeSim 物理或性能复现",
+  "paper_parameters": {
+    "stiffness_pa": 1000000.0,
+    "break_force_n": 0.5,
+    "dt_s": 0.01,
+    "front_delta_m": 0.0009,
+    "collar_edges": 10
+  },
+  "synthetic_settings": {
+    "triangle_edge_m": 0.002,
+    "reference_height_m": 0.0002,
+    "material_rows": 40,
+    "row_length_m": 0.001
+  },
+  "checks": [
+    {
+      "name": "共同刚体变换不产生 bond 应变",
+      "passed": true,
+      "energy": 2.3464006867896548e-36
+    },
+    {
+      "name": "解析梯度与独立中心差分一致",
+      "passed": true,
+      "maximum_relative_error": 1.9873948215709095e-09
+    },
+    {
+      "name": "四顶点合力为零",
+      "passed": true
+    },
+    {
+      "name": "恢复力随整体旋转协变",
+      "passed": true
+    },
+    {
+      "name": "物理力不含额外时间步缩放",
+      "passed": true
+    },
+    {
+      "name": "超过力阈值的压缩仍不触发拉伸断裂",
+      "passed": true,
+      "force_n": 1.0000000000000016
+    },
+    {
+      "name": "张开且超过阈值才断裂",
+      "passed": true,
+      "force_n": 5.000000000000012
+    },
+    {
+      "name": "参考态不释放",
+      "passed": true
+    },
+    {
+      "name": "单独的正交势能也允许反射",
+      "passed": true,
+      "note": "数学边界，不表示作者系统实际发生翻转"
+    },
+    {
+      "name": "拒绝共面参考四面体",
+      "passed": true
+    },
+    {
+      "name": "一次更新只接受旧自由区的邻居",
+      "passed": true,
+      "released": [
+        1
+      ]
+    },
+    {
+      "name": "collar 推进会恢复下一批材料",
+      "passed": true
+    },
+    {
+      "name": "恢复原黏附历史而非重置为一",
+      "passed": true
+    },
+    {
+      "name": "第 2 次更新保持材料与质量",
+      "passed": true
+    },
+    {
+      "name": "第 3 次更新保持材料与质量",
+      "passed": true
+    },
+    {
+      "name": "第 4 次更新保持材料与质量",
+      "passed": true
+    },
+    {
+      "name": "第 5 次更新保持材料与质量",
+      "passed": true
+    },
+    {
+      "name": "第 6 次更新保持材料与质量",
+      "passed": true
+    },
+    {
+      "name": "第 7 次更新保持材料与质量",
+      "passed": true
+    },
+    {
+      "name": "第 8 次更新保持材料与质量",
+      "passed": true
+    },
+    {
+      "name": "第 9 次更新保持材料与质量",
+      "passed": true
+    },
+    {
+      "name": "没有新门槛事件时不回卷或继续前进",
+      "passed": true
+    },
+    {
+      "name": "live support 阻止 Bond 候选释放",
+      "passed": true
+    },
+    {
+      "name": "Bond 需要明确 release event",
+      "passed": true
+    },
+    {
+      "name": "Coh 几何前沿不要求 beta 已为零",
+      "passed": true
+    },
+    {
+      "name": "刚体速度投影和恢复保持运动",
+      "passed": true,
+      "maximum_error_m_s": 1.3877787807814457e-17
+    },
+    {
+      "name": "表 I 的单位长度质量可由独立单位计算恢复",
+      "passed": true,
+      "grams_per_m": 4.446000000000001
+    }
+  ],
+  "front_trace": [
+    {
+      "step": 2,
+      "free": 3,
+      "collar": 10,
+      "cluster": 27,
+      "released": [
+        2
+      ],
+      "thawed": [
+        12
+      ]
+    },
+    {
+      "step": 3,
+      "free": 4,
+      "collar": 10,
+      "cluster": 26,
+      "released": [
+        3
+      ],
+      "thawed": [
+        13
+      ]
+    },
+    {
+      "step": 4,
+      "free": 5,
+      "collar": 10,
+      "cluster": 25,
+      "released": [
+        4
+      ],
+      "thawed": [
+        14
+      ]
+    },
+    {
+      "step": 5,
+      "free": 6,
+      "collar": 10,
+      "cluster": 24,
+      "released": [
+        5
+      ],
+      "thawed": [
+        15
+      ]
+    },
+    {
+      "step": 6,
+      "free": 7,
+      "collar": 10,
+      "cluster": 23,
+      "released": [
+        6
+      ],
+      "thawed": [
+        16
+      ]
+    },
+    {
+      "step": 7,
+      "free": 8,
+      "collar": 10,
+      "cluster": 22,
+      "released": [
+        7
+      ],
+      "thawed": [
+        17
+      ]
+    },
+    {
+      "step": 8,
+      "free": 9,
+      "collar": 10,
+      "cluster": 21,
+      "released": [
+        8
+      ],
+      "thawed": [
+        18
+      ]
+    },
+    {
+      "step": 9,
+      "free": 10,
+      "collar": 10,
+      "cluster": 20,
+      "released": [
+        9
+      ],
+      "thawed": [
+        19
+      ]
+    }
+  ],
+  "limitations": [
+    "没有薄壳、IPC/CCD 或隐式运动求解",
+    "行图并非三角网格前沿实现",
+    "没有执行真实放带、切割、GPU 计时或机器人策略"
+  ]
+}

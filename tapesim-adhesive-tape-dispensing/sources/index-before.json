@@ -1,0 +1,1718 @@
+{
+  "papers": [
+    {
+      "id": "m-abd-multi-affine-body-dynamics",
+      "title": "M-ABD: Scalable, Efficient, and Robust Multi-Affine-Body Dynamics",
+      "slug": "m-abd-multi-affine-body-dynamics",
+      "authors": [
+        "Zhiyong He",
+        "Dewen Guo",
+        "Minghao Guo",
+        "Yili Zhao",
+        "Wojciech Matusik",
+        "Hao Su",
+        "Chenfanfu Jiang",
+        "Peter Yichen Chen",
+        "Yin Yang"
+      ],
+      "abstract": "Simulating large-scale articulated assemblies poses a significant challenge due to the numerical stiffness and geometric complexity of jointed structures. This paper introduces a novel framework that leverages the linear kinematic mapping of Affine Body Dynamics (ABD) with a co-rotational approach that enables constant pre-factorized system matrices, even with fully implicit integration. Joint constraints are enforced via KKT in a compact dual space with topology-aware solvers for chains, trees, loops, and networks.",
+      "year": 2026,
+      "date": "2026-03-09",
+      "tags": [
+        "multibody dynamics",
+        "affine body"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "kamino-gpu-simulation",
+      "title": "Kamino: GPU-based Massively Parallel Simulation of Multi-Body Systems with Challenging Topologies",
+      "slug": "kamino-gpu-simulation",
+      "authors": [
+        "Vassilios Tsounis",
+        "Guirec Maloisel",
+        "Christian Schumacher",
+        "Ruben Grandia",
+        "Agon Serifi",
+        "David Müller",
+        "Chris Amevor",
+        "Tobias Widmer",
+        "Moritz Bächer"
+      ],
+      "abstract": "GPU-based physics solver for massively parallel simulations of heterogeneous highly-coupled mechanical systems with kinematic loops, enabling RL training on complex robots.",
+      "year": 2026,
+      "date": "2026-03-17",
+      "tags": [
+        "kinematic loops",
+        "GPU simulation"
+      ],
+      "githubLinks": [
+        "https://github.com/nvidia/warp",
+        "https://github.com/newton-physics/newton"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "softmimicgen",
+      "title": "SOFTMIMICGEN: A Data Generation System for Scalable Robot Learning in Deformable Object Manipulation",
+      "slug": "softmimicgen",
+      "authors": [
+        "Masoud Moghani",
+        "Mahdi Azizian",
+        "Animesh Garg",
+        "Yuke Zhu",
+        "Sean Huver",
+        "Ajay Mandlekar"
+      ],
+      "abstract": "Automated data generation pipeline for deformable object manipulation using non-rigid registration to transform source demonstrations.",
+      "year": 2026,
+      "date": "2026-03-26",
+      "tags": [
+        "deformable manipulation",
+        "synthetic data generation"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://softmimicgen.github.io"
+      ]
+    },
+    {
+      "id": "agipc-algebraic-coarsening-gpu-ipc",
+      "title": "AGIPC: Adaptive In-Solve Algebraic Coarsening for GPU IPC",
+      "slug": "agipc-algebraic-coarsening-gpu-ipc",
+      "authors": [
+        "Xuan Wang",
+        "Zhaofeng Luo",
+        "Minchen Li",
+        "Taku Komura",
+        "Kemeng Huang"
+      ],
+      "abstract": "Implicit time integration is key to robustly simulating stiff materials and large deformations, but its performance is often dominated by repeatedly solving large linear systems. We present algebraic adaptive in-solve coarsening, a GPU-oriented method that dynamically reduces DoF within the Newton solve of implicit time integration without explicit topological modification.",
+      "year": 2026,
+      "date": "2026-07-19",
+      "tags": [
+        "GPU IPC",
+        "adaptive coarsening"
+      ],
+      "githubLinks": [
+        "https://github.com/KemengHuang/Adaptive-GIPC"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "mas-pncg-multilevel-preconditioned-ncg",
+      "title": "An Efficient Multilevel Preconditioned Nonlinear Conjugate Gradient Method for Incremental Potential Contact",
+      "slug": "mas-pncg-multilevel-preconditioned-ncg",
+      "authors": [
+        "Yu Zhang",
+        "Xing Shen",
+        "Kemeng Huang",
+        "Wei Chen",
+        "Yin Yang",
+        "Taku Komura",
+        "Tiantian Liu",
+        "Xingang Pan"
+      ],
+      "abstract": "Incremental Potential Contact (IPC) guarantees intersection-free simulation but suffers from high computational costs due to the expensive Hessian assembly and linear solves required by Newton's method. While Preconditioned Nonlinear Conjugate Gradient (PNCG) avoids Hessian assembly, it has historically struggled with poor convergence in stiff, contact-rich scenarios due to the lack of effective preconditioners. We present MAS-PNCG, a method that unlocks the power of hierarchical preconditioning for nonlinear optimization.",
+      "year": 2026,
+      "date": "2026-04-21",
+      "tags": [
+        "nonlinear CG preconditioning",
+        "GPU IPC"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "motionbricks-scalable-realtime-motions",
+      "title": "MotionBricks: Scalable Real-Time Motions with Modular Latent Generative Model and Smart Primitives",
+      "slug": "motionbricks-scalable-realtime-motions",
+      "authors": [
+        "Tingwu Wang",
+        "Olivier Dionne",
+        "Michael De Ruyter",
+        "David Minor",
+        "Davis Rempe",
+        "Kaifeng Zhao",
+        "Mathis Petrovich",
+        "Ye Yuan",
+        "Chenran Li",
+        "Zhengyi Luo",
+        "Brian Robison",
+        "Xavier Blackwell",
+        "Bernardo Antoniazzi",
+        "Xue Bin Peng",
+        "Yuke Zhu",
+        "Simon Yuen"
+      ],
+      "abstract": "Despite transformative advances in generative motion synthesis, real-time interactive motion control remains dominated by traditional techniques. We introduce MotionBricks: a large-scale, real-time generative framework with a modular latent generative backbone and smart primitives, achieving 15,000 FPS with 2ms latency on 350k+ motion clips.",
+      "year": 2026,
+      "date": "2026-04-27",
+      "tags": [
+        "real-time motion synthesis",
+        "modular latent generation"
+      ],
+      "githubLinks": [
+        "https://nvlabs.github.io/motionbricks"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "adjustable-constrained-soft-tissue",
+      "title": "Adjustable Constrained Soft-Tissue Dynamics",
+      "slug": "adjustable-constrained-soft-tissue",
+      "authors": [
+        "Bohan Wang",
+        "Mianlun Zheng",
+        "Jernej Barbič"
+      ],
+      "abstract": "Constraint-based soft-tissue simulation suffers from an inherent coupling between vibration frequency and inertial amplitude — adjusting material properties cannot change them independently. The paper transforms the equations of motion into per-vertex non-inertial reference frames, scales the resulting fictitious (inertial) forces by a factor ε, then transforms back to the world frame. This yields a minimally modified equation of motion that lets animators independently control four salient visual characteristics of soft-tissue dynamics: vibration frequency, gravity sag, inertial amplitude, and damping decay time.",
+      "year": 2020,
+      "date": "2020-10-01",
+      "tags": [
+        "soft-tissue dynamics",
+        "non-inertial frame scaling"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "reactor-physics-aware-motion-retargeting",
+      "title": "ReActor: Reinforcement Learning for Physics-Aware Motion Retargeting",
+      "slug": "reactor-physics-aware-motion-retargeting",
+      "authors": [
+        "David Müller",
+        "Agon Serifi",
+        "Sammy Christen",
+        "Ruben Grandia",
+        "Espen Knoop",
+        "Moritz Bächer"
+      ],
+      "abstract": "Retargeting human kinematic reference motion onto a robot's morphology remains a formidable challenge. Existing methods often produce physical inconsistencies, such as foot sliding, self-collisions, or dynamically infeasible motions, which hinder downstream imitation learning. We propose a bilevel optimization framework that jointly adapts reference motions to a robot's morphology while training a tracking policy using reinforcement learning. To make the optimization tractable, we derive an approximate gradient for the upper-level loss. Our framework requires only a sparse set of semantic rigid-body correspondences and eliminates the need for manual tuning by identifying optimal values for a parameterization expressive enough to preserve characteristic motion across different embodiments. Moreover, by integrating retargeting directly with physics simulation, we produce physically plausible motions that facilitate robust imitation learning. We validate our method in simulation and on hardware, demonstrating challenging motions for morphologies that differ significantly from a human, including retargeting onto a quadruped.",
+      "year": 2026,
+      "date": "2026-05-07",
+      "tags": [
+        "motion-retargeting",
+        "bilevel-optimization"
+      ],
+      "githubLinks": [
+        "https://github.com/NVLabs/"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "simulation-distillation-world-models",
+      "title": "Simulation Distillation: Pretraining World Models in Simulation for Rapid Real-World Adaptation",
+      "slug": "simulation-distillation-world-models",
+      "authors": [
+        "Jacob Levy",
+        "Tyler Westenbroek",
+        "Kevin Huang",
+        "Fernando Palafox",
+        "Patrick Yin",
+        "Shayegan Omidshafiei",
+        "Dong-Ki Kim",
+        "Abhishek Gupta",
+        "David Fridovich-Keil"
+      ],
+      "abstract": "Robot learning requires adaptation methods that improve reliably from limited, mixed-quality interaction data. We introduce Simulation Distillation (SimDist), a framework that uses physics simulators as a scalable source of action-conditioned robot experience. During pretraining, SimDist distills structural priors from the simulator into a world model. During real-world adaptation, it transfers the encoder, reward model, and value function learned in simulation, and updates only the latent dynamics model using real-world prediction losses.",
+      "year": 2025,
+      "date": "2025-03-20",
+      "tags": [
+        "sim-to-real transfer",
+        "world models"
+      ],
+      "githubLinks": [
+        "https://sim-dist.github.io"
+      ],
+      "codeLinks": [
+        "https://sim-dist.github.io"
+      ]
+    },
+    {
+      "id": "untangling-surfaces-shape-mesh-repulsion",
+      "title": "Untangling Surfaces via Shape and Mesh Repulsion",
+      "slug": "untangling-surfaces-shape-mesh-repulsion",
+      "authors": [
+        "Jiří Minarčík",
+        "Michael Liu",
+        "Keenan Crane",
+        "Minchen Li"
+      ],
+      "abstract": "Self-intersections are widespread in surface meshes and invalidate downstream simulation, fabrication, and learning pipelines. We introduce an energy-based framework that enforces surface embeddedness simultaneously at the shape and mesh levels. A shape-level Gaussian self-contact energy captures global entanglement, while a mesh-level Minkowski penalty resolves local discrete interactions. Together, these energies enable reliable removal of self-intersections without changing mesh connectivity.",
+      "year": 2026,
+      "date": "2026-07-01",
+      "tags": [
+        "surface untangling",
+        "repulsive energy"
+      ],
+      "githubLinks": [
+        "https://github.com/Simulation-Intelligence/Mesh-Untangling"
+      ],
+      "codeLinks": [
+        "https://github.com/Simulation-Intelligence/Mesh-Untangling"
+      ]
+    },
+    {
+      "id": "divide-and-truncate-dat",
+      "title": "Divide and Truncate: A Penetration and Inversion Free Framework for Coupled Multi-physics Systems",
+      "slug": "divide-and-truncate-dat",
+      "authors": [
+        "Anka H. Chen",
+        "Jerry Hsu",
+        "Youssef Ayman",
+        "Miles Macklin"
+      ],
+      "abstract": "We present Divide and Truncate (DAT), a unified framework for coupling multi-physics systems through penetration-free collision handling, including rigid bodies, volumetric soft bodies, thin shells, rods, and animated objects. By partitioning the ambient space into exclusive regions and truncating displacements to remain within them, DAT guarantees penetration-free contact resolution. Our Planar-DAT variant further refines this by restricting only motion toward nearby surfaces, leaving tangential movement unconstrained.",
+      "year": 2026,
+      "date": "2026-04-16",
+      "tags": [
+        "collision-handling",
+        "multi-physics-simulation"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "barrier-free-elastodynamics",
+      "title": "Robust and Efficient Penetration-Free Elastodynamics without Barriers",
+      "slug": "barrier-free-elastodynamics",
+      "authors": [
+        "Juntian Zheng",
+        "Zhaofeng Luo",
+        "Minchen Li"
+      ],
+      "abstract": "We introduce a barrier-free optimization framework for non-penetration elastodynamic simulation that matches the robustness of Incremental Potential Contact (IPC) while overcoming its two primary efficiency bottlenecks: (1) reliance on logarithmic barrier functions, which leads to ill-conditioned systems and slow PCG convergence; and (2) the time-of-impact (TOI) locking issue, which restricts active-set exploration in collision-intensive scenes and requires many Newton iterations. We propose a novel second-order constrained optimization framework with a custom augmented Lagrangian solver that avoids TOI locking by immediately incorporating all requisite contact pairs detected via CCD. By adaptively updating Lagrange multipliers rather than increasing penalty stiffness, our method prevents stagnation at zero TOI while maintaining a well-conditioned system. A constraint filtering and decay mechanism keeps the active set compact and stable. With a GPU-optimized simulator design, our method achieves up to 103x speedup over GIPC on contact-rich benchmarks.",
+      "year": 2026,
+      "date": "2026-04-20",
+      "tags": [
+        "elastodynamics",
+        "augmented lagrangian"
+      ],
+      "githubLinks": [
+        "https://github.com/KemengHuang/GPU_IPC",
+        "https://github.com/st-tech/ppf-contact-solver",
+        "https://github.com/newton-physics/newton"
+      ],
+      "codeLinks": [
+        "https://simulation-intelligence.github.io/barrier-free"
+      ]
+    },
+    {
+      "id": "isaacipc-gmcp-contact-simulation",
+      "title": "IsaacIPC: Coupling High-Fidelity Simulation and Realistic Rendering for Contact-Rich Robotic Systems",
+      "slug": "isaacipc-gmcp-contact-simulation",
+      "authors": [
+        "Qixin Liang",
+        "Zhongqing Han"
+      ],
+      "abstract": "We present IsaacIPC, a robotic simulation framework that couples GPU accelerated incremental potential contact (IPC) with Isaac Sim / Isaac Lab. IsaacIPC maps simulated deformation between simulation and visual meshes, enabling real-time realistic rendering with applications to data collection and policy evaluation. For tactile sensing, we introduce the geometric mortar contact potential (GMCP), which defines a barrier potential over contact samples on tactile surfaces to better resolve contact-pressure distributions. We evaluate GMCP on contact benchmarks and demonstrate IsaacIPC on rigid-deformable robotic simulations including a quadruped robot, a dexterous hand, and a universal manipulation interface (UMI) gripper.",
+      "year": 2026,
+      "date": "2026-05-23",
+      "tags": [
+        "tactile simulation",
+        "mortar contact potential"
+      ],
+      "githubLinks": [
+        "https://github.com/spiriMirror/libuipc",
+        "https://github.com/Genesis-Embodied-AI/Genesis",
+        "https://github.com/NVIDIA/warp"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "yasps-symbolic-ipc",
+      "title": "YASPS: A Symbolic Framework for Extensible, High-Performance IPC Simulation",
+      "slug": "yasps-symbolic-ipc",
+      "authors": [
+        "Xuan Tang",
+        "Kemeng Huang",
+        "Gilbert Bernstein",
+        "Minchen Li",
+        "Tzumao Li"
+      ],
+      "abstract": "增量势接触(IPC)富接触仿真鲁棒但僵化:为了快,最先进系统手写 GPU kernel 并把固定的能量、图元类型和参数化硬编码进去,新增一种参数化会遇到组合爆炸。YASPS 通过两个关系算子——JOIN(沿连接关系收集属性)与 UNION(合并异构参数化)——把结构关系显式化并可微。对这两个算子的符号微分能自动推导局部导数及全局梯度/Hessian 的稀疏与块结构,避免混合参数化的代码爆炸。它把符号图 JIT 编译为 CUDA kernel,用 GPU 共轭梯度求解牛顿系统,性能与 GIPC 相当,而新增能量/参数化仅约 130 行 Python。",
+      "year": 2026,
+      "date": "2026-07-01",
+      "tags": [
+        "contact simulation",
+        "symbolic differentiation"
+      ],
+      "githubLinks": [
+        "https://github.com/nvidia/warp"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "tac2real-visuotactile-sim2real",
+      "title": "Tac2Real: Reliable and GPU Visuotactile Simulation for Online Reinforcement Learning and Zero-Shot Real-World Deployment",
+      "slug": "tac2real-visuotactile-sim2real",
+      "authors": [
+        "Ningyu Yan",
+        "Shuai Wang",
+        "Xing Shen",
+        "Hui Wang",
+        "Hanqing Wang",
+        "Yang Xiang",
+        "Jiangmiao Pang"
+      ],
+      "abstract": "Tac2Real 是一个轻量级视触觉仿真框架,用 PNCG-IPC(预条件非线性共轭梯度增量势接触)求解器在多节点多 GPU 上以交互速率生成标记点位移场,作为插件接入 Isaac Lab/MuJoCo 等引擎支持在线 RL。配套 TacAlign 四阶段校准(控制对齐、基线 IPC 标定、任务级标定、域随机化)系统消除结构化与随机两类 sim-to-real 差距。在盲插销任务上零样本迁移真机成功率达 91.7%,远超 TacSL(15%)、Tacchi(8.3%)与无触觉(6.7%)。",
+      "year": 2026,
+      "date": "2026-03-30",
+      "tags": [
+        "visuotactile simulation",
+        "sim-to-real RL"
+      ],
+      "githubLinks": [
+        "https://github.com/Denys88/rl_games"
+      ],
+      "codeLinks": [
+        "https://ningyurichard.github.io/tac2real-project-page/"
+      ]
+    },
+    {
+      "id": "impact-internal-model-predictive-control",
+      "title": "IMPACT: Learning Internal-Model Predictive Control for Forceful Robotic Manipulation",
+      "slug": "impact-internal-model-predictive-control",
+      "authors": [
+        "Jiawei Gao",
+        "Chaoqi Liu",
+        "Peilin Wu",
+        "Haonan Chen",
+        "Yilun Du"
+      ],
+      "abstract": "Real-world robotic manipulation tasks often involve forceful interactions with the environment, such as using tools of varying weights, transporting objects with different masses, and performing contact-rich tasks like table wiping. Previous learning-based approaches typically employ imitation learning policies that output target end-effector poses tracked by low-level impedance controllers, realizing forces either implicitly through tracking errors or explicitly via force/torque or tactile sensors. Implicit approaches generalize poorly across object weights; explicit approaches require specialized hardware. IMPACT decouples forceful tasks into task-planning and internal-model-based predictive control, estimating external wrenches from joint-torque residuals and learning an online internal model to feed-forward-compensate persistent interaction forces, achieving higher success rates, better generalization to unseen object weights, and improved safety and energy efficiency.",
+      "year": 2026,
+      "date": "2026-06-09",
+      "tags": [
+        "forceful manipulation",
+        "internal model control"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://gao-jiawei.com/IMPACT/"
+      ]
+    },
+    {
+      "id": "mpm-lite",
+      "title": "MPM Lite: Linear Kernels and Integration without Particles",
+      "slug": "mpm-lite",
+      "authors": [
+        "Xiang Feng",
+        "Yunuo Chen",
+        "Chang Yu",
+        "Hao Su",
+        "Demetri Terzopoulos",
+        "Yin Yang",
+        "Joe Masterjohn",
+        "Alejandro Castro",
+        "Chenfanfu Jiang"
+      ],
+      "abstract": "MPM Lite is a new hybrid Lagrangian/Eulerian method that eliminates the need for particle-based quadrature at solve time. Standard MPM suffers from a performance bottleneck where expensive implicit solves are proportional to particle-per-cell (PPC) counts due to particle-based quadrature and wide-stencil kernels. MPM Lite treats particles primarily as carriers of kinematic state and material history. By conceptualizing the background Cartesian grid as a voxel hexahedral mesh, particle states are resampled onto fixed-location quadrature points (cell centers) using compact linear (Q1) kernels. This makes force assembly and time integration proceed without accessing particles, decoupling solver complexity from particle count. A novel stress transfer and rotation-free stretch reconstruction strategy resamples the extensive Kirchhoff stress and derives an optimization-based incremental potential formulation. MPM Lite achieves 1.88x speedup over explicit MPM and up to 15.9x speedup over implicit MPM on practical elastoplastic materials.",
+      "year": 2026,
+      "date": "2026-02-20",
+      "tags": [
+        "material point method",
+        "grid quadrature"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://mpmlite.github.io"
+      ]
+    },
+    {
+      "id": "distributed-affine-body-dynamics",
+      "title": "Distributed Affine Body Dynamics with Adaptive Consensus",
+      "slug": "distributed-affine-body-dynamics",
+      "authors": [
+        "Jiafeng Liu",
+        "Wenhui Zhou",
+        "Xinming Pei",
+        "Yifan Peng",
+        "Huamin Wang",
+        "Yin Yang",
+        "Lei Lan",
+        "Weiwei Xu"
+      ],
+      "abstract": "Affine Body Dynamics (ABD) within the Incremental Potential Contact (IPC) framework provides accurate simulation of extremely stiff, near-rigid solids with strict non-penetration guarantees. However, IPC's globally coupled barrier constraints hinder scalable execution across multiple GPUs and compute nodes. This paper proposes a distributed formulation of ABD using a consensus-based ADMM scheme. Each compute node solves its local ABD subproblem in parallel, followed by a global consensus step that enforces consistency among shared boundary bodies. A mass-aware initialization of the ADMM penalty parameter combined with residual-driven adaptation accelerates convergence (22%-80% fewer iterations), and a feasibility-preserving consensus mechanism with a CCD-certified merge step guarantees penetration-free results. Experiments demonstrate stable convergence, non-penetration, and near-linear scaling on large-scale contact-rich scenes (thousands of bodies, tens of millions of triangles) across multiple nodes.",
+      "year": 2026,
+      "date": "2026-05-25",
+      "tags": [
+        "distributed simulation",
+        "consensus admm"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "world-action-models-survey",
+      "slug": "world-action-models-survey",
+      "title": "World Action Models: A Survey (Dream Less, Act More)",
+      "authors": [
+        "Qiuhong Shen",
+        "Shihua Zhang",
+        "Yue Liao",
+        "Qi Li",
+        "Zhenxiong Tan",
+        "Shizun Wang",
+        "Shuicheng Yan",
+        "Xinchao Wang"
+      ],
+      "abstract": "A survey of World Action Models (WAMs) — embodied predictive-action models that keep a predicted future in the action path. Clarifies boundaries among world models, video generation models, video world models, VLAs, and WAMs; organizes the field via two views: a design-philosophy taxonomy (Render-and-Decode, Latent-Only, Video-Generation-Free) and a four-axis component anatomy (predictive substrate, action coupling, architectural backbone, deployment regime) as a 4-tuple. Audits interactability, causality, persistence, physical plausibility, and generalization, plus data, evaluation, and open challenges. Thesis: dream less, act more — generate less of the future while preserving what control requires.",
+      "year": 2026,
+      "date": "2026-06-18",
+      "tags": [
+        "embodied control",
+        "world action models"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://world-action-models.github.io/"
+      ]
+    },
+    {
+      "id": "t-rex-tactile-reactive-manipulation",
+      "title": "T-Rex: Tactile-Reactive Dexterous Manipulation",
+      "slug": "t-rex-tactile-reactive-manipulation",
+      "authors": [
+        "Dantong Niu",
+        "Zhuoyang Liu",
+        "Zekai Wang",
+        "Boning Shao",
+        "Zhao-Heng Yin",
+        "Anirudh Pai",
+        "Yuvan Sharma",
+        "Ruijie Zheng",
+        "Yunfan Jiang",
+        "Letian Fu",
+        "Wei Zhan",
+        "David M. Chan",
+        "Yutong Bai",
+        "Roei Herzig",
+        "Jiahui Lei",
+        "Li Fei-Fei",
+        "Ken Goldberg",
+        "Jitendra Malik",
+        "Pieter Abbeel",
+        "Yuke Zhu",
+        "Danfei Xu",
+        "Jim (Linxi) Fan",
+        "Trevor Darrell"
+      ],
+      "abstract": "The ability to react dynamically to tactile signals has long been considered crucial to agile human-level dexterity. Yet contemporary learning-based VLAs for robotic manipulation generally either overlook the tactile modality or are limited to encoders with static cues, in part due to the scarcity of diverse training data and standardized evaluation, architectural constraints in current Vision-Language-Action (VLA) models, and limitations of static tactile encoders. In this paper, we push the frontier of tactile-reactive manipulation addressing all of these limitations. We propose a large-scale, 100-hour tactile-rich dataset collected via a novel, data-efficient recipe that prioritizes elementary motor primitives. To effectively exploit naturally high-frequency touch signals without sacrificing the existing capabilities of existing VLAs, we introduce a variable-rate Mix-of-Transformer (MoT) architecture equipped with a novel temporal tactile VQ-VAE encoder. We demonstrate the effectiveness of tactile-reactive policies on 12 manipulation tasks requiring delicate force control, deformable object manipulation, achieving over 30% higher average success rate than the strongest baseline.",
+      "year": 2026,
+      "date": "2026-06-18",
+      "tags": [
+        "触觉操作",
+        "视觉-语言-动作"
+      ],
+      "githubLinks": [
+        "https://github.com/RoboVerseOrg/ViTacFormer",
+        "https://github.com/xiaoxiaoxh/reactive_diffusion_policy",
+        "https://github.com/Nvidia/Isaac-GR00T",
+        "https://github.com/Physical-Intelligence/openpi"
+      ],
+      "codeLinks": [
+        "https://tactile-rex.github.io/"
+      ]
+    },
+    {
+      "id": "dreamzero-world-action-models",
+      "title": "World Action Models are Zero-shot Policies (DreamZero)",
+      "slug": "dreamzero-world-action-models",
+      "authors": [
+        "Seonghyeon Ye",
+        "Yunhao Ge",
+        "Kaiyuan Zheng",
+        "Shenyuan Gao",
+        "Sihyun Yu",
+        "George Kurian",
+        "Suneel Indupuru",
+        "You Liang Tan",
+        "Chuning Zhu",
+        "Jiannan Xiang",
+        "Danfei Xu",
+        "Yilun Du",
+        "Yevgen Chebotar",
+        "Scott Reed",
+        "Jan Kautz",
+        "Yuke Zhu",
+        "Linxi (Jim) Fan",
+        "Joel Jang"
+      ],
+      "abstract": "State-of-the-art Vision-Language-Action (VLA) models excel at semantic generalization but struggle to generalize to unseen physical motions in novel environments. We introduce DreamZero, a World Action Model (WAM) built upon a pretrained video diffusion backbone. Unlike VLAs, WAMs learn physical dynamics by predicting future world states and actions, using video as a dense representation of how the world evolves. By jointly modeling video and action, DreamZero learns diverse skills effectively from heterogeneous robot data without relying on repetitive demonstrations. This results in over 2x improvement in generalization to new tasks and environments compared to state-of-the-art VLAs in real-robot experiments. Through model and system optimizations, we enable a 14B autoregressive video diffusion model to perform real-time closed-loop control at 7Hz. Finally, we demonstrate two forms of cross-embodiment transfer: video-only demonstrations from other robots or humans yield a relative improvement of over 42% on unseen task performance with just 10-20 minutes of data; and few-shot embodiment adaptation transferring to a new embodiment with only 30 minutes of play data while retaining zero-shot generalization.",
+      "year": 2026,
+      "date": "2026-02-17",
+      "tags": [
+        "机器人操作",
+        "世界动作模型"
+      ],
+      "githubLinks": [
+        "https://github.com/dreamzero0/dreamzero"
+      ],
+      "codeLinks": [
+        "https://dreamzero0.github.io"
+      ]
+    },
+    {
+      "id": "wall-wm-event-grounded-wam",
+      "title": "WALL-WM: Carving World Action Modeling at the Event Joints",
+      "slug": "wall-wm-event-grounded-wam",
+      "authors": [
+        "X Square Robot Team"
+      ],
+      "abstract": "WALL-WM is a World Action Model that shifts video-action learning from chunk-centric optimization to event-grounded Vision-Language-Action pretraining, using semantically coherent action events as the atomic unit of learning. Existing WAMs commonly initialize from multimodal or video foundation models and then optimize fixed-length action chunks conditioned directly on the current observation and instruction. This chunk-centric formulation creates a fundamental granularity mismatch: language describes semantic goals and events, vision evolves through continuous scene dynamics, and actions operate at control-level timescales; forcing all three into the same fixed-length prediction window turns VLA training into short-horizon correlation fitting, underusing the pretrained visual-semantic prior and weakening compositionality and long-horizon generalization. WALL-WM organizes both supervision and data around semantic events, pairing event-grounded VLA pretraining with a data ecosystem built from event-level captions and cluster-balanced sampling. From the same event-pretrained backbone it supports two inference modes: an event mode that consumes next-event descriptions and enables variable-length execution chunks, and a unified mode that uses a VLM with Staircase Decoding to condition conventional fixed-length chunk inference while preserving a gradient-continuous VLA path. With Muon-optimizer-based large-scale pretraining infrastructure, WALL-WM achieves state-of-the-art performance in large-scale real-world generalization evaluation.",
+      "year": 2026,
+      "date": "2026-06-01",
+      "tags": [
+        "具身操作",
+        "事件对齐建模"
+      ],
+      "githubLinks": [
+        "https://github.com/X-Square-Robot/wall-x"
+      ],
+      "codeLinks": [
+        "https://github.com/X-Square-Robot/wall-x"
+      ]
+    },
+    {
+      "id": "floating-point-robust-parametric-ccd",
+      "title": "Floating-Point Robustness in Parametric Surface Continuous Collision Detection: From Algorithm to Benchmarking",
+      "slug": "floating-point-robust-parametric-ccd",
+      "authors": [
+        "Xuwen Chen",
+        "Junyu Wang",
+        "Cheng Yu",
+        "Xingyu Ni",
+        "Meng Zhang",
+        "Bin Wang",
+        "Mengyu Chu",
+        "Baoquan Chen"
+      ],
+      "abstract": "首个面向参数曲面（Bézier 曲面）的浮点鲁棒 CCD 框架。基于 TDIBM，将数值误差分解为系数误差与算术误差两部分以获得可证明的无漏报保证；并通过反演 CCD 流程构建了含 24,246 个精确真值用例的有理算术基准数据集。",
+      "year": 2026,
+      "date": "2026-07-01",
+      "tags": [
+        "碰撞检测",
+        "浮点鲁棒性"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "fast-sparse-matrix-permutation",
+      "title": "Fast Sparse Matrix Permutation for Mesh-Based Direct Solvers",
+      "slug": "fast-sparse-matrix-permutation",
+      "authors": [
+        "Behrooz Zarebavani",
+        "Ahmed H. Mahmoud",
+        "Ana Dodik",
+        "Changcheng Yuan",
+        "Serban D. Porumbescu",
+        "John D. Owens",
+        "Maryam Mehri Dehnavi",
+        "Justin Solomon"
+      ],
+      "abstract": "We present a fast sparse matrix permutation algorithm tailored to linear systems arising from triangle meshes. Our approach produces nested-dissection-style permutations while significantly reducing permutation runtime overhead. Rather than enforcing strict balance and separator optimality, the algorithm deliberately relaxes these design decisions to favor fast partitioning and efficient elimination-tree construction, decomposing permutation into patch-level local orderings and a compact quotient-graph ordering of separators. Integrated into vendor solvers (NVIDIA cuDSS, Intel MKL), it improves sparse Cholesky solve performance by up to 6.62x.",
+      "year": 2026,
+      "date": "2026-02-01",
+      "tags": [
+        "sparse direct solvers",
+        "nested dissection"
+      ],
+      "githubLinks": [
+        "https://github.com/BehroozZare/fast-permute"
+      ],
+      "codeLinks": [
+        "https://github.com/BehroozZare/fast-permute"
+      ]
+    },
+    {
+      "id": "deformgen-dynamics-topology-augmentation",
+      "title": "DeformGen: Dynamics-Based Topology Augmentation for Deformable Manipulation Policy Learning",
+      "slug": "deformgen-dynamics-topology-augmentation",
+      "authors": [
+        "Zili Lin",
+        "Wenyao Zhang",
+        "Yuyang Zhang",
+        "Zekun Qi",
+        "Junyan Lin",
+        "Hanxin Zhu",
+        "Jiaolong Yang",
+        "Zhibo Chen",
+        "Yao Mu",
+        "Xiaokang Yang",
+        "Xin Jin",
+        "Wenjun Zeng"
+      ],
+      "abstract": "Demonstration augmentation is proposed for cost-efficient data acquisition, but existing methods are fundamentally limited in deformable manipulation due to two challenges: (1) the state space is high-dimensional with physics-induced constraints, making valid configurations impossible to reach via low-dimensional pose perturbations; and (2) trajectory transfer is non-equivariant, as material points no longer move rigidly together under deformation. We present DeformGen, a dynamics-based augmentation framework that achieves topological diversity for deformable objects. For the state challenge, DeformGen expands the valid state distribution by applying localized physical disturbances and forward-simulating the dynamics to obtain topology-coherent, physically plausible deformable states. For the trajectory challenge, DeformGen transfers source manipulation trajectories via deformation-field warping, which lifts per-particle displacements into a continuous spatial function to adapt the end-effector trajectory consistently with the deformed geometry. Experiments on high-fidelity deformable manipulation benchmarks show that DeformGen generally improves policy learning compared with training on the original demonstrations alone and with rigid-style augmentation baselines.",
+      "year": 2026,
+      "date": "2026-06-24",
+      "tags": [
+        "deformable manipulation",
+        "dynamics-based augmentation"
+      ],
+      "githubLinks": [
+        "https://github.com/Zili2002/DeformGen"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "magicsim-executable-embodied-interaction",
+      "title": "MagicSim: A Unified Infrastructure for Executable Embodied Interaction",
+      "slug": "magicsim-executable-embodied-interaction",
+      "authors": [
+        "Haoran Lu",
+        "Songling Liu",
+        "Yue Chen",
+        "Guo Ye",
+        "Mutian Shen",
+        "Shuyang Yu",
+        "Yu Xiao",
+        "Jihai Zhao",
+        "Shang Wu",
+        "Jianshu Zhang",
+        "Xiangtian Gui",
+        "Chuye Hong",
+        "Yuran Wang",
+        "Maojiang Su",
+        "Jiayi Wang",
+        "Ruihai Wu",
+        "Zhaoran Wang",
+        "Han Liu"
+      ],
+      "abstract": "MagicSim is an embodied interaction infrastructure built around one deterministic batched runtime and a shared MDP, exposed through three drivers (benchmark/RL, scripted AutoCollect, agent/VLM interaction). YAML-first specifications construct diverse executable worlds; a Command->Skill->Planner->Robot->Record pipeline grounds high-level commands into robot actions; successful rollouts become structured multimodal trajectories aligning language, action, visual/geometric, and task-level supervision.",
+      "year": 2026,
+      "date": "2026-06-16",
+      "tags": [
+        "embodied simulation",
+        "planner-in-the-loop"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "embodied-r1-5-foundation-model",
+      "title": "Embodied-R1.5: Evolving Physical Intelligence via Embodied Foundation Models",
+      "slug": "embodied-r1-5-foundation-model",
+      "authors": [
+        "Yifu Yuan",
+        "Yaoting Huang",
+        "Xianze Yao",
+        "Yutong Li",
+        "Shuoheng Zhang",
+        "Linqi Han",
+        "Pengyi Li",
+        "Jiangeng Sun",
+        "Wenting Jia",
+        "Zhao Zhang",
+        "Yuhao Liu",
+        "Ruihao Liao",
+        "Yucheng Hu",
+        "Qiyu Wu",
+        "Yuxiao Li",
+        "Zibin Dong",
+        "Fei Ni",
+        "Yan Zheng",
+        "Shuyang Gu",
+        "Yi Ma",
+        "Hongyao Tang",
+        "Han Hu",
+        "Jianye Hao"
+      ],
+      "abstract": "We introduce Embodied-R1.5, a unified Embodied Foundation Model (EFM) that integrates comprehensive embodied reasoning capabilities, spanning embodied cognition, task planning, correction, and pointing, within a single architecture toward general physical intelligence. Leveraging three automated data construction pipelines to significantly expand the data coverage of critical capabilities, we build a large-scale data system of over 15B tokens, and design a multi-task balanced RL recipe to alleviate heterogeneous task conflicts. We further introduce a Planner-Grounder-Corrector (PGC) closed-loop framework that enables a single model to autonomously execute and self-correct over long-horizon tasks. With only 8B parameters, Embodied-R1.5 achieves SOTA on 16 out of 24 embodied VLM benchmarks, surpassing leading models like Gemini-Robotics-ER-1.5 and GPT-5.4. Benefiting from the internalized embodied capabilities, Embodied-R1.5 can be fine-tuned into a VLA with only a small amount of data, outperforming leading VLA models like pi-0.5 across 4 popular manipulation benchmark suites. We further conduct extensive zero-shot real-robot experiments, validating performance in instruction following, affordance grounding, articulated object manipulation, and long-horizon complex tasks.",
+      "year": 2026,
+      "date": "2026-06-09",
+      "tags": [
+        "embodied foundation model",
+        "unified embodied reasoning"
+      ],
+      "githubLinks": [
+        "https://github.com/pickxiguapi/Embodied-R1.5",
+        "https://github.com/pickxiguapi/EmbodiedEvalKit",
+        "https://github.com/hiyouga/EasyR1"
+      ],
+      "codeLinks": [
+        "https://embodied-r.github.io/",
+        "https://github.com/pickxiguapi/Embodied-R1.5",
+        "https://github.com/pickxiguapi/EmbodiedEvalKit"
+      ]
+    },
+    {
+      "id": "silr-cloth-simulator-in-the-loop",
+      "title": "Enabling Robust Cloth Manipulation via Inference-Time Simulator-in-the-Loop Refinement",
+      "slug": "silr-cloth-simulator-in-the-loop",
+      "authors": [
+        "Xin Liu",
+        "Yulin Li",
+        "Ziming Li",
+        "Pengyu Jing",
+        "Zhenhao Huang",
+        "Bingyang Zhou",
+        "Ziqiu Zeng",
+        "Siyuan Luo",
+        "Chenkun Qi",
+        "Fan Shi"
+      ],
+      "abstract": "A simulator-in-the-loop framework bringing inference-time physics refinement to real-world cloth manipulation from a single RGB observation, via three pillars: FLASH deformable simulator backend, an RGB-native real-to-sim module (frozen DINOv2 + learnable canonical tokens), and prior-guided MPPI anchored at an offline-distilled policy. Real-robot experiments show higher success rates and stronger robustness than baselines.",
+      "year": 2026,
+      "date": "2026-06-23",
+      "tags": [
+        "cloth manipulation",
+        "simulator-in-the-loop"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://silr-cloth.github.io/"
+      ]
+    },
+    {
+      "id": "flash-gpu-deformable-simulation",
+      "title": "FLASH: Fast Learning via GPU-Accelerated Simulation for High-Fidelity Deformable Manipulation in Minutes",
+      "slug": "flash-gpu-deformable-simulation",
+      "authors": [
+        "Siyuan Luo",
+        "Bingyang Zhou",
+        "Chong Zhang",
+        "Xin Liu",
+        "Zhenhao Huang",
+        "Gang Yang",
+        "Zhengtao Han",
+        "Xiaotian Hu",
+        "Eric Yang",
+        "Rymon Yu",
+        "Ziqiu Zeng",
+        "Fan Shi"
+      ],
+      "abstract": "A GPU-native simulation framework for contact-rich deformable manipulation, built on an NCP-based non-smooth Newton solver redesigned from the ground up for GPU parallelism. An inertia-dominated contact approximation keeps the Schur complement sparse, enabling block-diagonal multi-environment batching. Scales to 3M+ DoF at 30 FPS on a single RTX 5090 (100-300x speedup). Vision-based policies trained solely on FLASH synthetic data in minutes achieve zero-shot sim-to-real transfer on towel and garment folding.",
+      "year": 2026,
+      "date": "2026-04-19",
+      "tags": [
+        "deformable manipulation",
+        "gpu physics solver"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://siyuanluo.com/flash"
+      ]
+    },
+    {
+      "id": "stable-proportional-derivative-controllers",
+      "title": "Stable Proportional-Derivative Controllers",
+      "slug": "stable-proportional-derivative-controllers",
+      "authors": [
+        "Jie Tan",
+        "Karen Liu",
+        "Greg Turk"
+      ],
+      "abstract": "A new formulation of the PD controller that allows arbitrarily high gains even at large time steps, by computing joint forces and torques using the positions and velocities of the character in the next time step. Stable even with simple Euler integration. Applied to motion tracking, keyframe interpolation with secondary motion, and constraint satisfaction.",
+      "year": 2011,
+      "date": "2011-07-01",
+      "tags": [
+        "character animation",
+        "stable pd control"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "gpc-generative-pretrained-controllers",
+      "title": "GPC: Large-Scale Generative Pretraining for Transferable Motor Control",
+      "slug": "gpc-generative-pretrained-controllers",
+      "authors": [
+        "Yi Shi",
+        "Yifeng Jiang",
+        "Chen Tessler",
+        "Xue Bin Peng"
+      ],
+      "abstract": "GPC (Generative Pretrained Controllers) leverages tokenization and next-token modeling to build general-purpose, reusable generative controllers for physics-based character animation. It jointly optimizes a discrete motion vocabulary via Finite Scalar Quantization (FSQ) with a control policy using end-to-end RL, models the token structure with a GPT-style autoregressive transformer, and adapts to downstream tasks via CoLA parameter-efficient fine-tuning. Trained on 600+ hours of motion, it reaches a 99.98% tracking success rate with emergent perturbation-response and fall-recovery behaviors.",
+      "year": 2026,
+      "date": "2026-06-28",
+      "tags": [
+        "physics-based animation",
+        "motion tokenization"
+      ],
+      "githubLinks": [
+        "https://github.com/NVLabs/"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "kpm-fr-kinetic-moment-flux-reconstruction",
+      "title": "Kinetic Predicted-Moment Flux Reconstruction for High-Order High-Performance Fluid Simulation",
+      "slug": "kpm-fr-kinetic-moment-flux-reconstruction",
+      "authors": [
+        "Zike Xu",
+        "Xuan Zhang",
+        "Xiaopei Liu"
+      ],
+      "abstract": "KPM-FR is a spatially high-order kinetic-based scheme for low-Mach-number weakly compressible flows that simultaneously advances high fidelity, large throughput, and minimal memory. Rooted in the gas-kinetic scheme, it derives numerical fluxes from the locally evolved Boltzmann-BGK equation but carries out kinetic evolution entirely in moment space within a high-order flux reconstruction framework via a predictor-corrector scheme, mapping to two fused GPU kernels per time step. It reduces per-point memory 5x+ vs LBM, has lower dissipation than cumulant LBM, and sustains over 8 billion solution-point updates/sec on a single RTX 4090 at 42 bytes/point, scaling to 1.8 billion points.",
+      "year": 2026,
+      "date": "2026-07-01",
+      "tags": [
+        "fluid simulation",
+        "gas-kinetic scheme"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "affine-body-dynamics",
+      "title": "Affine Body Dynamics: Fast, Stable and Intersection-free Simulation of Stiff Materials",
+      "slug": "affine-body-dynamics",
+      "authors": [
+        "Lei Lan",
+        "Danny M. Kaufman",
+        "Minchen Li",
+        "Chenfanfu Jiang",
+        "Yin Yang"
+      ],
+      "abstract": "ABD 提出仿射体动力学框架:放弃严格刚体约束,用每体 12 自由度仿射坐标加刚硬正交惩罚势(κν‖AAᵀ−I‖²_F)模拟近刚体,使每步轨迹分段线性、可用标准线性 CCD,保留 IPC 全部无穿插/收敛保证。配合 i-AABB 剔除与接触感知并行 Hessian 装配,相比 rigid-IPC 获得 2-3 个数量级 CPU 加速、GPU 上达 10000x,并在 28 齿轮 245 万三角形等所有刚体方法失败的场景中稳定完成。SIGGRAPH 2022,M-ABD 与 Distributed-ABD 等后续工作的源头。",
+      "year": 2022,
+      "date": "2022-01-25",
+      "tags": [
+        "stiff body simulation",
+        "affine relaxation"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "progressive-convex-hull-simplification",
+      "title": "Progressive Convex Hull Simplification",
+      "slug": "progressive-convex-hull-simplification",
+      "authors": [
+        "Alec Jacobson"
+      ],
+      "abstract": "凸包是最紧的凸包围体,但面数随输入线性增长,拖慢碰撞检测/射线求交等下游查询。本文把凸包保守简化到指定数量的半空间,同时最小化新增体积或表面积:将每个面映射为关于 Chebyshev 中心的对偶顶点,在对偶凸包上做优先队列驱动的贪心顶点删除(风格同 QEM 网格简化),删除代价(凸'帽'体积)只需一环局部信息、零显式求交,O(n log n)。在 threedscans 全部 133 个模型上体积增长全部最小(中位 1.02x vs 次优 1.09x),中位耗时 81ms;可切换面积/平均宽度代价、锁定指定面,并作为 CoACD/VHACD 的安全后处理消除缝隙与泄漏。",
+      "year": 2026,
+      "date": "2026-06-03",
+      "tags": [
+        "bounding volumes",
+        "dual greedy simplification"
+      ],
+      "githubLinks": [
+        "https://github.com/alecjacobson/progressive-convex-hull-simplification"
+      ],
+      "codeLinks": [
+        "https://github.com/alecjacobson/progressive-convex-hull-simplification"
+      ]
+    },
+    {
+      "id": "score-support-constrained-rl",
+      "slug": "score-support-constrained-rl",
+      "title": "Support-Constrained RL Enables Real-World Policy Improvement without Real-World Experience",
+      "authors": [
+        "Raymond Yu",
+        "William Huey",
+        "Mustafa Mukadam",
+        "Anusha Nagabandi",
+        "Abhishek Gupta"
+      ],
+      "abstract": "SCORE (Support-Constrained Off-Domain REinforcement): a real-to-sim-to-real framework that constrains RL in simulation to the SUPPORT of a generative (flow matching) policy pretrained on real data, via flow steering. Freezes the base policy, learns a lightweight steering policy over latent noise with sparse rewards + PPO asymmetric actor-critic. Across 8 real-world dexterous multi-fingered manipulation tasks, improves average success from 37.8% to 89.9% (best baseline 59.5%) and reaches success in 36.8% fewer steps.",
+      "year": 2026,
+      "date": "2026-06-25",
+      "tags": [
+        "dexterous manipulation",
+        "flow steering"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://weirdlabuw.github.io/score/"
+      ]
+    },
+    {
+      "id": "robodojo-sim-and-real-benchmark",
+      "title": "RoboDojo: A Unified Sim-and-Real Benchmark for Comprehensive Evaluation of Generalist Robot Manipulation Policies",
+      "slug": "robodojo-sim-and-real-benchmark",
+      "authors": [
+        "Tianxing Chen",
+        "Yue Chen",
+        "Zixuan Li",
+        "Junyuan Tang",
+        "Kailun Su",
+        "Haoran Lu",
+        "Weijie Wan",
+        "Baijun Chen",
+        "Songling Liu",
+        "Haowen Yan",
+        "Honghao Su",
+        "Zhiyang Dou",
+        "Kaixuan Wang",
+        "Dandan Zhang",
+        "Yunze Liu",
+        "Yan Qin",
+        "Qiwei Liang",
+        "Qiwei Wu",
+        "Zijian Lin",
+        "Wenwei Lin",
+        "Yuran Wang",
+        "Minghua He",
+        "Tianshu Wu",
+        "Ruihai Wu",
+        "Jingquan Zhou",
+        "Kai-Chong Lei",
+        "Haibao Yu",
+        "Yuanfeng Ji",
+        "Weiyang Jin",
+        "Guanyu Lin",
+        "Xiaofan Li",
+        "Qi Xiong",
+        "Renjing Xu",
+        "Zhongyu Li",
+        "Wenhao Chai",
+        "Enze Xie",
+        "Ziwei Wang",
+        "Yao Mu",
+        "Hao Dong",
+        "Wojciech Matusik",
+        "Mingyu Ding",
+        "Wenbo Ding",
+        "Ping Luo",
+        "Masayoshi Tomizuka"
+      ],
+      "abstract": "RoboDojo is a unified sim-and-real benchmark for comprehensive evaluation of generalist robot manipulation policies. It contains 42 simulation tasks across five capability dimensions and 18 real-world tasks across three robot embodiments, combines heterogeneous parallel evaluation with RoboDojo-RealEval, and uses XPolicyLab to integrate 30 policies under a shared evaluation interface.",
+      "year": 2026,
+      "date": "2026-07-08",
+      "tags": [
+        "robot manipulation",
+        "sim-and-real benchmark"
+      ],
+      "githubLinks": [
+        "https://github.com/RoboDojo-Benchmark/RoboDojo",
+        "https://github.com/XPolicyLab/XPolicyLab"
+      ],
+      "codeLinks": [
+        "https://robodojo-benchmark.com/",
+        "https://robodojo-benchmark.com/doc",
+        "https://robodojo-benchmark.com/LeaderBoard"
+      ]
+    },
+    {
+      "id": "abc-scalable-behavior-cloning",
+      "title": "ABC: Scalable Behavior Cloning with Open Data, Training, and Evaluation",
+      "slug": "abc-scalable-behavior-cloning",
+      "authors": [
+        "Arthur Allshire",
+        "Himanshu Gaurav Singh",
+        "Ritvik Singh",
+        "Pieter Abbeel",
+        "Phillip Isola",
+        "Jitendra Malik",
+        "Guanya Shi",
+        "Angjoo Kanazawa"
+      ],
+      "abstract": "ABC is a fully open-source stack for manipulation with behavior cloning. Its core is ABC-130K, the largest open teleoperation dataset (3,553 hours, 134,806 episodes, 195 tasks on an $8,000 bimanual YAM station). It also releases hardware, training infrastructure (ABC-Models: DiT and VLA policies), a MuJoCo/Blender simulation pipeline (ABC-Sim: 400h sim-teleop over 10 tasks), and a real-world evaluation suite (ABC-Eval). A co-training recipe yields strong sim-to-real evaluation correlation (Pearson r=0.85-0.91), providing a cheap proxy for ablating design decisions before costly real-world evaluation.",
+      "year": 2026,
+      "date": "2026-06-25",
+      "tags": [
+        "behavior cloning",
+        "teleoperation dataset"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://abc.bot"
+      ]
+    },
+    {
+      "id": "careful-examination-lbm",
+      "title": "A Careful Examination of Large Behavior Models for Multitask Dexterous Manipulation",
+      "slug": "careful-examination-lbm",
+      "authors": [
+        "TRI LBM Team (Toyota Research Institute)"
+      ],
+      "abstract": "本文通过将 Diffusion Policy 范式扩展到仿真与真实机器人数据语料库上，严格评估被称为大行为模型（LBM）的多任务机器人操作策略。作者提出并验证了一套能以统计置信度分析这些模型能力的评估流水线，在受控环境下通过盲测、随机化 A/B 试验与单任务基线对比。核心发现：多任务预训练使策略更成功、更鲁棒，并能用远少于单任务基线的数据（3-5×）更快教会复杂新任务；且性能随预训练规模与多样性可预测地提升。分布偏移下这些收益被放大。",
+      "year": 2025,
+      "date": "2025-07-07",
+      "tags": [
+        "dexterous manipulation",
+        "policy evaluation"
+      ],
+      "githubLinks": [
+        "https://github.com/RoboVerseOrg/RoboVerse"
+      ],
+      "codeLinks": [
+        "https://toyotaresearchinstitute.github.io/lbm1/"
+      ]
+    },
+    {
+      "id": "hydroshear-tactile-sim-to-real",
+      "title": "HydroShear: Hydroelastic Shear Simulation for Tactile Sim-to-Real Reinforcement Learning",
+      "slug": "hydroshear-tactile-sim-to-real",
+      "authors": [
+        "An Dang",
+        "Jayjun Lee",
+        "Mustafa Mukadam",
+        "X. Alice Wu",
+        "Bernadette Bucher",
+        "Manikantan Nambi",
+        "Nima Fazeli"
+      ],
+      "abstract": "In this paper, we address the problem of tactile sim-to-real policy transfer for contact-rich tasks. Existing methods primarily focus on vision-based sensors and emphasize image rendering quality while providing overly simplistic models of force and shear. Consequently, these models exhibit a large sim-to-real gap for many dexterous tasks. Here, we present HydroShear, a non-holonomic hydroelastic tactile simulator that advances the state-of-the-art by modeling: a) stick-slip transitions, b) path-dependent force and shear build up, and c) full SE(3) object-sensor interactions. HydroShear extends hydroelastic contact models using Signed Distance Functions (SDFs) to track the displacements of the on-surface points of an indenter during physical interaction with the sensor membrane. Our approach generates physics-based, computationally efficient force fields from arbitrary watertight geometries while remaining agnostic to the underlying physics engine. In experiments with GelSight Minis, HydroShear more faithfully reproduces real tactile shear compared to existing methods. This fidelity enables zero-shot sim-to-real transfer of reinforcement learning policies across four tasks: peg insertion, bin packing, book shelving for insertion, and drawer pulling for fine gripper control under slip. Our method achieves a 93% average success rate, outperforming policies trained on tactile images (34%) and alternative shear simulation methods (58%-61%).",
+      "year": 2026,
+      "date": "2026-02-28",
+      "tags": [
+        "tactile sim-to-real",
+        "hydroelastic shear"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://arxiv.org/abs/2603.00446"
+      ]
+    },
+    {
+      "id": "robottt-context-scaling",
+      "title": "RoboTTT: Context Scaling for Robot Policies",
+      "slug": "robottt-context-scaling",
+      "authors": [
+        "Yunfan Jiang",
+        "Yevgen Chebotar",
+        "Ruijie Zheng",
+        "Fengyuan Hu",
+        "Yunhao Ge",
+        "Jimmy Wu",
+        "Tianyuan Dai",
+        "Scott Reed",
+        "Li Fei-Fei",
+        "Yuke Zhu",
+        "Linxi Fan"
+      ],
+      "abstract": "Recent robot foundation models operate with single-step or short-history visuomotor context. We\nintroduceTest-Time-Training Robot Policies(RoboTTT), a robot model and training recipe that scale\nvisuomotor context to 8K timesteps, three orders of magnitude beyond state-of-the-art policies, without\ngrowing inference latency. At this context length, we unlock new robot capabilities: one-shot in-\ncontext imitation from human video demonstrations, on-the-fly policy improvement, robustness to\nperturbations, and stronger performance on multi-stage, long-horizon tasks. We also observe, for the\nfirst time, steady gains in closed-loop performance as pretraining context length scales. At its core,\nRoboTTTintegrates Test-Time Training into robot foundation models such as Vision-Language-Action\npolicies, yielding a sequence model whose recurrent state consists of fast weights, parameters updated\nby gradient descent during both training and inference, compressing histories into weight space and\nretrieving contextual information for long-context conditioning. To scale training context length, the\nrecipe combines sequence action forcing with truncated backpropagation through time. On challenging\nreal-robot manipulation tasks,RoboTTTimproves overall performance by 87% over the single-step\ncontext baseline and fully completes a five-minute, ten-stage assembly task, which no baseline ever does.\nRoboTTTtrained with 8K-timestep context outperforms the same model pretrained with 1K timesteps by\n62%, suggesting context length as a new scaling axis for robot foundation models. Videos are available\nat research.nvidia.com/labs/gear/robottt.\nKeywords: Long-Context Policies, Test-Time Training, Robot Foundation Models",
+      "year": 2026,
+      "date": "2026-07-15",
+      "tags": [
+        "robot foundation models",
+        "test-time training"
+      ],
+      "githubLinks": [
+        "https://github.com/fla-org/flash-linear-attention."
+      ],
+      "codeLinks": [
+        "https://research.nvidia.com/labs/gear/robottt"
+      ]
+    },
+    {
+      "id": "neuralactuator-robot-dynamics",
+      "title": "NeuralActuator: Neural Actuation Modeling for Robot Dynamics and External Force Perception",
+      "slug": "neuralactuator-robot-dynamics",
+      "authors": [
+        "Zhiyang Dou",
+        "John U. Onyemelukwe",
+        "Hangxing Zhang",
+        "Heng Zhang",
+        "Minghao Guo",
+        "Yunsheng Tian",
+        "Michal Piotr Lipiec",
+        "Joshua Jacob",
+        "Chao Liu",
+        "Peter Yichen Chen",
+        "Yuri Ivanov",
+        "Wojciech Matusik"
+      ],
+      "abstract": "Neural actuator model for low-cost robot platforms: a Transformer jointly predicts a simulator-equivalent torque surrogate (trained through differentiable simulation from pose trajectories, no torque labels), external forces with a contact-probability gate for sensorless force perception, and a motor-condition score. Introduces the twin-arm-teleoperation Neural Actuation Dataset (NAD); validated on OpenManipulator-X, SO-101, and Franka Emika Panda.",
+      "year": 2026,
+      "date": "2026-07-13",
+      "tags": [
+        "actuator modeling",
+        "differentiable simulation"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://frank-zy-dou.github.io/projects/NeuralActuator/index.html"
+      ]
+    },
+    {
+      "id": "meshfem-block-accelerated-solver",
+      "title": "MeshFEM: A Block-accelerated Solver for Nonlinear Finite Elements",
+      "slug": "meshfem-block-accelerated-solver",
+      "authors": [
+        "Haleh Mohammadian",
+        "Xinzhuo Hu",
+        "Roi Poranne",
+        "Julian Panetta"
+      ],
+      "abstract": "MeshFEM presents a high-performance framework for nonconvex optimization problems in simulation and geometry processing. It exploits block-sparse Hessians from small-stencil element energies and accelerates sparsity construction, system assembly, matrix factorization, and linear solves with the BlockCatamari block-accelerated multifrontal sparse Cholesky solver. Applications include injective surface parametrization and elasticity simulation with contact.",
+      "year": 2026,
+      "date": "2026-07-03",
+      "tags": [
+        "nonlinear FEM",
+        "block sparse Cholesky"
+      ],
+      "githubLinks": [
+        "https://github.com/MeshFEM/MeshFEM",
+        "https://github.com/MeshFEM/MeshFEMSparse",
+        "https://github.com/MeshFEM/BlockCatamari",
+        "https://github.com/MeshFEM/MeshFEMDemos"
+      ],
+      "codeLinks": [
+        "https://doi.org/10.1145/3811386"
+      ]
+    },
+    {
+      "id": "convex-primitive-decomposition",
+      "title": "Convex Primitive Decomposition for Collision Detection",
+      "slug": "convex-primitive-decomposition",
+      "authors": [
+        "Julian Knodt",
+        "Xifeng Gao"
+      ],
+      "abstract": "Creation of collision objects for 3D models is a time-consuming task, requiring modelers to manually place primitives such as bounding boxes, capsules, spheres, and other convex primitives to approximate complex meshes. Rather than convex decomposition with convex hulls, we devise an approach for bottom-up decomposition of an input mesh into convex primitives specifically for rigid body simulation inspired by quadric mesh simplification.",
+      "year": 2026,
+      "date": "2026-02-07",
+      "tags": [
+        "collision detection",
+        "mesh simplification"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "lbvh-build-traversal-implementation",
+      "title": "Linear Bounding Volume Hierarchy (LBVH): Build and Traversal Implementation Document",
+      "slug": "lbvh-build-traversal-implementation",
+      "authors": [
+        "Zixuan Vicky Lu"
+      ],
+      "abstract": "A CUDA-oriented implementation note covering Morton encoding, Karras radix-tree construction, AABB refit, buffered collision queries, and pre-order escape-pointer stackless traversal.",
+      "year": 2025,
+      "date": "2025-12-04",
+      "tags": [
+        "碰撞检测",
+        "无栈 LBVH"
+      ],
+      "githubLinks": [
+        "https://github.com/ZiXuanVickyLu/culbvh",
+        "https://github.com/jerry060599/KittenGpuLBVH"
+      ],
+      "codeLinks": []
+    },
+    {
+      "id": "convergent-incremental-potential-contact",
+      "title": "Convergent Incremental Potential Contact",
+      "slug": "convergent-incremental-potential-contact",
+      "authors": [
+        "Minchen Li",
+        "Zachary Ferguson",
+        "Teseo Schneider",
+        "Timothy Langlois",
+        "Denis Zorin",
+        "Daniele Panozzo",
+        "Chenfanfu Jiang",
+        "Danny M. Kaufman"
+      ],
+      "abstract": "增量势接触（IPC）通过平滑障碍、过滤线搜索和优化式时间积分，实现了无单元翻转、无相交的摩擦接触弹性动力学模拟。然而，原始 IPC 从已经离散的网格约束出发，其纯离散接触模型不能保证随网格细化收敛。本文在连续曲线与曲面上重新定义接触障碍势和耗散摩擦势，并给出首个相应的收敛离散化；作者通过弹性静力与动力接触问题、解析基准和应用案例分析其收敛行为与精度。",
+      "year": 2023,
+      "date": "2023-07-29",
+      "tags": [
+        "frictional contact",
+        "convergent IPC"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "dlss-5-generative-neural-rendering",
+      "title": "DLSS 5: Real-Time Generative Rendering",
+      "slug": "dlss-5-generative-neural-rendering",
+      "authors": [
+        "NVIDIA Corporation"
+      ],
+      "abstract": "本文提出面向交互式图形的实时生成式渲染阶段：以引擎 RGB 帧、运动向量和时序状态为条件，结合训练时的反照率/法线/光照一致性监督，利用真实照片外观先验增强材质与光照，同时保持开发者创作内容。系统采用一步像素空间扩散与因果逐帧推理，在 Blackwell/RTX 50 系列上面向最高 4K 实时部署。",
+      "year": 2026,
+      "date": "2026-09-01",
+      "tags": [
+        "实时神经渲染",
+        "3D引导扩散"
+      ],
+      "githubLinks": [],
+      "codeLinks": []
+    },
+    {
+      "id": "univtac-unified-visuo-tactile-manipulation",
+      "title": "UniVTAC: A Unified Simulation Platform for Visuo-Tactile Manipulation Data Generation, Learning, and Benchmarking",
+      "slug": "univtac-unified-visuo-tactile-manipulation",
+      "authors": [
+        "Baijun Chen",
+        "Weijie Wan",
+        "Tianxing Chen",
+        "Xianda Guo",
+        "Congsheng Xu",
+        "Yuanyang Qi",
+        "Haojie Zhang",
+        "Longyan Wu",
+        "Tianling Xu",
+        "Zixuan Li",
+        "Yizhe Wu",
+        "Rui Li",
+        "Xiaokang Yang",
+        "Ping Luo",
+        "Wei Sui",
+        "Yao Mu"
+      ],
+      "abstract": "UniVTAC 将视触觉传感器仿真、触觉表示学习与统一操作基准整合为一条可规模化实验流水线。平台支持三类传感器和五个自动化操作 API，通过随机压入、剪切和接触纠正生成带特权标签的数据；UniVTAC Encoder 以形状、接触、位姿三路径监督学习 tactile-centric 表示；八项 benchmark 与真机实验用于验证下游策略。作者报告仿真平均成功率从 30.9% 提升到 48.0%，真机平均成功率从 43.3% 提升到 68.3%。",
+      "year": 2026,
+      "date": "2026-02-10",
+      "tags": [
+        "视触觉操作",
+        "多路径表示学习"
+      ],
+      "githubLinks": [
+        "https://github.com/univtac/UniVTAC"
+      ],
+      "codeLinks": [
+        "https://univtac.github.io/",
+        "https://huggingface.co/datasets/byml/UniVTAC",
+        "https://modelscope.cn/datasets/byml2024/UniVTAC"
+      ]
+    },
+    {
+      "id": "openwam-world-action-model-pretraining",
+      "title": "OpenWAM: An Open, Modular Exploration Towards Systematic World–Action Model Pretraining",
+      "slug": "openwam-world-action-model-pretraining",
+      "authors": [
+        "OpenWAM authors"
+      ],
+      "abstract": "OpenWAM 以模块化双流基础设施系统研究世界先验、世界–动作信息流与跨域预训练，提出统一 80-D 动作空间，并在 518.5M 帧多域数据上训练 OpenWAM-α。",
+      "year": 2026,
+      "date": "2026-09-07",
+      "tags": [
+        "世界动作模型",
+        "模块化预训练"
+      ],
+      "githubLinks": [],
+      "codeLinks": [
+        "https://arxiv.org/abs/2609.07398"
+      ]
+    },
+    {
+      "id": "heat-kernel-textures",
+      "slug": "heat-kernel-textures",
+      "title": "Heat Kernel Textures: the Geodesic Gaussians That Do Not Splat",
+      "authors": [
+        "Simone Foti",
+        "Caner Korkmaz",
+        "Stefanos Zafeiriou",
+        "Tolga Birdal"
+      ],
+      "abstract": "HKTex 将纹理表示为三角网格流形上的各向异性热核，消除 UV 展开的接缝、畸变与额外存储。方法结合黎曼位置优化、流形密度控制、双调和距离局部化和可微物理渲染，支持已有 UV 纹理压缩及多视图外观重建。",
+      "year": 2026,
+      "date": "2026-09-10",
+      "tags": [
+        "曲面纹理",
+        "热核表示"
+      ],
+      "githubLinks": [
+        "https://github.com/circle-group/hktex"
+      ],
+      "codeLinks": [
+        "https://circle-group.github.io/research/HeatKernelTextures"
+      ]
+    },
+    {
+      "id": "type-free-global-intersection-analysis",
+      "title": "Type-Free Global Intersection Analysis with Linear Displacement Fields",
+      "slug": "type-free-global-intersection-analysis",
+      "authors": [
+        "Chengzhu He",
+        "Xudong Feng",
+        "Anjun Chen",
+        "Dan Song",
+        "Shihui Guo",
+        "Kui Wu"
+      ],
+      "abstract": "面向已有穿透的薄壳与可变形体，本文把每条相交轮廓作为种子，沿候选方向执行 VF/EE/FV 射线测试，通过双侧拓扑连通性筛出有效响应区域，搜索低位移代价的分离方向，最后生成隐式 Newton/PCG 可处理的 penalty pairs。",
+      "year": 2026,
+      "date": "2026-09-14",
+      "tags": [
+        "几何解相交",
+        "方向优化"
+      ],
+      "githubLinks": [
+        "https://github.com/ChengzhuUwU/Untangling26"
+      ],
+      "codeLinks": [
+        "https://github.com/ChengzhuUwU/Untangling26"
+      ]
+    },
+    {
+      "title": "S4R: Scaling for Rigid-Body Interpenetration Resolution",
+      "authors": [
+        "Zhiyang Dou",
+        "Ang Zhao",
+        "Chen Peng",
+        "Minghao Guo",
+        "Haixu Wu",
+        "Cheng Lin",
+        "Yuan Liu",
+        "Junfeng Yao",
+        "Xiaohu Guo",
+        "Wenping Wang",
+        "Wojciech Matusik"
+      ],
+      "abstract": "S4R resolves deep rigid-body mesh interpenetration through scale continuation: shrink bodies about fixed reference centers to a separated initial scale, restore full scale through minimum-norm convex contact QPs, accelerate exact mesh queries with conservative scale events and frozen-witness caching, then verify and refine at full scale.",
+      "year": 2026,
+      "date": "2026-09-17",
+      "tags": [
+        "rigid-body repair",
+        "scale continuation"
+      ],
+      "githubLinks": [
+        "https://github.com/Frank-ZY-Dou/Dynamics-Modeling"
+      ],
+      "codeLinks": [
+        "https://github.com/Frank-ZY-Dou/Dynamics-Modeling/tree/main/Penetration_Solving"
+      ],
+      "id": "s4r-scaling-rigid-body-interpenetration",
+      "slug": "s4r-scaling-rigid-body-interpenetration"
+    },
+    {
+      "id": "pi05-vision-language-action-open-world-generalization",
+      "title": "π0.5: a Vision-Language-Action Model with Open-World Generalization",
+      "slug": "pi05-vision-language-action-open-world-generalization",
+      "authors": [
+        "Kevin Black",
+        "Noah Brown",
+        "James Darpinian",
+        "Karan Dhabalia",
+        "Danny Driess",
+        "Adnan Esmail",
+        "Michael Equi",
+        "Chelsea Finn",
+        "Niccolo Fusai",
+        "Manuel Y. Galliker",
+        "Dibya Ghosh",
+        "Lachy Groom",
+        "Karol Hausman",
+        "Brian Ichter",
+        "Szymon Jakubczak",
+        "Tim Jones",
+        "Liyiming Ke",
+        "Devin LeBlanc",
+        "Sergey Levine",
+        "Adrian Li-Bell",
+        "Mohith Mothukuri",
+        "Suraj Nair",
+        "Karl Pertsch",
+        "Allen Z. Ren",
+        "Lucy Xiaoyang Shi",
+        "Laura Smith",
+        "Jost Tobias Springenberg",
+        "Kyle Stachowicz",
+        "James Tanner",
+        "Quan Vuong",
+        "Homer Walke",
+        "Anna Walling",
+        "Haohuan Wang",
+        "Lili Yu",
+        "Ury Zhilinsky"
+      ],
+      "abstract": "π0.5 co-trains a unified vision-language-action model on heterogeneous robot, semantic, verbal-instruction, and web data. A discrete-token pre-training stage is followed by a flow-matching action expert for hierarchical mobile manipulation in unseen homes.",
+      "year": 2025,
+      "date": "2025-04-22",
+      "tags": [
+        "open-world robotics",
+        "heterogeneous co-training"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "projectLinks": [
+        "https://pi.website/blog/pi05"
+      ]
+    },
+    {
+      "id": "gpt6-astra-embodied-policies",
+      "title": "Systematically Exploring the Capabilities of GPT-6 Astra as Embodied Policies",
+      "slug": "gpt6-astra-embodied-policies",
+      "authors": [
+        "Galbot Team",
+        "Xuchuan Chen",
+        "Xiaoqian Cheng",
+        "Yu Deng",
+        "Lihe Ding",
+        "Shaocong Dong",
+        "Xiangjun Gao",
+        "Haozhe Jia",
+        "Zekai Li",
+        "Zhoujian Li",
+        "Yunrui Lian",
+        "Sikai Liang",
+        "Chenghuai Lin",
+        "Dairu Liu",
+        "Jiahang Liu",
+        "Qingtao Liu",
+        "Yuxuan Ma",
+        "Zekun Qi",
+        "Jiayi Su",
+        "He Wang",
+        "Ruochen Xu",
+        "Tianyu Xu",
+        "Xudong Xu",
+        "Zhe Xu",
+        "Mi Yan",
+        "Siming Yan",
+        "Li Yi",
+        "Ruixi Yu",
+        "Jinlu Zhang",
+        "Yintianrun Zhang",
+        "Zhikai Zhang",
+        "Zhizheng Zhang",
+        "Yixin Zheng",
+        "Weiyi Zhu"
+      ],
+      "abstract": "GPT-6 Astra exhibits a remarkable ability to generate numerical robot actions, extending its role beyond high-level planning. To assess Astra's capabilities as general-purpose embodied policies, we conduct comprehensive evaluations across six domains, examining direct control, cooperation with learned policies, and feedback-driven adaptation. In gripper manipulation, Astra can correct task targets and prepare contact conditions for subsequent policy execution; hybrid control with π0.5 achieves 48% success on the evaluated RoboDojo subset. In dexterous manipulation, hybrid control achieves 50% success in ten experience-guided DexJoCo trials, while direct in-hand control struggles to coordinate finger contacts. In mobile manipulation, hybrid control reaches 38.7% success on the evaluated RoboCasa365. In navigation, Astra leads our local comparisons, reaching 92% success on RxR instruction following and 82% on HM3D object search, although search incurs substantial detours. In locomotion, dense motion-reference generation remains unreliable: none of five sequential attempts on a single obstacle course reaches the goal, despite improvements in stability and forward progress. In humanoid loco-manipulation, Astra exceeds baseline methods on 13 of 30 HumanoidBench tasks with pretrained whole-body controllers. These findings reveal a gap between useful task decisions and reliable physical control. Inference latency further constrains practical control: across 50 RoboDojo instances per condition, policy-assisted and direct control consume 624.8 million and 1.132 billion tokens. A 30-second locomotion run requires 250 model calls averaging 39.86 seconds each, with physics paused during inference.",
+      "year": 2026,
+      "date": "2026-09-29",
+      "tags": [
+        "具身策略评测",
+        "混合闭环控制"
+      ],
+      "githubLinks": [
+        "https://github.com/anonymous-report-421/GPT-as-Policy"
+      ],
+      "codeLinks": [],
+      "projectLinks": [
+        "https://galaxygeneralrobotics.github.io/astra-policy/"
+      ],
+      "arxivId": "2609.38537v1",
+      "pdfUrl": "https://arxiv.org/pdf/2609.38537v1",
+      "difficulty": "Advanced"
+    },
+    {
+      "id": "unitas-3d-native-world-action-model",
+      "title": "UNITAS: A 3D-Native World Action Model for Embodied Manipulation",
+      "slug": "unitas-3d-native-world-action-model",
+      "authors": [
+        "Ruixiang Wang",
+        "Yongyi Su",
+        "Wenlve Zhou",
+        "Bo Yue",
+        "Hengyan Liu",
+        "Dekun Lu",
+        "Yuxin Tian",
+        "Yihan Fang",
+        "Zerui Wu",
+        "Xing Hu",
+        "Jietao Chen",
+        "Yong Guo",
+        "Ziyan He",
+        "Junbin Yuan",
+        "Guiliang Liu",
+        "Xiaofen Xing",
+        "Kui Jia"
+      ],
+      "abstract": "UNITAS is a 3D-native world action model that unifies observations, actions, and scene dynamics in a shared metric 3D frame. It represents human hands and robot grippers as action-flow point trajectories, scene changes as scene flow, and uses world-aligned positional embeddings plus physical-time trajectory tokens.",
+      "year": 2026,
+      "date": "2026-10-08",
+      "tags": [
+        "三维世界动作",
+        "点流表征"
+      ],
+      "githubLinks": [
+        "https://github.com/DexForce/UNITAS"
+      ],
+      "codeLinks": [],
+      "projectLinks": [
+        "https://github.com/DexForce/UNITAS"
+      ],
+      "arxivId": "2610.12099v1",
+      "pdfUrl": "https://arxiv.org/pdf/2610.12099v1",
+      "difficulty": "Advanced"
+    },
+    {
+      "id": "light-transport-3d-embedding-global-illumination",
+      "title": "A Generalizable Light Transport 3D Embedding for Global Illumination",
+      "slug": "light-transport-3d-embedding-global-illumination",
+      "authors": [
+        "Bing Xu",
+        "Mukund Varma T",
+        "Cheng Wang",
+        "Tzu-Mao Li",
+        "Lifan Wu",
+        "Bartlomiej Wronski",
+        "Ravi Ramamoorthi",
+        "Marco Salvi"
+      ],
+      "abstract": "Global illumination (GI) is essential for realism but remains computationally expensive. While per-scene neural methods lack generalization and screen-space approaches suffer from view inconsistency, prior 3D neural rendering methods face a scalability barrier on complex scenes. This paper introduces a generalizable light-transport 3D embedding that predicts global illumination directly from 3D scene configurations without rasterized or path-traced illumination cues or per-scene retraining. A point-based representation decouples the embedding from scene topology, and a linear-complexity transformer encodes long-range light transport. Independent local query decoding gives constant per-pixel complexity relative to scene size, enabling view-consistent and resolution-agnostic rendering. The authors curate about 14k complex indoor scenes and demonstrate transfer from diffuse irradiance to spatial-directional radiance fields for glossy materials.",
+      "year": 2026,
+      "date": "2026-07-19",
+      "tags": [
+        "全局光照",
+        "点云Transformer"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "projectLinks": [
+        "https://doi.org/10.1145/3799902.3811095"
+      ],
+      "pdfUrl": "https://bingxu.tech/papers/light_transformer_sig_2026.pdf",
+      "doi": "10.1145/3799902.3811095",
+      "difficulty": "Advanced"
+    },
+    {
+      "id": "cuacd-gpu-convex-decomposition",
+      "title": "CuACD: A Fully GPU-Resident Approximate Convex Decomposition",
+      "slug": "cuacd-gpu-convex-decomposition",
+      "authors": [
+        "Ruoxi Shi",
+        "Xinyue Wei",
+        "Fanbo Xiang",
+        "Zexiang Xu",
+        "Hao Su"
+      ],
+      "abstract": "CuACD 将搜索式近似凸分解的几何重负载映射到 GPU，以 warp 协作、设备端 heap 和融合阶段减少不规则几何算法的同步与分配开销。论文在三个数据集报告相对 CoACD 约 78–104 倍加速。本学习包同时核对公开源码中仍存在的主机控制和同步。",
+      "year": 2026,
+      "date": "2026-09-23",
+      "tags": [
+        "凸分解",
+        "Warp协作"
+      ],
+      "githubLinks": [
+        "https://github.com/eliphatfs/cuacd"
+      ],
+      "codeLinks": [
+        "https://github.com/eliphatfs/cuacd"
+      ]
+    },
+    {
+      "id": "sdf-collision-caching-importance-sampling",
+      "title": "Real-Time Collision Handling for Signed Distance Fields via Caching and Importance Sampling",
+      "slug": "sdf-collision-caching-importance-sampling",
+      "authors": [
+        "Chris Giles",
+        "Sheldon Andrews"
+      ],
+      "abstract": "本文研究两个以 Signed Distance Field 表示的刚体之间的离散碰撞检测。方法结合跨帧候选点缓存、曲率引导的重要性采样和接触点排斥，在较少距离场查询下生成稀疏且持久的多点接触流形。论文比较 Nelder–Mead、Ellipsoid 和随机梯度下降，并用解析与体素场、堆叠场景、穿透深度及动能实验评估效率与稳定性。",
+      "year": 2026,
+      "date": "2026-10-19",
+      "tags": [
+        "SDF碰撞检测",
+        "接触流形缓存"
+      ],
+      "githubLinks": [
+        "https://github.com/savant117/sdf-dcd-demo"
+      ],
+      "codeLinks": [
+        "https://github.com/savant117/sdf-dcd-demo"
+      ],
+      "projectLinks": [
+        "https://savant117.github.io/sdf-dcd-demo/"
+      ],
+      "pdfUrl": "https://savant117.github.io/sdf-dcd-demo/paper.pdf",
+      "difficulty": "Advanced",
+      "titleZh": "通过缓存与重要性采样实现 SDF 的实时碰撞处理",
+      "studyDate": "2026-10-19",
+      "sourceCommit": "08539dd3ad5fa9b41fdd160c730747de0b510b4e",
+      "dateNote": "本地收录日期，精确发表日期未核实"
+    },
+    {
+      "id": "diffgipc-mixed-coordinate-contact",
+      "title": "DiffGIPC: Differentiable Mixed-Coordinate Contact Dynamics on GPU",
+      "slug": "diffgipc-mixed-coordinate-contact",
+      "authors": [
+        "Kemeng Huang",
+        "Bowen Ren",
+        "Xinyu Lu",
+        "Minchen Li",
+        "Taku Komura"
+      ],
+      "abstract": "DiffGIPC 面向接触丰富的逆问题，在统一 IPC 框架中使用 FEM 表示软体、用每个物体 12 个运动自由度的 affine 坐标表示近刚体。逐帧耦合伴随保留碰撞、摩擦与关节依赖，显式计算静止形状、初始状态和控制导数；GPU 反向执行、conditional CUDA Graph PCG 与 PyTorch 接口降低重复仿真和求梯度的成本。性能需要区分共享 FEM 基准、改变运动表示后的高分辨率峰值，以及 Graph 开关实验。",
+      "year": 2026,
+      "date": "2026-10-13",
+      "tags": [
+        "可微接触仿真",
+        "混合坐标伴随"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "arxivId": "2610.19091",
+      "url": "https://arxiv.org/abs/2610.19091v1",
+      "pdfUrl": "https://arxiv.org/pdf/2610.19091v1",
+      "language": "zh-CN"
+    },
+    {
+      "id": "physldm-latent-deformable-simulation",
+      "title": "PhysLDM: Latent Diffusion for High-Fidelity Deformable Simulation",
+      "slug": "physldm-latent-deformable-simulation",
+      "authors": [
+        "Yu Zhang",
+        "Xudong Xu",
+        "Xingang Pan"
+      ],
+      "abstract": "PhysLDM 用逐帧空间 VAE、整体时序 ST-VAE 与条件 rectified-flow 模型生成体积软体网格的整段轨迹。它把全局刚体运动与局部形变分开编码，缓解局部时间压缩的阶梯伪影，并比较了多模态运动中的扩散采样和确定性回归。主要结果包含重建精度、未来预测、物理一致性指标、分布外几何、逆问题与真实数据适配。重建误差、预测误差以及微调子集表现需要分别理解。",
+      "year": 2026,
+      "date": "2026-10-06",
+      "tags": [
+        "变形体仿真",
+        "潜空间扩散"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "arxivId": "2610.07609",
+      "version": "v3",
+      "url": "https://arxiv.org/abs/2610.07609v3",
+      "pdfUrl": "https://arxiv.org/pdf/2610.07609v3",
+      "projectUrl": "https://yucrazing.github.io/physldm/",
+      "language": "zh-CN",
+      "updatedDate": "2026-10-18"
+    },
+    {
+      "id": "blind-precise-assembly-2610-23849",
+      "title": "Blind Precise Assembly: Proprioceptive Sim-to-Real Peg-in-Hole for Diverse Parts",
+      "slug": "blind-precise-assembly-2610-23849",
+      "authors": [
+        "Antonia Bronars",
+        "Younghyo Park",
+        "Kushal Kedia",
+        "Pulkit Agrawal"
+      ],
+      "abstract": "论文研究仅用关节位置、速度、由其计算的夹爪状态和动作历史完成接触装配。时序编码器结合训练期接触监督与非对称 PPO，在仿真中学习插销入孔、齿轮啮合和螺母起扣；插销策略无需真机策略微调，在 237 次真机实验中成功 173 次。配套 mjfit 根据装配间隙构造凸碰撞几何。实验从已接触且靠近目标的位置开始。",
+      "year": 2026,
+      "date": "2026-10-16",
+      "tags": [
+        "精密装配",
+        "本体感知策略"
+      ],
+      "githubLinks": [
+        "https://github.com/younghyopark/mjfit"
+      ],
+      "codeLinks": [
+        "https://github.com/younghyopark/mjfit"
+      ]
+    },
+    {
+      "id": "supermimic-differentiable-world-model",
+      "slug": "supermimic-differentiable-world-model",
+      "title": "SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World Model",
+      "titleZh": "SuperMimic：用一个可微世界模型扩展人形机器人全身控制",
+      "authors": [
+        "Qiayuan Liao",
+        "Yiyang Shao",
+        "Junfeng Long",
+        "Kevin Zakka",
+        "Roberto Horowitz",
+        "Pieter Abbeel",
+        "Koushil Sreenath"
+      ],
+      "abstract": "SuperMimic 用一个从标准刚体仿真日志学习的可微世界模型共享不同动作的机器人动力学。训练交替采样、拟合模型和通过短期想象轨迹反向传播优化策略，并用 critic 补充长期回报。作者报告单张 H100 训练 3 小时超过 SONIC 发布检查点的归一化回报；在 129514 条训练集基准动作上失败 25 条，双卡 9.8 小时后为零。论文展示 G1 真机迁移，并分析动力学共享、模型吞吐和解析策略梯度的贡献。硬件、训练数据和评估口径的差异需要单独理解。",
+      "year": 2026,
+      "date": "2026-10-20",
+      "studyDate": "2026-10-22",
+      "tags": [
+        "人形全身控制",
+        "可微世界模型"
+      ],
+      "githubLinks": [],
+      "codeLinks": [],
+      "projectLinks": [
+        "https://supermimic.github.io/"
+      ],
+      "arxivId": "2610.28480",
+      "version": "v1",
+      "url": "https://arxiv.org/abs/2610.28480v1",
+      "pdfUrl": "https://arxiv.org/pdf/2610.28480v1",
+      "language": "zh-CN",
+      "difficulty": "Advanced"
+    }
+  ]
+}
